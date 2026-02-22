@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>InstaMetrics — Instagram Analytics</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.10.3/Recharts.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script crossorigin src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -141,7 +141,6 @@
     }
     .media-item:hover { border-color: rgba(255,255,255,0.15); transform: translateY(-2px); }
     .media-item img { width: 100%; aspect-ratio: 1; object-fit: cover; }
-    .media-item video { width: 100%; aspect-ratio: 1; object-fit: cover; }
     .media-info { padding: 12px 14px; }
 
     .toast {
@@ -165,11 +164,16 @@
       font-size: 13px; color: #FFB74D; display: flex; align-items: center; gap: 10px;
     }
 
+    #error-display {
+      display: none; color: #FF6B6B; padding: 40px; text-align: center;
+      font-family: 'DM Sans', sans-serif; font-size: 15px;
+    }
+
     @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     @media (max-width: 768px) {
-      .header { padding: 12px 16px; }
+      .header { padding: 12px 16px; flex-wrap: wrap; gap: 12px; }
       .main { padding: 16px; }
       .charts-grid { grid-template-columns: 1fr; }
       .metrics-grid { grid-template-columns: repeat(2, 1fr); }
@@ -178,15 +182,42 @@
 </head>
 <body>
   <div id="root"></div>
-  <script type="text/babel">
+  <div id="error-display">
+    <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+    <h2 style="margin-bottom: 8px;">Error cargando la aplicación</h2>
+    <p id="error-msg" style="color: rgba(255,255,255,0.5);"></p>
+    <p style="margin-top: 16px; color: rgba(255,255,255,0.3); font-size: 13px;">Abre la consola del navegador (F12) para más detalles.</p>
+  </div>
+
+  <script type="text/babel" data-type="module">
+    // Check dependencies loaded
+    if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
+      throw new Error('React no pudo cargar. Revisa tu conexión a internet.');
+    }
+
     const { useState, useEffect, useCallback } = React;
-    const { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
-      CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } = Recharts;
+
+    // Recharts components (with fallback)
+    const RechartAvailable = typeof Recharts !== 'undefined';
+    const LineChart = RechartAvailable ? Recharts.LineChart : () => null;
+    const Line = RechartAvailable ? Recharts.Line : () => null;
+    const AreaChart = RechartAvailable ? Recharts.AreaChart : () => null;
+    const Area = RechartAvailable ? Recharts.Area : () => null;
+    const BarChart = RechartAvailable ? Recharts.BarChart : () => null;
+    const Bar = RechartAvailable ? Recharts.Bar : () => null;
+    const XAxis = RechartAvailable ? Recharts.XAxis : () => null;
+    const YAxis = RechartAvailable ? Recharts.YAxis : () => null;
+    const CartesianGrid = RechartAvailable ? Recharts.CartesianGrid : () => null;
+    const Tooltip = RechartAvailable ? Recharts.Tooltip : () => null;
+    const ResponsiveContainer = RechartAvailable ? Recharts.ResponsiveContainer : ({children}) => React.createElement('div', null, children);
+    const PieChart = RechartAvailable ? Recharts.PieChart : () => null;
+    const Pie = RechartAvailable ? Recharts.Pie : () => null;
+    const Cell = RechartAvailable ? Recharts.Cell : () => null;
 
     const COLORS = ["#DD2A7B", "#8134AF", "#F58529", "#515BD4", "#1DA1F2", "#38EF7D", "#FC466B", "#FFD200"];
     const PIE_COLORS = ["#DD2A7B", "#8134AF", "#F58529", "#515BD4"];
 
-    // ─── API Helper ───
+    // API Helper
     async function api(path, opts = {}) {
       const res = await fetch(path, opts);
       if (!res.ok) {
@@ -196,25 +227,26 @@
       return res.json();
     }
 
-    // ─── Custom Tooltip ───
+    // Chart Tooltip
     function ChartTooltip({ active, payload, label }) {
       if (!active || !payload?.length) return null;
-      return (
-        <div style={{
+      return React.createElement('div', {
+        style: {
           background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.12)",
           borderRadius: 12, padding: "12px 16px", boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-        }}>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginBottom: 6 }}>{label}</div>
-          {payload.map((p, i) => (
-            <div key={i} style={{ fontSize: 13, color: p.color, fontWeight: 600, marginBottom: 2 }}>
-              {p.name}: {typeof p.value === "number" ? p.value.toLocaleString("es-ES") : p.value}
-            </div>
-          ))}
-        </div>
+        }
+      },
+        React.createElement('div', { style: { fontSize: 12, color: "rgba(255,255,255,0.5)", marginBottom: 6 } }, label),
+        ...payload.map((p, i) =>
+          React.createElement('div', {
+            key: i,
+            style: { fontSize: 13, color: p.color, fontWeight: 600, marginBottom: 2 }
+          }, `${p.name}: ${typeof p.value === "number" ? p.value.toLocaleString("es-ES") : p.value}`)
+        )
       );
     }
 
-    // ─── Metric Card ───
+    // Metric Card
     function MetricCard({ icon, label, value, change, color }) {
       const isPositive = change >= 0;
       return (
@@ -244,7 +276,7 @@
       );
     }
 
-    // ─── Main App ───
+    // Main App
     function App() {
       const [accounts, setAccounts] = useState([]);
       const [selectedId, setSelectedId] = useState(null);
@@ -252,45 +284,40 @@
       const [tab, setTab] = useState("overview");
       const [loading, setLoading] = useState(true);
       const [toast, setToast] = useState(null);
-
-      // Data states
       const [insights, setInsights] = useState(null);
       const [media, setMedia] = useState([]);
       const [demographics, setDemographics] = useState(null);
       const [loadingData, setLoadingData] = useState(false);
 
-      // Show toast
       const showToast = (msg, type = "success") => {
         setToast({ msg, type });
         setTimeout(() => setToast(null), 4000);
       };
 
-      // Check URL params on mount
       useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         if (params.get("connected")) {
-          showToast(`@${params.get("connected")} conectada correctamente ✓`);
+          showToast("@" + params.get("connected") + " conectada correctamente ✓");
           window.history.replaceState({}, "", "/");
         }
         if (params.get("error")) {
           showToast(params.get("error"), "error");
           window.history.replaceState({}, "", "/");
         }
-        loadAccounts();
+        loadAccountsList();
       }, []);
 
-      const loadAccounts = async () => {
+      const loadAccountsList = async () => {
         try {
           const data = await api("/api/accounts");
           setAccounts(data);
           if (data.length > 0 && !selectedId) setSelectedId(data[0].id);
         } catch (e) {
-          showToast("Error loading accounts: " + e.message, "error");
+          console.log("No accounts yet or API error:", e.message);
         }
         setLoading(false);
       };
 
-      // Load data when account changes
       useEffect(() => {
         if (!selectedId) return;
         fetchAccountData();
@@ -299,29 +326,30 @@
       const fetchAccountData = async () => {
         setLoadingData(true);
         try {
-          // Fetch profile, insights, and media in parallel
           const [profileData, insightsData, mediaData] = await Promise.allSettled([
-            api(`/api/accounts/${selectedId}/profile`),
-            api(`/api/accounts/${selectedId}/insights?period=day`),
-            api(`/api/accounts/${selectedId}/media?limit=25`),
+            api("/api/accounts/" + selectedId + "/profile"),
+            api("/api/accounts/" + selectedId + "/insights?period=day"),
+            api("/api/accounts/" + selectedId + "/media?limit=25"),
           ]);
 
           if (insightsData.status === "fulfilled") setInsights(insightsData.value);
-          if (mediaData.status === "fulfilled") setMedia(mediaData.value.data || []);
+          else setInsights(null);
 
-          // Refresh profile in local state
+          if (mediaData.status === "fulfilled") setMedia(mediaData.value.data || []);
+          else setMedia([]);
+
           if (profileData.status === "fulfilled") {
-            setAccounts(prev => prev.map(a =>
-              a.id === selectedId ? { ...a, ...profileData.value } : a
-            ));
+            setAccounts(function(prev) {
+              return prev.map(function(a) {
+                return a.id === selectedId ? Object.assign({}, a, profileData.value) : a;
+              });
+            });
           }
 
-          // Try demographics (may fail for small accounts)
           try {
-            const demo = await api(`/api/accounts/${selectedId}/demographics`);
+            const demo = await api("/api/accounts/" + selectedId + "/demographics");
             setDemographics(demo);
-          } catch { setDemographics(null); }
-
+          } catch(e) { setDemographics(null); }
         } catch (e) {
           showToast("Error fetching data: " + e.message, "error");
         }
@@ -330,10 +358,10 @@
 
       const removeAccount = async (id) => {
         try {
-          await api(`/api/accounts/${id}`, { method: "DELETE" });
-          const updated = accounts.filter(a => a.id !== id);
+          await api("/api/accounts/" + id, { method: "DELETE" });
+          const updated = accounts.filter(function(a) { return a.id !== id; });
           setAccounts(updated);
-          if (selectedId === id) setSelectedId(updated[0]?.id || null);
+          if (selectedId === id) setSelectedId(updated[0] ? updated[0].id : null);
           showToast("Cuenta eliminada");
         } catch (e) {
           showToast("Error: " + e.message, "error");
@@ -342,58 +370,57 @@
 
       const refreshToken = async (id) => {
         try {
-          await api(`/api/accounts/${id}/refresh-token`, { method: "POST" });
+          await api("/api/accounts/" + id + "/refresh-token", { method: "POST" });
           showToast("Token renovado ✓");
-          loadAccounts();
+          loadAccountsList();
         } catch (e) {
           showToast("Error renovando token: " + e.message, "error");
         }
       };
 
-      const acc = accounts.find(a => a.id === selectedId);
+      const acc = accounts.find(function(a) { return a.id === selectedId; });
 
-      // Parse insights data into chart-friendly format
-      const chartData = (() => {
-        if (!insights?.data) return [];
-        const reachMetric = insights.data.find(m => m.name === "reach");
-        const impressionsMetric = insights.data.find(m => m.name === "impressions");
-        if (!reachMetric?.values) return [];
-
-        return reachMetric.values.map((v, i) => ({
-          date: new Date(v.end_time).toLocaleDateString("es-ES", { day: "2-digit", month: "short" }),
-          reach: v.value,
-          impressions: impressionsMetric?.values?.[i]?.value || 0,
-        }));
+      // Parse insights
+      const chartData = (function() {
+        if (!insights || !insights.data) return [];
+        const reachMetric = insights.data.find(function(m) { return m.name === "reach"; });
+        const impressionsMetric = insights.data.find(function(m) { return m.name === "impressions"; });
+        if (!reachMetric || !reachMetric.values) return [];
+        return reachMetric.values.map(function(v, i) {
+          return {
+            date: new Date(v.end_time).toLocaleDateString("es-ES", { day: "2-digit", month: "short" }),
+            reach: v.value,
+            impressions: impressionsMetric && impressionsMetric.values && impressionsMetric.values[i] ? impressionsMetric.values[i].value : 0,
+          };
+        });
       })();
 
       // Media stats
-      const mediaStats = (() => {
+      const mediaStats = (function() {
         if (!media.length) return { totalLikes: 0, totalComments: 0, byType: {} };
-        let totalLikes = 0, totalComments = 0;
-        const byType = {};
-        media.forEach(m => {
+        var totalLikes = 0, totalComments = 0, byType = {};
+        media.forEach(function(m) {
           totalLikes += m.like_count || 0;
           totalComments += m.comments_count || 0;
-          const type = m.media_type || "UNKNOWN";
+          var type = m.media_type || "UNKNOWN";
           byType[type] = (byType[type] || 0) + 1;
         });
-        return { totalLikes, totalComments, byType };
+        return { totalLikes: totalLikes, totalComments: totalComments, byType: byType };
       })();
 
-      const contentDistribution = Object.entries(mediaStats.byType).map(([name, value]) => {
-        const labels = { IMAGE: "Fotos", VIDEO: "Reels/Video", CAROUSEL_ALBUM: "Carruseles" };
-        return { name: labels[name] || name, value };
+      const contentDistribution = Object.entries(mediaStats.byType).map(function(entry) {
+        var labels = { IMAGE: "Fotos", VIDEO: "Reels/Video", CAROUSEL_ALBUM: "Carruseles" };
+        return { name: labels[entry[0]] || entry[0], value: entry[1] };
       });
 
-      // Token expiry check
-      const daysUntilExpiry = acc?.token_expires_at
+      const daysUntilExpiry = acc && acc.token_expires_at
         ? Math.floor((acc.token_expires_at - Date.now()) / (1000 * 60 * 60 * 24))
         : null;
 
       if (loading) {
         return (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
-            <div className="loading-spinner" />
+            <div className="loading-spinner"></div>
           </div>
         );
       }
@@ -413,46 +440,40 @@
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               {accounts.length > 0 && (
                 <div className="account-selector">
-                  <button className="btn-secondary" onClick={() => setDropdownOpen(!dropdownOpen)}>
-                    {acc?.profile_picture_url && (
+                  <button className="btn-secondary" onClick={function() { setDropdownOpen(!dropdownOpen); }}>
+                    {acc && acc.profile_picture_url && (
                       <img src={acc.profile_picture_url} style={{ width: 22, height: 22, borderRadius: "50%" }} />
                     )}
-                    <span style={{
-                      width: 8, height: 8, borderRadius: "50%",
-                      background: COLORS[accounts.indexOf(acc) % COLORS.length],
-                      display: acc?.profile_picture_url ? "none" : "block",
-                    }} />
-                    @{acc?.username || "Seleccionar"}
+                    {"@" + (acc ? acc.username : "Seleccionar")}
                     <span style={{ opacity: 0.4, fontSize: 12 }}>▼</span>
                   </button>
 
                   {dropdownOpen && (
                     <div className="dropdown">
-                      {accounts.map((a, i) => (
-                        <div key={a.id} className="dropdown-item"
-                          onClick={() => { setSelectedId(a.id); setDropdownOpen(false); }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            {a.profile_picture_url
-                              ? <img src={a.profile_picture_url} style={{ width: 24, height: 24, borderRadius: "50%" }} />
-                              : <span style={{ width: 8, height: 8, borderRadius: "50%", background: COLORS[i % COLORS.length] }} />}
-                            <span style={{ fontSize: 14, fontWeight: 500 }}>@{a.username}</span>
+                      {accounts.map(function(a, i) {
+                        return (
+                          <div key={a.id} className="dropdown-item"
+                            onClick={function() { setSelectedId(a.id); setDropdownOpen(false); }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              {a.profile_picture_url
+                                ? <img src={a.profile_picture_url} style={{ width: 24, height: 24, borderRadius: "50%" }} />
+                                : <span style={{ width: 8, height: 8, borderRadius: "50%", background: COLORS[i % COLORS.length], display: "inline-block" }}></span>}
+                              <span style={{ fontSize: 14, fontWeight: 500 }}>{"@" + a.username}</span>
+                            </div>
+                            <button onClick={function(e) { e.stopPropagation(); removeAccount(a.id); }}
+                              style={{
+                                background: "none", border: "none", cursor: "pointer",
+                                color: "rgba(255,255,255,0.3)", fontSize: 16, padding: "2px 6px",
+                              }}>✕</button>
                           </div>
-                          <button onClick={(e) => { e.stopPropagation(); removeAccount(a.id); }}
-                            style={{
-                              background: "none", border: "none", cursor: "pointer",
-                              color: "rgba(255,255,255,0.3)", fontSize: 16, padding: "2px 6px",
-                            }}
-                            onMouseEnter={e => e.target.style.color = "#FF6B6B"}
-                            onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.3)"}
-                          >✕</button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
               )}
 
-              <button className="btn-connect" onClick={() => window.location.href = "/auth/login"}>
+              <button className="btn-connect" onClick={function() { window.location.href = "/auth/login"; }}>
                 + Conectar cuenta
               </button>
             </div>
@@ -471,25 +492,25 @@
                   Necesitas una cuenta Business o Creator.
                 </p>
                 <button className="btn-connect" style={{ marginTop: 8, padding: "14px 28px", fontSize: 16 }}
-                  onClick={() => window.location.href = "/auth/login"}>
+                  onClick={function() { window.location.href = "/auth/login"; }}>
                   + Conectar cuenta
                 </button>
                 <div style={{ marginTop: 32, padding: 24, background: "rgba(255,255,255,0.03)", borderRadius: 16, maxWidth: 500, textAlign: "left" }}>
                   <h4 style={{ marginBottom: 12, color: "rgba(255,255,255,0.7)" }}>⚡ Antes de conectar:</h4>
                   <ol style={{ paddingLeft: 20, color: "rgba(255,255,255,0.5)", lineHeight: 2, fontSize: 14 }}>
                     <li>Tu cuenta debe ser <strong style={{ color: "#fff" }}>Business</strong> o <strong style={{ color: "#fff" }}>Creator</strong> (se cambia gratis en Ajustes → Cuenta)</li>
-                    <li>Necesitas una app configurada en <a href="https://developers.facebook.com" target="_blank" style={{ color: "#DD2A7B" }}>Meta for Developers</a></li>
+                    <li>El administrador debe configurar la app en <a href="https://developers.facebook.com" target="_blank" style={{ color: "#DD2A7B" }}>Meta for Developers</a></li>
                     <li>Pulsa "Conectar cuenta" y autoriza el acceso</li>
                   </ol>
                 </div>
               </div>
             ) : (
-              <>
+              <div>
                 {/* Token warning */}
                 {daysUntilExpiry !== null && daysUntilExpiry < 10 && (
                   <div className="token-warning">
-                    ⚠️ El token de @{acc.username} expira en {daysUntilExpiry} días.
-                    <button onClick={() => refreshToken(acc.id)}
+                    {"⚠️ El token de @" + acc.username + " expira en " + daysUntilExpiry + " días."}
+                    <button onClick={function() { refreshToken(acc.id); }}
                       style={{
                         background: "rgba(255,152,0,0.2)", border: "1px solid rgba(255,152,0,0.4)",
                         borderRadius: 8, padding: "4px 14px", color: "#FFB74D",
@@ -506,9 +527,9 @@
                         style={{ width: 52, height: 52, borderRadius: 16, border: "2px solid rgba(255,255,255,0.1)" }} />
                     )}
                     <div>
-                      <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em" }}>@{acc.username}</h1>
+                      <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em" }}>{"@" + acc.username}</h1>
                       <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, fontWeight: 500 }}>
-                        {acc.account_type} · {acc.name !== acc.username ? acc.name : ""}
+                        {acc.account_type + (acc.name && acc.name !== acc.username ? " · " + acc.name : "")}
                       </p>
                     </div>
                   </div>
@@ -519,24 +540,26 @@
                       🔄 Actualizar
                     </button>
                     <div className="tabs">
-                      {["overview", "media", "audiencia"].map(t => (
-                        <button key={t} className={`tab ${tab === t ? "active" : ""}`} onClick={() => setTab(t)}>
-                          {t}
-                        </button>
-                      ))}
+                      {["overview", "media", "audiencia"].map(function(t) {
+                        return (
+                          <button key={t} className={"tab" + (tab === t ? " active" : "")} onClick={function() { setTab(t); }}>
+                            {t}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
 
                 {loadingData && (
                   <div style={{ display: "flex", justifyContent: "center", padding: 40 }}>
-                    <div className="loading-spinner" />
+                    <div className="loading-spinner"></div>
                   </div>
                 )}
 
                 {!loadingData && (
-                  <>
-                    {/* Metrics cards */}
+                  <div>
+                    {/* Metrics */}
                     <div className="metrics-grid">
                       <MetricCard icon="👥" label="Seguidores" value={acc.followers_count || 0} color="#DD2A7B" />
                       <MetricCard icon="➡️" label="Siguiendo" value={acc.follows_count || 0} color="#8134AF" />
@@ -545,103 +568,107 @@
                       <MetricCard icon="💬" label="Comentarios" value={mediaStats.totalComments} color="#515BD4" />
                       <MetricCard icon="📊" label="Eng. Rate"
                         value={acc.followers_count
-                          ? ((mediaStats.totalLikes + mediaStats.totalComments) / Math.min(media.length || 1, 25) / acc.followers_count * 100).toFixed(2) + "%"
+                          ? ((mediaStats.totalLikes + mediaStats.totalComments) / Math.max(media.length, 1) / acc.followers_count * 100).toFixed(2) + "%"
                           : "—"}
                         color="#38EF7D" />
                     </div>
 
-                    {/* OVERVIEW TAB */}
+                    {/* OVERVIEW */}
                     {tab === "overview" && (
                       <div className="charts-grid">
-                        {chartData.length > 0 && (
-                          <>
-                            <div className="chart-card full-width">
-                              <h3 style={{ marginBottom: 20, fontSize: 16, fontWeight: 700 }}>Alcance e Impresiones (diario)</h3>
-                              <ResponsiveContainer width="100%" height={280}>
-                                <AreaChart data={chartData}>
-                                  <defs>
-                                    <linearGradient id="reachG" x1="0" y1="0" x2="0" y2="1">
-                                      <stop offset="0%" stopColor="#DD2A7B" stopOpacity={0.3} />
-                                      <stop offset="100%" stopColor="#DD2A7B" stopOpacity={0} />
-                                    </linearGradient>
-                                    <linearGradient id="impG" x1="0" y1="0" x2="0" y2="1">
-                                      <stop offset="0%" stopColor="#515BD4" stopOpacity={0.3} />
-                                      <stop offset="100%" stopColor="#515BD4" stopOpacity={0} />
-                                    </linearGradient>
-                                  </defs>
-                                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                                  <XAxis dataKey="date" stroke="rgba(255,255,255,0.2)" fontSize={11} tickLine={false} />
-                                  <YAxis stroke="rgba(255,255,255,0.2)" fontSize={11} tickLine={false}
-                                    tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(1)}k` : v} />
-                                  <Tooltip content={<ChartTooltip />} />
-                                  <Area type="monotone" dataKey="reach" stroke="#DD2A7B" strokeWidth={2.5}
-                                    fill="url(#reachG)" name="Alcance" />
-                                  <Area type="monotone" dataKey="impressions" stroke="#515BD4" strokeWidth={2}
-                                    fill="url(#impG)" name="Impresiones" />
-                                </AreaChart>
-                              </ResponsiveContainer>
-                            </div>
-                          </>
+                        {RechartAvailable && chartData.length > 0 && (
+                          <div className="chart-card full-width">
+                            <h3 style={{ marginBottom: 20, fontSize: 16, fontWeight: 700 }}>Alcance e Impresiones (diario)</h3>
+                            <ResponsiveContainer width="100%" height={280}>
+                              <AreaChart data={chartData}>
+                                <defs>
+                                  <linearGradient id="reachG" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#DD2A7B" stopOpacity={0.3} />
+                                    <stop offset="100%" stopColor="#DD2A7B" stopOpacity={0} />
+                                  </linearGradient>
+                                  <linearGradient id="impG" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#515BD4" stopOpacity={0.3} />
+                                    <stop offset="100%" stopColor="#515BD4" stopOpacity={0} />
+                                  </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                                <XAxis dataKey="date" stroke="rgba(255,255,255,0.2)" fontSize={11} tickLine={false} />
+                                <YAxis stroke="rgba(255,255,255,0.2)" fontSize={11} tickLine={false}
+                                  tickFormatter={function(v) { return v >= 1000 ? (v/1000).toFixed(1) + "k" : v; }} />
+                                <Tooltip content={ChartTooltip} />
+                                <Area type="monotone" dataKey="reach" stroke="#DD2A7B" strokeWidth={2.5}
+                                  fill="url(#reachG)" name="Alcance" />
+                                <Area type="monotone" dataKey="impressions" stroke="#515BD4" strokeWidth={2}
+                                  fill="url(#impG)" name="Impresiones" />
+                              </AreaChart>
+                            </ResponsiveContainer>
+                          </div>
                         )}
 
-                        {/* Content distribution */}
-                        {contentDistribution.length > 0 && (
+                        {RechartAvailable && contentDistribution.length > 0 && (
                           <div className="chart-card">
-                            <h3 style={{ marginBottom: 20, fontSize: 16, fontWeight: 700 }}>Distribución de contenido</h3>
+                            <h3 style={{ marginBottom: 20, fontSize: 16, fontWeight: 700 }}>Tipo de contenido</h3>
                             <ResponsiveContainer width="100%" height={240}>
                               <PieChart>
                                 <Pie data={contentDistribution} cx="50%" cy="50%"
                                   innerRadius={55} outerRadius={90} paddingAngle={4} dataKey="value">
-                                  {contentDistribution.map((_, i) => (
-                                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                                  ))}
+                                  {contentDistribution.map(function(_, i) {
+                                    return <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />;
+                                  })}
                                 </Pie>
-                                <Tooltip content={<ChartTooltip />} />
+                                <Tooltip content={ChartTooltip} />
                               </PieChart>
                             </ResponsiveContainer>
-                            <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 8 }}>
-                              {contentDistribution.map((ct, i) => (
-                                <div key={ct.name} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
-                                  <span style={{ width: 10, height: 10, borderRadius: 3, background: PIE_COLORS[i % PIE_COLORS.length], display: "inline-block" }} />
-                                  <span style={{ color: "rgba(255,255,255,0.6)" }}>{ct.name} ({ct.value})</span>
-                                </div>
-                              ))}
+                            <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 8, flexWrap: "wrap" }}>
+                              {contentDistribution.map(function(ct, i) {
+                                return (
+                                  <div key={ct.name} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+                                    <span style={{ width: 10, height: 10, borderRadius: 3, background: PIE_COLORS[i % PIE_COLORS.length], display: "inline-block" }}></span>
+                                    <span style={{ color: "rgba(255,255,255,0.6)" }}>{ct.name + " (" + ct.value + ")"}</span>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         )}
 
-                        {/* Top posts by engagement */}
-                        <div className="chart-card">
+                        {/* Top posts */}
+                        <div className={"chart-card" + (contentDistribution.length === 0 ? " full-width" : "")}>
                           <h3 style={{ marginBottom: 16, fontSize: 16, fontWeight: 700 }}>Top publicaciones</h3>
                           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                            {media.slice().sort((a, b) => (b.like_count || 0) - (a.like_count || 0)).slice(0, 5).map((m, i) => (
-                              <a key={m.id} href={m.permalink} target="_blank" rel="noopener"
-                                style={{
-                                  display: "flex", alignItems: "center", gap: 12,
-                                  padding: "10px 12px", background: "rgba(255,255,255,0.03)",
-                                  borderRadius: 12, transition: "background 0.2s",
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.07)"}
-                                onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}>
-                                {(m.media_url || m.thumbnail_url) && (
-                                  <img src={m.thumbnail_url || m.media_url}
-                                    style={{ width: 44, height: 44, borderRadius: 8, objectFit: "cover" }} />
-                                )}
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontSize: 13, fontWeight: 600 }}>
-                                    {m.media_type === "VIDEO" ? "🎬" : m.media_type === "CAROUSEL_ALBUM" ? "📑" : "📷"}
-                                    {" "}{m.caption ? m.caption.slice(0, 40) + (m.caption.length > 40 ? "..." : "") : "Sin caption"}
+                            {media.slice().sort(function(a, b) { return (b.like_count || 0) - (a.like_count || 0); }).slice(0, 6).map(function(m, i) {
+                              return (
+                                <a key={m.id} href={m.permalink} target="_blank" rel="noopener"
+                                  style={{
+                                    display: "flex", alignItems: "center", gap: 12,
+                                    padding: "10px 12px", background: "rgba(255,255,255,0.03)",
+                                    borderRadius: 12, transition: "background 0.2s",
+                                  }}>
+                                  {(m.media_url || m.thumbnail_url) && (
+                                    <img src={m.thumbnail_url || m.media_url}
+                                      style={{ width: 44, height: 44, borderRadius: 8, objectFit: "cover" }} />
+                                  )}
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 600 }}>
+                                      {(m.media_type === "VIDEO" ? "🎬 " : m.media_type === "CAROUSEL_ALBUM" ? "📑 " : "📷 ") +
+                                        (m.caption ? m.caption.slice(0, 35) + (m.caption.length > 35 ? "..." : "") : "Sin caption")}
+                                    </div>
+                                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
+                                      {new Date(m.timestamp).toLocaleDateString("es-ES")}
+                                    </div>
                                   </div>
-                                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
-                                    {new Date(m.timestamp).toLocaleDateString("es-ES")}
+                                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                                    <div style={{ fontSize: 14, fontWeight: 700, color: "#DD2A7B" }}>{"❤ " + (m.like_count || 0).toLocaleString("es-ES")}</div>
+                                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{"💬 " + (m.comments_count || 0)}</div>
                                   </div>
-                                </div>
-                                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                                  <div style={{ fontSize: 14, fontWeight: 700, color: "#DD2A7B" }}>❤ {(m.like_count || 0).toLocaleString("es-ES")}</div>
-                                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>💬 {m.comments_count || 0}</div>
-                                </div>
-                              </a>
-                            ))}
+                                </a>
+                              );
+                            })}
+                            {media.length === 0 && (
+                              <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, textAlign: "center", padding: 20 }}>
+                                No hay publicaciones todavía
+                              </p>
+                            )}
                           </div>
                         </div>
 
@@ -653,33 +680,37 @@
                               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                                 <thead>
                                   <tr>
-                                    {["Cuenta", "Seguidores", "Siguiendo", "Posts", "Tipo"].map(h => (
-                                      <th key={h} style={{
-                                        textAlign: "left", padding: "10px 16px", fontSize: 12, fontWeight: 600,
-                                        color: "rgba(255,255,255,0.4)", borderBottom: "1px solid rgba(255,255,255,0.06)",
-                                      }}>{h}</th>
-                                    ))}
+                                    {["Cuenta", "Seguidores", "Siguiendo", "Posts", "Tipo"].map(function(h) {
+                                      return (
+                                        <th key={h} style={{
+                                          textAlign: "left", padding: "10px 16px", fontSize: 12, fontWeight: 600,
+                                          color: "rgba(255,255,255,0.4)", borderBottom: "1px solid rgba(255,255,255,0.06)",
+                                        }}>{h}</th>
+                                      );
+                                    })}
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {accounts.map((a, i) => (
-                                    <tr key={a.id}
-                                      style={{ background: a.id === acc.id ? "rgba(255,255,255,0.04)" : "transparent", cursor: "pointer" }}
-                                      onClick={() => setSelectedId(a.id)}>
-                                      <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 600 }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                          {a.profile_picture_url
-                                            ? <img src={a.profile_picture_url} style={{ width: 24, height: 24, borderRadius: "50%" }} />
-                                            : <span style={{ width: 8, height: 8, borderRadius: "50%", background: COLORS[i % COLORS.length], display: "inline-block" }} />}
-                                          @{a.username}
-                                        </div>
-                                      </td>
-                                      <td style={{ padding: "12px 16px", fontSize: 14 }}>{(a.followers_count || 0).toLocaleString("es-ES")}</td>
-                                      <td style={{ padding: "12px 16px", fontSize: 14 }}>{(a.follows_count || 0).toLocaleString("es-ES")}</td>
-                                      <td style={{ padding: "12px 16px", fontSize: 14 }}>{a.media_count || 0}</td>
-                                      <td style={{ padding: "12px 16px", fontSize: 13, color: "rgba(255,255,255,0.5)" }}>{a.account_type}</td>
-                                    </tr>
-                                  ))}
+                                  {accounts.map(function(a, i) {
+                                    return (
+                                      <tr key={a.id}
+                                        style={{ background: a.id === acc.id ? "rgba(255,255,255,0.04)" : "transparent", cursor: "pointer" }}
+                                        onClick={function() { setSelectedId(a.id); }}>
+                                        <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 600 }}>
+                                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                            {a.profile_picture_url
+                                              ? <img src={a.profile_picture_url} style={{ width: 24, height: 24, borderRadius: "50%" }} />
+                                              : <span style={{ width: 8, height: 8, borderRadius: "50%", background: COLORS[i % COLORS.length], display: "inline-block" }}></span>}
+                                            {"@" + a.username}
+                                          </div>
+                                        </td>
+                                        <td style={{ padding: "12px 16px", fontSize: 14 }}>{(a.followers_count || 0).toLocaleString("es-ES")}</td>
+                                        <td style={{ padding: "12px 16px", fontSize: 14 }}>{(a.follows_count || 0).toLocaleString("es-ES")}</td>
+                                        <td style={{ padding: "12px 16px", fontSize: 14 }}>{a.media_count || 0}</td>
+                                        <td style={{ padding: "12px 16px", fontSize: 13, color: "rgba(255,255,255,0.5)" }}>{a.account_type}</td>
+                                      </tr>
+                                    );
+                                  })}
                                 </tbody>
                               </table>
                             </div>
@@ -689,8 +720,7 @@
                         {chartData.length === 0 && (
                           <div className="chart-card full-width" style={{ textAlign: "center", padding: 40 }}>
                             <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 15 }}>
-                              📈 Los insights de alcance e impresiones aparecerán aquí.<br />
-                              <span style={{ fontSize: 13 }}>Puede tardar unos días en generar datos si la cuenta es nueva o tiene pocas interacciones.</span>
+                              📈 Los insights de alcance e impresiones aparecerán aquí cuando conectes una cuenta.
                             </p>
                           </div>
                         )}
@@ -700,32 +730,34 @@
                     {/* MEDIA TAB */}
                     {tab === "media" && (
                       <div className="media-grid">
-                        {media.map(m => (
-                          <a key={m.id} href={m.permalink} target="_blank" rel="noopener" className="media-item">
-                            {m.media_type === "VIDEO"
-                              ? <img src={m.thumbnail_url || m.media_url} alt="" style={{ width: "100%", aspectRatio: "1", objectFit: "cover" }} />
-                              : <img src={m.media_url} alt="" style={{ width: "100%", aspectRatio: "1", objectFit: "cover" }} />}
-                            <div className="media-info">
-                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                                <span style={{ fontSize: 13, fontWeight: 600 }}>
-                                  {m.media_type === "VIDEO" ? "🎬 Reel/Video" : m.media_type === "CAROUSEL_ALBUM" ? "📑 Carrusel" : "📷 Foto"}
-                                </span>
-                                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
-                                  {new Date(m.timestamp).toLocaleDateString("es-ES")}
-                                </span>
+                        {media.map(function(m) {
+                          return (
+                            <a key={m.id} href={m.permalink} target="_blank" rel="noopener" className="media-item">
+                              <img src={m.thumbnail_url || m.media_url} alt=""
+                                style={{ width: "100%", aspectRatio: "1", objectFit: "cover" }}
+                                onError={function(e) { e.target.style.display = "none"; }} />
+                              <div className="media-info">
+                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                                  <span style={{ fontSize: 13, fontWeight: 600 }}>
+                                    {m.media_type === "VIDEO" ? "🎬 Reel" : m.media_type === "CAROUSEL_ALBUM" ? "📑 Carrusel" : "📷 Foto"}
+                                  </span>
+                                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
+                                    {new Date(m.timestamp).toLocaleDateString("es-ES")}
+                                  </span>
+                                </div>
+                                <div style={{ display: "flex", gap: 14, fontSize: 13 }}>
+                                  <span style={{ color: "#DD2A7B", fontWeight: 600 }}>{"❤ " + (m.like_count || 0).toLocaleString("es-ES")}</span>
+                                  <span style={{ color: "#8134AF", fontWeight: 600 }}>{"💬 " + (m.comments_count || 0)}</span>
+                                </div>
+                                {m.caption && (
+                                  <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 6, lineHeight: 1.4 }}>
+                                    {m.caption.slice(0, 80) + (m.caption.length > 80 ? "..." : "")}
+                                  </p>
+                                )}
                               </div>
-                              <div style={{ display: "flex", gap: 14, fontSize: 13 }}>
-                                <span style={{ color: "#DD2A7B", fontWeight: 600 }}>❤ {(m.like_count || 0).toLocaleString("es-ES")}</span>
-                                <span style={{ color: "#8134AF", fontWeight: 600 }}>💬 {m.comments_count || 0}</span>
-                              </div>
-                              {m.caption && (
-                                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 6, lineHeight: 1.4 }}>
-                                  {m.caption.slice(0, 80)}{m.caption.length > 80 ? "..." : ""}
-                                </p>
-                              )}
-                            </div>
-                          </a>
-                        ))}
+                            </a>
+                          );
+                        })}
                         {media.length === 0 && (
                           <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: 60, color: "rgba(255,255,255,0.4)" }}>
                             No se encontraron publicaciones
@@ -737,74 +769,89 @@
                     {/* AUDIENCE TAB */}
                     {tab === "audiencia" && (
                       <div className="charts-grid">
-                        {demographics?.data ? (
-                          demographics.data.map((metric, idx) => (
-                            <div key={idx} className="chart-card">
-                              <h3 style={{ marginBottom: 16, fontSize: 16, fontWeight: 700 }}>
-                                {metric.title || metric.name}
-                              </h3>
-                              {metric.total_value?.breakdowns?.[0]?.results ? (
-                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                  {metric.total_value.breakdowns[0].results
-                                    .sort((a, b) => b.value - a.value)
-                                    .slice(0, 10)
-                                    .map((item, i) => {
-                                      const maxVal = metric.total_value.breakdowns[0].results[0].value;
-                                      return (
-                                        <div key={i}>
-                                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                                            <span style={{ fontSize: 13, fontWeight: 500 }}>
-                                              {Object.values(item.dimension_values || {}).join(" · ")}
-                                            </span>
-                                            <span style={{ fontSize: 13, fontWeight: 600, color: COLORS[i % COLORS.length] }}>
-                                              {item.value.toLocaleString("es-ES")}
-                                            </span>
+                        {demographics && demographics.data ? (
+                          demographics.data.map(function(metric, idx) {
+                            return (
+                              <div key={idx} className="chart-card">
+                                <h3 style={{ marginBottom: 16, fontSize: 16, fontWeight: 700 }}>
+                                  {metric.title || metric.name}
+                                </h3>
+                                {metric.total_value && metric.total_value.breakdowns && metric.total_value.breakdowns[0] && metric.total_value.breakdowns[0].results ? (
+                                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                    {metric.total_value.breakdowns[0].results
+                                      .sort(function(a, b) { return b.value - a.value; })
+                                      .slice(0, 10)
+                                      .map(function(item, i) {
+                                        var maxVal = metric.total_value.breakdowns[0].results[0].value || 1;
+                                        return (
+                                          <div key={i}>
+                                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                                              <span style={{ fontSize: 13, fontWeight: 500 }}>
+                                                {Object.values(item.dimension_values || {}).join(" · ")}
+                                              </span>
+                                              <span style={{ fontSize: 13, fontWeight: 600, color: COLORS[i % COLORS.length] }}>
+                                                {item.value.toLocaleString("es-ES")}
+                                              </span>
+                                            </div>
+                                            <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+                                              <div style={{
+                                                height: "100%", borderRadius: 3,
+                                                width: (item.value / maxVal * 100) + "%",
+                                                background: COLORS[i % COLORS.length],
+                                              }}></div>
+                                            </div>
                                           </div>
-                                          <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
-                                            <div style={{
-                                              height: "100%", borderRadius: 3,
-                                              width: `${(item.value / maxVal) * 100}%`,
-                                              background: COLORS[i % COLORS.length],
-                                            }} />
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                </div>
-                              ) : (
-                                <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>Sin datos disponibles</p>
-                              )}
-                            </div>
-                          ))
+                                        );
+                                      })}
+                                  </div>
+                                ) : (
+                                  <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>Sin datos disponibles</p>
+                                )}
+                              </div>
+                            );
+                          })
                         ) : (
                           <div className="chart-card full-width" style={{ textAlign: "center", padding: 50 }}>
                             <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 15, lineHeight: 1.7 }}>
-                              👥 Los datos demográficos requieren al menos <strong style={{ color: "#fff" }}>100 seguidores</strong>.<br />
+                              👥 Los datos demográficos requieren al menos <strong style={{ color: "#fff" }}>100 seguidores</strong>.
+                              <br />
                               <span style={{ fontSize: 13 }}>Instagram restringe estos datos en cuentas pequeñas por privacidad.</span>
                             </p>
                           </div>
                         )}
                       </div>
                     )}
-                  </>
+                  </div>
                 )}
-              </>
+              </div>
             )}
           </div>
 
           {/* Toast */}
-          {toast && <div className={`toast ${toast.type}`}>{toast.msg}</div>}
+          {toast && <div className={"toast " + toast.type}>{toast.msg}</div>}
 
           {/* Click outside dropdown */}
           {dropdownOpen && (
             <div style={{ position: "fixed", inset: 0, zIndex: 150 }}
-              onClick={() => setDropdownOpen(false)} />
+              onClick={function() { setDropdownOpen(false); }}></div>
           )}
         </div>
       );
     }
 
-    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+  </script>
+
+  <script>
+    // Error handler - show errors if React fails to load
+    window.addEventListener('error', function(e) {
+      var errorDiv = document.getElementById('error-display');
+      var errorMsg = document.getElementById('error-msg');
+      if (errorDiv && errorMsg) {
+        errorDiv.style.display = 'block';
+        errorMsg.textContent = e.message || 'Error desconocido al cargar scripts';
+      }
+    });
   </script>
 </body>
 </html>
