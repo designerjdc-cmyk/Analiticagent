@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: instametrics
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: INSTAGRAM_APP_ID
+        sync: false
+      - key: INSTAGRAM_APP_SECRET
+        sync: false
+      - key: BASE_URL
+        sync: false
+      - key: NODE_ENV
+        value: production

@@ -1,0 +1,19 @@
+{
+  "name": "instametrics",
+  "version": "1.0.0",
+  "description": "Instagram Analytics Dashboard - Multi-account tracker via Instagram Graph API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "uuid": "^9.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
