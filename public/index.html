@@ -290,7 +290,7 @@ function Dash({session,onLogout}){
   const doRefresh=async()=>{setRefreshing(true);await fetchD();setDet(null);setRefreshing(false);sT("Datos actualizados")};
   const connectIG=async()=>{const s=(await sb.auth.getSession()).data.session;if(!s)return sT("Sesión expirada","err");location.href="/auth/instagram?token="+s.access_token};
   const rmAcc=async id=>{if(!confirm("¿Eliminar esta cuenta?"))return;await api("/api/accounts/"+id,{method:"DELETE"});const u=accounts.filter(a=>a.id!==id);setAcc(u);if(selId===id)setSel(u[0]?.id||null);sT("Cuenta eliminada")};
-  const searchComp=async()=>{if(!compUser.trim()||!selId)return;setCompLd(true);setCompErr(null);setCompData(null);try{const d=await api("/api/accounts/"+selId+"/discover/"+encodeURIComponent(compUser.trim().replace("@","")));if(d&&d.username)setCompData(d);else setCompErr("No se encontraron datos para esta cuenta")}catch(e){setCompErr(e.message||"Error al buscar")}setCompLd(false)};
+  const searchComp=async()=>{if(!compUser.trim()||!selId)return;setCompLd(true);setCompErr(null);setCompData(null);try{const r=await fetch("/api/accounts/"+selId+"/discover/"+encodeURIComponent(compUser.trim().replace("@","")),{headers:{Authorization:"Bearer "+(await sb.auth.getSession()).data.session?.access_token}});const d=await r.json();if(!r.ok){setCompErr(d.error+(d.debug?"\n\nDetalles técnicos: "+d.debug.join(" | "):""))}else if(d&&d.username){setCompData(d)}else{setCompErr("No se encontraron datos")}}catch(e){setCompErr(e.message||"Error de red")}setCompLd(false)};
   const compAnalysis=useMemo(()=>{if(!compData?.media?.data)return null;const posts=compData.media.data;const fc=compData.followers_count||1;
     const totalLikes=posts.reduce((s,p)=>s+(p.like_count||0),0);const totalComments=posts.reduce((s,p)=>s+(p.comments_count||0),0);
     const avgEng=((totalLikes+totalComments)/Math.max(posts.length,1)/fc*100);
@@ -470,7 +470,7 @@ function Dash({session,onLogout}){
             <input className="ai" style={{flex:1,maxWidth:280}} placeholder="username" value={compUser} onChange={e=>setCompUser(e.target.value)} onKeyDown={e=>e.key==="Enter"&&searchComp()}/>
             <button className={"bp"+(compLd?" loading":"")} onClick={searchComp} disabled={compLd} style={{padding:"10px 22px"}}>{compLd?"⏳ Buscando...":"Comparar"}</button>
           </div>
-          {compErr&&<div className="ae" style={{marginTop:12}}>{compErr}</div>}
+          {compErr&&<div className="ae" style={{marginTop:12,whiteSpace:"pre-wrap",fontSize:11.5}}>{compErr}</div>}
         </div>
 
         {compData&&compAnalysis&&<>
