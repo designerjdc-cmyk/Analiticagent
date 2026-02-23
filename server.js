@@ -93,6 +93,25 @@ app.get("/api/accounts/:id/media-detailed",auth,async(req,res)=>{try{const a=awa
 app.get("/api/accounts/:id/demographics",auth,async(req,res)=>{try{const a=await getAcc(req.user.id,req.params.id);if(!a)return res.status(404).json({error:"Not found"});
   const r=await axios.get(`${IG}/me/insights`,{params:{metric:"engaged_audience_demographics,reached_audience_demographics,follower_demographics",period:"lifetime",metric_type:"total_value",timeframe:"last_30_days",access_token:a.access_token}});res.json(r.data)}catch(e){handleErr(e,res)}});
 
+// Business Discovery — public data from any business/creator account
+app.get("/api/accounts/:id/discover/:username",auth,async(req,res)=>{try{const a=await getAcc(req.user.id,req.params.id);if(!a)return res.status(404).json({error:"Not found"});
+  const target=req.params.username.replace("@","").trim();if(!target)return res.status(400).json({error:"Username required"});
+  const mediaFields="id,caption,media_type,media_product_type,like_count,comments_count,timestamp,permalink";
+  const userFields=`username,name,biography,profile_picture_url,followers_count,follows_count,media_count,media.limit(25){${mediaFields}}`;
+  try{
+    const r=await axios.get(`${IG}/me`,{params:{fields:`business_discovery.fields(${userFields})`,username:target,access_token:a.access_token}});
+    const bd=r.data?.business_discovery;if(!bd)return res.status(404).json({error:"No data returned"});
+    res.json(bd);
+  }catch(e){
+    const msg=e.response?.data?.error?.message||e.message;console.warn("Discovery:",msg);
+    let userMsg="Error al buscar esta cuenta";
+    if(msg.includes("not exist")||msg.includes("does not exist"))userMsg="Cuenta no encontrada. Debe ser pública y de tipo business/creator";
+    else if(msg.includes("private"))userMsg="Esta cuenta es privada";
+    else if(msg.includes("rate"))userMsg="Demasiadas búsquedas. Espera unos minutos";
+    res.status(e.response?.status||404).json({error:userMsg});
+  }
+}catch(e){handleErr(e,res)}});
+
 // Token refresh
 app.post("/api/accounts/:id/refresh-token",auth,async(req,res)=>{try{const a=await getAcc(req.user.id,req.params.id);if(!a)return res.status(404).json({error:"Not found"});
   const r=await axios.get(`${IG}/refresh_access_token`,{params:{grant_type:"ig_refresh_token",access_token:a.access_token}});await supa.from("accounts").update({access_token:r.data.access_token,token_expires_at:Date.now()+r.data.expires_in*1000}).eq("id",a.id);res.json({ok:true})}catch(e){handleErr(e,res)}});
