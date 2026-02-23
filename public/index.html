@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>InstaMetrics — Instagram Analytics</title>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>InstaMetrics — Instagram Analytics Pro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -12,341 +11,455 @@
   <script crossorigin src="https://unpkg.com/recharts@2.5.0/umd/Recharts.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
   <style>
-    :root{--bg:#09090b;--card:rgba(255,255,255,0.03);--card-h:rgba(255,255,255,0.055);--bdr:rgba(255,255,255,0.07);--bdr-h:rgba(255,255,255,0.13);--t:#fafafa;--tm:rgba(255,255,255,0.45);--td:rgba(255,255,255,0.28);--acc:#e1306c;--acc2:#833ab4;--grn:#22c55e;--red:#ef4444;--org:#f59e0b;--blu:#3b82f6;--r:12px}
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Plus Jakarta Sans',-apple-system,sans-serif;background:var(--bg);color:var(--t);min-height:100vh}
-    ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px}
-    a{color:inherit;text-decoration:none}button{font-family:inherit}
-
+    :root{--bg:#09090b;--card:rgba(255,255,255,0.03);--ch:rgba(255,255,255,0.055);--bdr:rgba(255,255,255,0.07);--bh:rgba(255,255,255,0.13);--t:#fafafa;--tm:rgba(255,255,255,0.45);--td:rgba(255,255,255,0.28);--acc:#e1306c;--ac2:#833ab4;--grn:#22c55e;--red:#ef4444;--org:#f59e0b;--blu:#3b82f6;--r:12px}
+    *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Plus Jakarta Sans',-apple-system,sans-serif;background:var(--bg);color:var(--t);min-height:100vh}
+    ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px}a{color:inherit;text-decoration:none}button{font-family:inherit}
     .shell{display:flex;min-height:100vh}
-    .sidebar{width:220px;border-right:1px solid var(--bdr);padding:24px 16px;display:flex;flex-direction:column;gap:4px;position:fixed;top:0;left:0;bottom:0;background:var(--bg);z-index:50}
-    .sb-brand{display:flex;align-items:center;gap:10px;padding:4px 8px;margin-bottom:24px}
-    .sb-logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#f9ce34,#ee2a7b,#6228d7);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px}
-    .sb-title{font-weight:700;font-size:15px;letter-spacing:-0.02em}
-    .nav{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:500;color:var(--tm);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left}
-    .nav:hover{color:var(--t);background:rgba(255,255,255,0.04)}.nav.on{color:var(--t);background:rgba(255,255,255,0.07);font-weight:600}
-    .content{margin-left:220px;flex:1;padding:28px 32px}
-
-    .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;gap:16px;flex-wrap:wrap}
-    .topbar h1{font-size:22px;font-weight:800;letter-spacing:-0.03em}
-    .topbar p{font-size:13px;color:var(--tm);margin-top:2px}
-
-    .bp{background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;border-radius:10px;padding:9px 18px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:opacity .2s}.bp:hover{opacity:0.9}
-    .bo{background:transparent;border:1px solid var(--bdr);border-radius:10px;padding:8px 16px;color:var(--t);font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s}.bo:hover{border-color:var(--bdr-h);background:rgba(255,255,255,0.03)}
-    .bg{background:none;border:none;color:var(--tm);font-size:12px;cursor:pointer;padding:6px 8px;transition:color .15s}.bg:hover{color:var(--t)}
-
-    .kpi-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;margin-bottom:24px}
-    .kpi{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:18px 20px;transition:all .2s}.kpi:hover{background:var(--card-h);border-color:var(--bdr-h)}
-    .kpi-l{font-size:11px;color:var(--tm);font-weight:600;text-transform:uppercase;letter-spacing:0.05em}
-    .kpi-v{font-size:28px;font-weight:800;letter-spacing:-0.03em;margin-top:6px}
-    .kpi-s{font-size:11px;color:var(--td);margin-top:4px}
-
-    .pnl{background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:22px;margin-bottom:16px}
-    .pnl-t{font-size:14px;font-weight:700;margin-bottom:16px;letter-spacing:-0.01em}
-    .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}.gf{grid-column:1/-1}
-
-    .dr{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-    .dr-b{background:transparent;border:1px solid var(--bdr);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:500;color:var(--tm);cursor:pointer;font-family:inherit;transition:all .15s}
-    .dr-b:hover{border-color:var(--bdr-h);color:var(--t)}.dr-b.on{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.15);color:var(--t)}
-    .dr-i{background:rgba(255,255,255,0.05);border:1px solid var(--bdr);border-radius:8px;padding:5px 10px;font-size:12px;color:var(--t);font-family:inherit;outline:none}.dr-i:focus{border-color:var(--acc)}
-
-    .pt{width:100%;border-collapse:collapse;font-size:13px}
-    .pt th{text-align:left;padding:10px 12px;font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--bdr);cursor:pointer;user-select:none;white-space:nowrap}.pt th:hover{color:var(--t)}
-    .pt td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.03);vertical-align:middle}
-    .pt tr:hover td{background:rgba(255,255,255,0.02)}
+    .sb{width:210px;border-right:1px solid var(--bdr);padding:20px 14px;display:flex;flex-direction:column;gap:3px;position:fixed;top:0;left:0;bottom:0;background:var(--bg);z-index:50;overflow-y:auto}
+    .sb-brand{display:flex;align-items:center;gap:10px;padding:4px 8px;margin-bottom:20px}
+    .sb-logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#f9ce34,#ee2a7b,#6228d7);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0}
+    .nv{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px;font-size:12.5px;font-weight:500;color:var(--tm);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left}
+    .nv:hover{color:var(--t);background:rgba(255,255,255,0.04)}.nv.on{color:var(--t);background:rgba(255,255,255,0.07);font-weight:600}
+    .cnt{margin-left:210px;flex:1;padding:24px 28px;max-width:1200px}
+    .tb{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:14px;flex-wrap:wrap}
+    .tb h1{font-size:20px;font-weight:800;letter-spacing:-0.03em}.tb p{font-size:12px;color:var(--tm);margin-top:2px}
+    .bp{background:linear-gradient(135deg,var(--acc),var(--ac2));border:none;border-radius:10px;padding:8px 16px;color:#fff;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:opacity .2s}.bp:hover{opacity:.9}
+    .bo{background:transparent;border:1px solid var(--bdr);border-radius:10px;padding:7px 14px;color:var(--t);font-size:12.5px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s}.bo:hover{border-color:var(--bh);background:rgba(255,255,255,.03)}
+    .bg{background:none;border:none;color:var(--tm);font-size:11px;cursor:pointer;padding:5px 7px;transition:color .15s}.bg:hover{color:var(--t)}
+    .kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:20px}
+    .kpi{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:16px 18px;transition:all .2s}.kpi:hover{background:var(--ch);border-color:var(--bh)}
+    .kl{font-size:10.5px;color:var(--tm);font-weight:600;text-transform:uppercase;letter-spacing:.05em}.kv{font-size:24px;font-weight:800;letter-spacing:-.03em;margin-top:4px}.ks{font-size:11px;margin-top:3px}
+    .pnl{background:var(--card);border:1px solid var(--bdr);border-radius:13px;padding:20px;margin-bottom:14px}
+    .pt{font-size:13.5px;font-weight:700;margin-bottom:14px;letter-spacing:-.01em}
+    .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}.gf{grid-column:1/-1}
+    .dr{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+    .drb{background:transparent;border:1px solid var(--bdr);border-radius:7px;padding:5px 11px;font-size:11.5px;font-weight:500;color:var(--tm);cursor:pointer;font-family:inherit;transition:all .15s}.drb:hover{border-color:var(--bh);color:var(--t)}.drb.on{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:var(--t)}
+    .dri{background:rgba(255,255,255,.05);border:1px solid var(--bdr);border-radius:7px;padding:4px 9px;font-size:11.5px;color:var(--t);font-family:inherit;outline:none}.dri:focus{border-color:var(--acc)}
+    .tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+    .tbl th{text-align:left;padding:8px 10px;font-size:10.5px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--bdr);cursor:pointer;user-select:none;white-space:nowrap}.tbl th:hover{color:var(--t)}
+    .tbl td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle}.tbl tr:hover td{background:rgba(255,255,255,.02)}
     .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
-    .cap{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tm)}
-
-    .bdg{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600}
-    .bdg-r{background:rgba(139,92,246,0.15);color:#a78bfa}.bdg-p{background:rgba(59,130,246,0.15);color:#93c5fd}.bdg-c{background:rgba(245,158,11,0.15);color:#fcd34d}
-
-    .fc{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
-    .fch{background:transparent;border:1px solid var(--bdr);border-radius:8px;padding:6px 14px;font-size:12px;font-weight:500;color:var(--tm);cursor:pointer;transition:all .15s;font-family:inherit}.fch:hover{border-color:var(--bdr-h);color:var(--t)}.fch.on{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.15);color:var(--t)}
-
-    .fmr{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-    .fml{width:90px;font-size:12px;font-weight:600;flex-shrink:0}
-    .fmbg{flex:1;height:28px;background:rgba(255,255,255,0.04);border-radius:6px;overflow:hidden}
-    .fmb{height:100%;border-radius:6px;transition:width .5s;min-width:40px}
-    .fmv{font-size:13px;font-weight:700;width:60px;text-align:right;flex-shrink:0}
-
+    .bdg{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:5px;font-size:10.5px;font-weight:600}
+    .bdg-r{background:rgba(139,92,246,.15);color:#a78bfa}.bdg-p{background:rgba(59,130,246,.15);color:#93c5fd}.bdg-c{background:rgba(245,158,11,.15);color:#fcd34d}
+    .bdg-viral{background:rgba(239,68,68,.15);color:#fca5a5}.bdg-good{background:rgba(34,197,94,.15);color:#86efac}.bdg-normal{background:rgba(255,255,255,.05);color:var(--tm)}.bdg-low{background:rgba(255,255,255,.03);color:var(--td)}
+    .fc{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap}.fch{background:transparent;border:1px solid var(--bdr);border-radius:7px;padding:5px 12px;font-size:11.5px;font-weight:500;color:var(--tm);cursor:pointer;transition:all .15s;font-family:inherit}.fch:hover{border-color:var(--bh);color:var(--t)}.fch.on{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:var(--t)}
+    .hm-cell{border-radius:3px;font-size:9px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-weight:600;min-height:28px}
     .auth-w{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
-    .auth-b{background:var(--card);border:1px solid var(--bdr);border-radius:20px;padding:40px 36px;width:100%;max-width:380px;text-align:center}
-    .ai{width:100%;padding:12px 16px;background:rgba(255,255,255,0.05);border:1px solid var(--bdr);border-radius:10px;color:var(--t);font-size:14px;font-family:inherit;outline:none;transition:border-color .2s}.ai:focus{border-color:var(--acc)}.ai::placeholder{color:var(--td)}
-    .ae{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--red);text-align:left}
-
-    .dd{position:absolute;bottom:calc(100% + 4px);left:0;background:#141416;border:1px solid var(--bdr);border-radius:12px;min-width:220px;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:200;overflow:hidden}
-    .ddi{padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;transition:background .1s}.ddi:hover{background:rgba(255,255,255,0.06)}
-
-    .toast{position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:1000;animation:su .3s ease}
-    .toast.ok{background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.25);color:var(--grn)}
-    .toast.err{background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);color:var(--red)}
-    .spin{width:22px;height:22px;border:2.5px solid rgba(255,255,255,0.08);border-top-color:var(--acc);border-radius:50%;animation:sp .7s linear infinite}
-    .empty{color:var(--td);font-size:14px;text-align:center;padding:40px 20px}
-
+    .auth-b{background:var(--card);border:1px solid var(--bdr);border-radius:20px;padding:36px 32px;width:100%;max-width:370px;text-align:center}
+    .ai{width:100%;padding:11px 14px;background:rgba(255,255,255,.05);border:1px solid var(--bdr);border-radius:10px;color:var(--t);font-size:14px;font-family:inherit;outline:none;transition:border-color .2s}.ai:focus{border-color:var(--acc)}.ai::placeholder{color:var(--td)}
+    .ae{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:9px 11px;font-size:12px;color:var(--red);text-align:left}
+    .dd{position:absolute;bottom:calc(100% + 4px);left:0;background:#141416;border:1px solid var(--bdr);border-radius:11px;min-width:200px;box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:200;overflow:hidden}
+    .ddi{padding:9px 12px;display:flex;align-items:center;gap:9px;cursor:pointer;font-size:12.5px;transition:background .1s}.ddi:hover{background:rgba(255,255,255,.06)}
+    .toast{position:fixed;bottom:20px;right:20px;padding:11px 18px;border-radius:10px;font-size:12.5px;font-weight:600;z-index:1000;animation:su .3s ease}
+    .toast.ok{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);color:var(--grn)}
+    .toast.err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:var(--red)}
+    .spin{width:22px;height:22px;border:2.5px solid rgba(255,255,255,.08);border-top-color:var(--acc);border-radius:50%;animation:sp .7s linear infinite}
+    .empty{color:var(--td);font-size:13px;text-align:center;padding:36px 18px}
+    .score-ring{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0}
+    .insight-card{background:rgba(225,48,108,.06);border:1px solid rgba(225,48,108,.15);border-radius:12px;padding:18px;margin-bottom:12px}
+    .insight-card h3{font-size:14px;font-weight:700;margin-bottom:8px}.insight-card p{font-size:12.5px;color:var(--tm);line-height:1.6}
     @keyframes su{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
     @keyframes sp{to{transform:rotate(360deg)}}
-    @media(max-width:900px){.sidebar{display:none}.content{margin-left:0;padding:16px}.g2{grid-template-columns:1fr}.kpi-g{grid-template-columns:repeat(2,1fr)}}
+    @media print{.sb,.tb,.no-print{display:none!important}.cnt{margin-left:0!important;padding:10px!important}body{background:#fff;color:#000}.pnl,.kpi{border-color:#ddd;background:#fafafa}.kv,.pt{color:#000}}
+    @media(max-width:900px){.sb{display:none}.cnt{margin-left:0;padding:14px}.g2,.g3{grid-template-columns:1fr}.kg{grid-template-columns:repeat(2,1fr)}}
   </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel" data-type="module">
-const{useState,useEffect,Component}=React;
-class EB extends Component{constructor(p){super(p);this.state={err:null}}static getDerivedStateFromError(e){return{err:e}}render(){if(this.state.err)return<div style={{padding:40,textAlign:"center",color:"var(--red)"}}><h2>Error</h2><p style={{color:"var(--tm)",margin:"8px 0 16px"}}>{String(this.state.err.message)}</p><button className="bp" onClick={()=>{this.setState({err:null});location.reload()}}>Recargar</button></div>;return this.props.children}}
-
-const RC=typeof Recharts!=="undefined";
-const{AreaChart,Area,XAxis,YAxis,CartesianGrid,Tooltip,ResponsiveContainer,PieChart,Pie,Cell}=RC?Recharts:{};
-const COLS=["#e1306c","#833ab4","#f59e0b","#3b82f6","#22c55e","#ef4444","#8b5cf6","#06b6d4"];
+const{useState,useEffect,useMemo,Component}=React;
+class EB extends Component{constructor(p){super(p);this.state={e:null}}static getDerivedStateFromError(e){return{e}}render(){return this.state.e?<div style={{padding:40,textAlign:"center",color:"var(--red)"}}><h2>Error</h2><p style={{color:"var(--tm)",margin:"8px 0 16px"}}>{String(this.state.e.message)}</p><button className="bp" onClick={()=>{this.setState({e:null});location.reload()}}>Recargar</button></div>:this.props.children}}
+const RC=typeof Recharts!=="undefined";const{AreaChart,Area,BarChart,Bar,XAxis,YAxis,CartesianGrid,Tooltip,ResponsiveContainer}=RC?Recharts:{};
+const C=["#e1306c","#833ab4","#f59e0b","#3b82f6","#22c55e","#ef4444","#8b5cf6","#06b6d4"];
 let sb=null;
-
-async function api(path,opts){
-  const s=sb?(await sb.auth.getSession()).data.session:null;
-  const h={...(opts?.headers||{})};if(s)h["Authorization"]="Bearer "+s.access_token;
-  const res=await fetch(path,{...opts,headers:h});const txt=await res.text();
-  let j;try{j=JSON.parse(txt)}catch{throw new Error("Bad response")}
-  if(!res.ok)throw new Error(j.error||"Error "+res.status);return j;
-}
+async function api(u,o){const s=sb?(await sb.auth.getSession()).data.session:null;const h={...(o?.headers||{})};if(s)h.Authorization="Bearer "+s.access_token;const r=await fetch(u,{...o,headers:h});const t=await r.text();let j;try{j=JSON.parse(t)}catch{throw new Error("Bad response")}if(!r.ok)throw new Error(j.error||"Error "+r.status);return j}
 function n(v){return typeof v==="number"?v.toLocaleString("es-ES"):(v||"—")}
+function pct(a,b){if(!b)return"—";return((a-b)/Math.abs(b)*100).toFixed(1)}
+function Tip({active,payload,label}){if(!active||!payload?.length)return null;return<div style={{background:"#1a1a1e",border:"1px solid rgba(255,255,255,.1)",borderRadius:9,padding:"9px 13px",fontSize:11.5}}><div style={{color:"var(--tm)",marginBottom:3}}>{label}</div>{payload.map((p,i)=><div key={i} style={{color:p.color,fontWeight:600}}>{p.name}: {n(p.value)}</div>)}</div>}
 
-function Tip({active,payload,label}){
-  if(!active||!payload?.length)return null;
-  return<div style={{background:"#1a1a1e",border:"1px solid rgba(255,255,255,0.1)",borderRadius:10,padding:"10px 14px",fontSize:12}}>
-    <div style={{color:"var(--tm)",marginBottom:4}}>{label}</div>
-    {payload.map((p,i)=><div key={i} style={{color:p.color,fontWeight:600}}>{p.name}: {n(p.value)}</div>)}
-  </div>;
+// ══════════════════════════════════════════
+// ANALYTICS ENGINE — all 10 features
+// ══════════════════════════════════════════
+function useAnalytics(posts, followersCount) {
+  return useMemo(() => {
+    if (!posts?.length) return null;
+    const fc = followersCount || 1;
+
+    // ── 1. Post Scores (1-100) ──
+    const metrics = posts.map(p => {
+      const likes = p.like_count || 0, comments = p.comments_count || 0;
+      const reach = p.insights?.reach || 0, saves = p.insights?.saved || 0, shares = p.insights?.shares || 0;
+      const interactions = p.insights?.total_interactions || (likes + comments);
+      const engRate = interactions / fc;
+      return { ...p, likes, comments, reach, saves, shares, interactions, engRate };
+    });
+
+    const avgReach = metrics.reduce((s, m) => s + m.reach, 0) / metrics.length || 1;
+    const avgEng = metrics.reduce((s, m) => s + m.engRate, 0) / metrics.length || 0.01;
+    const avgSaves = metrics.reduce((s, m) => s + m.saves, 0) / metrics.length || 1;
+    const avgShares = metrics.reduce((s, m) => s + m.shares, 0) / metrics.length || 1;
+
+    const scored = metrics.map(m => {
+      const reachScore = Math.min(m.reach / avgReach, 3) / 3 * 30;
+      const engScore = Math.min(m.engRate / avgEng, 3) / 3 * 35;
+      const savesScore = Math.min((m.saves || 0) / avgSaves, 3) / 3 * 20;
+      const sharesScore = Math.min((m.shares || 0) / avgShares, 3) / 3 * 15;
+      const score = Math.round(Math.min(reachScore + engScore + savesScore + sharesScore, 100));
+      return { ...m, score };
+    });
+
+    // ── 2. Viral Detection ──
+    const withLabels = scored.map(p => {
+      let label = "normal", labelClass = "bdg-normal";
+      if (p.reach > fc * 2) { label = "🔥 Viral"; labelClass = "bdg-viral"; }
+      else if (p.reach > fc * 1) { label = "✨ Destacado"; labelClass = "bdg-good"; }
+      else if (p.reach < avgReach * 0.5) { label = "↓ Bajo"; labelClass = "bdg-low"; }
+      return { ...p, label, labelClass };
+    });
+
+    // ── 3. Engagement Trend (Fatigue Detection) ──
+    const chronological = [...withLabels].sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
+    const engTrend = chronological.map((p, i) => ({
+      date: p.timestamp ? new Date(p.timestamp).toLocaleDateString("es-ES", { day: "2-digit", month: "short" }) : "",
+      eng: +(p.engRate * 100).toFixed(2),
+      score: p.score,
+    }));
+    // Rolling average
+    const windowSize = 5;
+    const rollingAvg = engTrend.map((_, i) => {
+      const start = Math.max(0, i - windowSize + 1);
+      const window = engTrend.slice(start, i + 1);
+      return { ...engTrend[i], rolling: +(window.reduce((s, w) => s + w.eng, 0) / window.length).toFixed(2) };
+    });
+    // Fatigue: compare last 5 avg vs previous 5
+    const recent5 = rollingAvg.slice(-5);
+    const prev5 = rollingAvg.slice(-10, -5);
+    const recentAvg = recent5.length ? recent5.reduce((s, r) => s + r.eng, 0) / recent5.length : 0;
+    const prevAvg = prev5.length ? prev5.reduce((s, r) => s + r.eng, 0) / prev5.length : recentAvg;
+    const fatigue = prevAvg > 0 ? ((recentAvg - prevAvg) / prevAvg * 100) : 0;
+    const fatigueStatus = fatigue < -15 ? "critical" : fatigue < -5 ? "warning" : "healthy";
+
+    // ── 4. Best Hour Heatmap ──
+    const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+    const heatmap = {};
+    withLabels.forEach(p => {
+      if (!p.timestamp) return;
+      const d = new Date(p.timestamp);
+      const day = d.getDay(), hour = d.getHours();
+      const key = day + "-" + hour;
+      if (!heatmap[key]) heatmap[key] = { total: 0, count: 0 };
+      heatmap[key].total += p.engRate * 100;
+      heatmap[key].count++;
+    });
+    const heatmapData = [];
+    let hmMax = 0;
+    for (let d = 0; d < 7; d++) {
+      for (let h = 0; h < 24; h++) {
+        const k = d + "-" + h;
+        const avg = heatmap[k] ? heatmap[k].total / heatmap[k].count : 0;
+        if (avg > hmMax) hmMax = avg;
+        heatmapData.push({ day: d, hour: h, avg, count: heatmap[k]?.count || 0 });
+      }
+    }
+
+    // ── 5. Caption Analysis ──
+    const captionBuckets = [
+      { label: "Sin caption", min: 0, max: 0, posts: [] },
+      { label: "Corto (<50)", min: 1, max: 50, posts: [] },
+      { label: "Medio (50-150)", min: 50, max: 150, posts: [] },
+      { label: "Largo (150-300)", min: 150, max: 300, posts: [] },
+      { label: "Muy largo (300+)", min: 300, max: 99999, posts: [] },
+    ];
+    withLabels.forEach(p => {
+      const len = (p.caption || "").length;
+      for (const b of captionBuckets) {
+        if (len >= b.min && (b.max === 0 ? len === 0 : len < b.max)) { b.posts.push(p); break; }
+      }
+    });
+    const captionStats = captionBuckets.filter(b => b.posts.length > 0).map(b => ({
+      label: b.label, count: b.posts.length,
+      avgEng: b.posts.reduce((s, p) => s + p.engRate * 100, 0) / b.posts.length,
+      avgReach: b.posts.reduce((s, p) => s + p.reach, 0) / b.posts.length,
+    }));
+
+    // ── 6. Format Stats ──
+    const formatMap = { reel: { label: "Reels", c: "#8b5cf6", posts: [] }, photo: { label: "Fotos", c: "#3b82f6", posts: [] }, carousel: { label: "Carruseles", c: "#f59e0b", posts: [] } };
+    withLabels.forEach(p => {
+      if (p.media_type === "VIDEO" || p.media_product_type === "REELS") formatMap.reel.posts.push(p);
+      else if (p.media_type === "IMAGE") formatMap.photo.posts.push(p);
+      else if (p.media_type === "CAROUSEL_ALBUM") formatMap.carousel.posts.push(p);
+    });
+    const formatStats = Object.entries(formatMap).map(([k, v]) => ({
+      key: k, label: v.label, color: v.c, count: v.posts.length,
+      avgEng: v.posts.length ? v.posts.reduce((s, p) => s + p.engRate * 100, 0) / v.posts.length : 0,
+      avgReach: v.posts.length ? v.posts.reduce((s, p) => s + p.reach, 0) / v.posts.length : 0,
+      avgSaves: v.posts.length ? v.posts.reduce((s, p) => s + p.saves, 0) / v.posts.length : 0,
+    }));
+
+    // ── 7. "What to post now" recommendation ──
+    const now = new Date();
+    const currentDay = now.getDay(), currentHour = now.getHours();
+    const bestFormat = [...formatStats].filter(f => f.count > 0).sort((a, b) => b.avgEng - a.avgEng)[0];
+    // Find best hour today
+    const todayHours = heatmapData.filter(h => h.day === currentDay && h.count > 0).sort((a, b) => b.avg - a.avg);
+    const bestHourToday = todayHours[0];
+    // Is now a good time?
+    const currentSlot = heatmapData.find(h => h.day === currentDay && h.hour === currentHour);
+    const overallAvgEng = hmMax > 0 ? (withLabels.reduce((s, p) => s + p.engRate * 100, 0) / withLabels.length) : 0;
+
+    return {
+      posts: withLabels, scored: withLabels, engTrend: rollingAvg, fatigue, fatigueStatus,
+      heatmapData, hmMax, dayNames, captionStats, formatStats,
+      bestFormat, bestHourToday, currentSlot, currentDay, currentHour, overallAvgEng,
+      avgReach, avgEng: avgEng * 100, top5: [...withLabels].sort((a, b) => b.score - a.score).slice(0, 5),
+      worst5: [...withLabels].sort((a, b) => a.score - b.score).slice(0, 5),
+      viralCount: withLabels.filter(p => p.label.includes("Viral")).length,
+    };
+  }, [posts, followersCount]);
 }
 
+// ══════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════
 function Auth({onAuth}){
-  const[mode,setMode]=useState("login"),[email,setE]=useState(""),[pw,setPw]=useState(""),[err,setErr]=useState(null),[ld,setLd]=useState(false);
-  const go=async()=>{setErr(null);if(!email||!pw)return setErr("Rellena todos los campos");if(pw.length<6)return setErr("Mín. 6 caracteres");setLd(true);
-    try{const r=mode==="register"?await sb.auth.signUp({email,password:pw}):await sb.auth.signInWithPassword({email,password:pw});if(r.error)throw r.error;if(r.data.user&&!r.data.session){setLd(false);return alert("Revisa tu email")}if(r.data.session)onAuth(r.data.session)}
-    catch(e){let m=e.message||"Error";if(m.includes("Invalid login"))m="Email o contraseña incorrectos";if(m.includes("already"))m="Email ya registrado";setErr(m)}setLd(false)};
-  return<div className="auth-w"><div className="auth-b">
-    <div className="sb-logo" style={{width:48,height:48,borderRadius:14,fontSize:18,margin:"0 auto 14px"}}>IG</div>
-    <h1 style={{fontSize:22,fontWeight:800,marginBottom:2,letterSpacing:"-0.03em"}}>InstaMetrics</h1>
-    <p style={{color:"var(--tm)",fontSize:13,marginBottom:24}}>{mode==="login"?"Inicia sesión":"Crea tu cuenta"}</p>
-    <div style={{display:"flex",flexDirection:"column",gap:10}}>
-      <input className="ai" type="email" placeholder="Email" value={email} onChange={e=>setE(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()}/>
-      <input className="ai" type="password" placeholder="Contraseña" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()}/>
+  const[m,setM]=useState("login"),[e,setE]=useState(""),[p,setP]=useState(""),[err,setErr]=useState(null),[ld,setLd]=useState(false);
+  const go=async()=>{setErr(null);if(!e||!p)return setErr("Rellena todos los campos");if(p.length<6)return setErr("Mín. 6 caracteres");setLd(true);
+    try{const r=m==="register"?await sb.auth.signUp({email:e,password:p}):await sb.auth.signInWithPassword({email:e,password:p});if(r.error)throw r.error;if(r.data.user&&!r.data.session){setLd(false);return alert("Revisa tu email")}if(r.data.session)onAuth(r.data.session)}
+    catch(x){let msg=x.message;if(msg.includes("Invalid"))msg="Email o contraseña incorrectos";if(msg.includes("already"))msg="Email ya registrado";setErr(msg)}setLd(false)};
+  return<div className="auth-w"><div className="auth-b"><div className="sb-logo" style={{width:48,height:48,borderRadius:14,fontSize:18,margin:"0 auto 14px"}}>IG</div>
+    <h1 style={{fontSize:22,fontWeight:800,letterSpacing:"-.03em",marginBottom:2}}>InstaMetrics</h1>
+    <p style={{color:"var(--tm)",fontSize:12.5,marginBottom:22}}>{m==="login"?"Inicia sesión":"Crea tu cuenta"}</p>
+    <div style={{display:"flex",flexDirection:"column",gap:9}}>
+      <input className="ai" type="email" placeholder="Email" value={e} onChange={x=>setE(x.target.value)} onKeyDown={x=>x.key==="Enter"&&go()}/>
+      <input className="ai" type="password" placeholder="Contraseña" value={p} onChange={x=>setP(x.target.value)} onKeyDown={x=>x.key==="Enter"&&go()}/>
       {err&&<div className="ae">{err}</div>}
-      <button className="bp" style={{width:"100%",justifyContent:"center",padding:12,marginTop:4}} onClick={go} disabled={ld}>{ld?"...":mode==="login"?"Entrar":"Crear cuenta"}</button>
-      <button className="bg" onClick={()=>{setMode(mode==="login"?"register":"login");setErr(null)}}>{mode==="login"?"¿Sin cuenta? Regístrate":"¿Ya tienes cuenta? Login"}</button>
-    </div>
-  </div></div>;
+      <button className="bp" style={{width:"100%",justifyContent:"center",padding:11,marginTop:3}} onClick={go} disabled={ld}>{ld?"...":m==="login"?"Entrar":"Crear cuenta"}</button>
+      <button className="bg" onClick={()=>{setM(m==="login"?"register":"login");setErr(null)}}>{m==="login"?"¿Sin cuenta? Regístrate":"¿Ya tienes cuenta? Login"}</button>
+    </div></div></div>;
 }
 
+function Badge({type,pt}){if(type==="VIDEO"||pt==="REELS")return<span className="bdg bdg-r">🎬 Reel</span>;if(type==="CAROUSEL_ALBUM")return<span className="bdg bdg-c">📑 Carru.</span>;return<span className="bdg bdg-p">📷 Foto</span>}
+function ScoreRing({score}){const color=score>=80?"var(--grn)":score>=60?"var(--org)":score>=40?"var(--blu)":"var(--red)";return<div className="score-ring" style={{border:"3px solid "+color,color}}>{score}</div>}
 function getDateRange(r){const now=Math.floor(Date.now()/1000);if(r==="7d")return{since:now-7*86400,until:now};if(r==="14d")return{since:now-14*86400,until:now};if(r==="30d")return{since:now-30*86400,until:now};if(r==="90d")return{since:now-90*86400,until:now};return{}}
 
-function Badge({type,pt}){if(type==="VIDEO"||pt==="REELS")return<span className="bdg bdg-r">🎬 Reel</span>;if(type==="CAROUSEL_ALBUM")return<span className="bdg bdg-c">📑 Carrusel</span>;return<span className="bdg bdg-p">📷 Foto</span>}
-
+// ══════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════
 function Dash({session,onLogout}){
   const[accounts,setAcc]=useState([]),[selId,setSel]=useState(null),[tab,setTab]=useState("overview");
   const[ld,setLd]=useState(true),[toast,setToast]=useState(null);
   const[insights,setIns]=useState(null),[media,setMedia]=useState([]);
-  const[detailed,setDetailed]=useState(null),[demo,setDemo]=useState(null);
-  const[ldData,setLdData]=useState(false),[ldPosts,setLdPosts]=useState(false);
-  const[ddOpen,setDd]=useState(false),[dateRange,setDR]=useState("30d");
-  const[customFrom,setCF]=useState(""),[customTo,setCT]=useState("");
-  const[sortCol,setSC]=useState("timestamp"),[sortDir,setSD]=useState("desc"),[typeF,setTF]=useState("all");
+  const[detailed,setDet]=useState(null),[demo,setDemo]=useState(null);
+  const[ldD,setLdD]=useState(false),[ldP,setLdP]=useState(false);
+  const[ddO,setDd]=useState(false),[dr,setDR]=useState("30d");
+  const[cf,setCF]=useState(""),[ct,setCT]=useState("");
+  const[sc,setSC]=useState("score"),[sd,setSD]=useState("desc"),[tf,setTF]=useState("all");
 
-  const sToast=(m,t)=>{setToast({m,t:t||"ok"});setTimeout(()=>setToast(null),4000)};
+  const sT=(m,t)=>{setToast({m,t:t||"ok"});setTimeout(()=>setToast(null),3500)};
+  useEffect(()=>{const p=new URLSearchParams(location.search);if(p.get("connected")){sT("@"+p.get("connected")+" conectada ✓");history.replaceState({},"","/")}if(p.get("error")){sT(decodeURIComponent(p.get("error")),"err");history.replaceState({},"","/")}loadA()},[]);
+  const loadA=async()=>{try{const d=await api("/api/accounts");const a=Array.isArray(d)?d:[];setAcc(a);if(a.length&&!selId)setSel(a[0].id)}catch(e){console.error(e)}setLd(false)};
+  useEffect(()=>{if(selId)fetchD()},[selId,dr]);
+  useEffect(()=>{setDet(null)},[selId]);
+  useEffect(()=>{if((tab==="posts"||tab==="intel")&&selId&&!detailed&&!ldP){setLdP(true);api("/api/accounts/"+selId+"/media-detailed?limit=50").then(d=>{setDet(d);setLdP(false)}).catch(()=>setLdP(false))}},[tab,selId]);
 
-  useEffect(()=>{
-    const p=new URLSearchParams(location.search);
-    if(p.get("connected")){sToast("@"+p.get("connected")+" conectada ✓");history.replaceState({},"","/")}
-    if(p.get("error")){sToast(decodeURIComponent(p.get("error")),"err");history.replaceState({},"","/")}
-    loadAcc();
-  },[]);
-
-  const loadAcc=async()=>{try{const d=await api("/api/accounts");const a=Array.isArray(d)?d:[];setAcc(a);if(a.length>0&&!selId)setSel(a[0].id)}catch(e){console.error(e)}setLd(false)};
-
-  useEffect(()=>{if(selId)fetchData()},[selId,dateRange]);
-  useEffect(()=>{setDetailed(null)},[selId]);
-  useEffect(()=>{if(tab==="posts"&&selId&&!detailed&&!ldPosts){setLdPosts(true);api("/api/accounts/"+selId+"/media-detailed?limit=50").then(d=>{setDetailed(d);setLdPosts(false)}).catch(()=>setLdPosts(false))}},[tab,selId]);
-
-  const fetchData=async()=>{
-    setLdData(true);
-    const dr=dateRange==="custom"?(customFrom&&customTo?{since:Math.floor(new Date(customFrom).getTime()/1000),until:Math.floor(new Date(customTo).getTime()/1000)}:{}):getDateRange(dateRange);
-    const iq="/api/accounts/"+selId+"/insights?period=day"+(dr.since?"&since="+dr.since+"&until="+dr.until:"");
+  const fetchD=async()=>{setLdD(true);
+    const d=dr==="custom"?(cf&&ct?{since:Math.floor(new Date(cf).getTime()/1000),until:Math.floor(new Date(ct).getTime()/1000)}:{}):getDateRange(dr);
+    const iq="/api/accounts/"+selId+"/insights?period=day"+(d.since?"&since="+d.since+"&until="+d.until:"");
     const r=await Promise.allSettled([api("/api/accounts/"+selId+"/profile"),api(iq),api("/api/accounts/"+selId+"/media?limit=50")]);
     if(r[1].status==="fulfilled")setIns(r[1].value);else setIns(null);
     if(r[2].status==="fulfilled"){const a=r[2].value?.data||[];setMedia(Array.isArray(a)?a:[])}else setMedia([]);
     if(r[0].status==="fulfilled"&&r[0].value)setAcc(prev=>prev.map(a=>a.id===selId?{...a,...r[0].value,id:a.id}:a));
     try{setDemo(await api("/api/accounts/"+selId+"/demographics"))}catch{setDemo(null)}
-    setLdData(false);
-  };
+    setLdD(false)};
 
-  const connectIG=async()=>{const s=(await sb.auth.getSession()).data.session;if(!s)return sToast("Sesión expirada","err");location.href="/auth/instagram?token="+s.access_token};
-  const removeAcc=async id=>{await api("/api/accounts/"+id,{method:"DELETE"});const u=accounts.filter(a=>a.id!==id);setAcc(u);if(selId===id)setSel(u[0]?.id||null);sToast("Eliminada")};
+  const connectIG=async()=>{const s=(await sb.auth.getSession()).data.session;if(!s)return sT("Sesión expirada","err");location.href="/auth/instagram?token="+s.access_token};
+  const rmAcc=async id=>{await api("/api/accounts/"+id,{method:"DELETE"});const u=accounts.filter(a=>a.id!==id);setAcc(u);if(selId===id)setSel(u[0]?.id||null);sT("Eliminada")};
 
   const acc=accounts.find(a=>a.id===selId)||null;
+  const analytics=useAnalytics(detailed?.data,detailed?.followers_count||acc?.followers_count);
 
   const chartData=(()=>{if(!insights?.data||!Array.isArray(insights.data))return[];const reach=insights.data.find(m=>m?.name==="reach"),views=insights.data.find(m=>m?.name==="views");if(!reach?.values)return[];return reach.values.map((v,i)=>({date:v?.end_time?new Date(v.end_time).toLocaleDateString("es-ES",{day:"2-digit",month:"short"}):"",reach:v?.value||0,views:views?.values?.[i]?.value||0}))})();
+  const mS=(()=>{if(!Array.isArray(media)||!media.length)return{l:0,c:0,bt:{}};let l=0,c=0,bt={};media.forEach(m=>{if(!m)return;l+=m.like_count||0;c+=m.comments_count||0;bt[m.media_type||"?"]=(bt[m.media_type||"?"]||0)+1});return{l,c,bt}})();
+  const er=acc?.followers_count&&media.length?((mS.l+mS.c)/Math.max(media.length,1)/acc.followers_count*100).toFixed(2)+"%":"—";
 
-  const mStats=(()=>{if(!Array.isArray(media)||!media.length)return{likes:0,comments:0,byType:{}};let l=0,c=0,bt={};media.forEach(m=>{if(!m)return;l+=m.like_count||0;c+=m.comments_count||0;bt[m.media_type||"?"]=(bt[m.media_type||"?"]||0)+1});return{likes:l,comments:c,byType:bt}})();
-  const engRate=acc?.followers_count&&media.length?((mStats.likes+mStats.comments)/Math.max(media.length,1)/acc.followers_count*100).toFixed(2)+"%":"—";
+  // Posts sorting
+  const posts=analytics?.posts||[];
+  const fc=detailed?.followers_count||acc?.followers_count||1;
+  const filtered=posts.filter(p=>{if(tf==="all")return true;if(tf==="reel")return p.media_type==="VIDEO"||p.media_product_type==="REELS";if(tf==="photo")return p.media_type==="IMAGE";if(tf==="carousel")return p.media_type==="CAROUSEL_ALBUM";return true});
+  const sorted=[...filtered].sort((a,b)=>{let va,vb;if(sc==="score"){va=a.score;vb=b.score}else if(sc==="timestamp"){va=new Date(a.timestamp||0);vb=new Date(b.timestamp||0)}else if(sc==="engagement"){va=a.engRate;vb=b.engRate}else if(sc==="likes"){va=a.likes;vb=b.likes}else if(sc==="reach"){va=a.reach;vb=b.reach}else if(sc==="saves"){va=a.saves;vb=b.saves}else if(sc==="shares"){va=a.shares;vb=b.shares}else{va=0;vb=0}return sd==="desc"?(vb>va?1:-1):(va>vb?1:-1)});
+  const tS=c=>{if(sc===c)setSD(sd==="desc"?"asc":"desc");else{setSC(c);setSD("desc")}};const sI=c=>sc===c?(sd==="desc"?" ↓":" ↑"):"";
 
-  const posts=detailed?.data||[];const fc=detailed?.followers_count||acc?.followers_count||1;
-  const filtered=posts.filter(p=>{if(typeF==="all")return true;if(typeF==="reel")return p.media_type==="VIDEO"||p.media_product_type==="REELS";if(typeF==="photo")return p.media_type==="IMAGE";if(typeF==="carousel")return p.media_type==="CAROUSEL_ALBUM";return true});
-  const sorted=[...filtered].sort((a,b)=>{let va,vb;if(sortCol==="timestamp"){va=new Date(a.timestamp||0);vb=new Date(b.timestamp||0)}else if(sortCol==="engagement"){va=((a.insights?.total_interactions||(a.like_count||0)+(a.comments_count||0))/fc);vb=((b.insights?.total_interactions||(b.like_count||0)+(b.comments_count||0))/fc)}else if(sortCol==="likes"){va=a.like_count||0;vb=b.like_count||0}else if(sortCol==="comments"){va=a.comments_count||0;vb=b.comments_count||0}else if(sortCol==="reach"){va=a.insights?.reach||0;vb=b.insights?.reach||0}else if(sortCol==="saves"){va=a.insights?.saved||0;vb=b.insights?.saved||0}else if(sortCol==="shares"){va=a.insights?.shares||0;vb=b.insights?.shares||0}else{va=0;vb=0}return sortDir==="desc"?(vb>va?1:-1):(va>vb?1:-1)});
-  const togSort=c=>{if(sortCol===c)setSD(sortDir==="desc"?"asc":"desc");else{setSC(c);setSD("desc")}};
-  const sIco=c=>sortCol===c?(sortDir==="desc"?" ↓":" ↑"):"";
-
-  const fmtStats=(()=>{const t={reel:{l:"Reels",p:[],c:"#8b5cf6"},photo:{l:"Fotos",p:[],c:"#3b82f6"},carousel:{l:"Carruseles",p:[],c:"#f59e0b"}};posts.forEach(p=>{const e=((p.insights?.total_interactions||(p.like_count||0)+(p.comments_count||0))/fc*100);if(p.media_type==="VIDEO"||p.media_product_type==="REELS")t.reel.p.push({e,r:p.insights?.reach||0});else if(p.media_type==="IMAGE")t.photo.p.push({e,r:p.insights?.reach||0});else if(p.media_type==="CAROUSEL_ALBUM")t.carousel.p.push({e,r:p.insights?.reach||0})});return Object.entries(t).map(([k,v])=>({k,l:v.l,c:v.c,n:v.p.length,aE:v.p.length?(v.p.reduce((s,x)=>s+x.e,0)/v.p.length):0,aR:v.p.length?(v.p.reduce((s,x)=>s+x.r,0)/v.p.length):0}))})();
-  const maxE=Math.max(...fmtStats.map(f=>f.aE),0.01),maxR=Math.max(...fmtStats.map(f=>f.aR),1);
+  const DP=()=><div className="dr no-print">{[["7d","7d"],["14d","14d"],["30d","30d"],["90d","90d"],["custom","Custom"]].map(([v,l])=><button key={v} className={"drb"+(dr===v?" on":"")} onClick={()=>setDR(v)}>{l}</button>)}{dr==="custom"&&<><input type="date" className="dri" value={cf} onChange={e=>setCF(e.target.value)}/><span style={{color:"var(--tm)",fontSize:11}}>→</span><input type="date" className="dri" value={ct} onChange={e=>setCT(e.target.value)}/><button className="bo" style={{padding:"4px 10px",fontSize:10}} onClick={fetchD}>OK</button></>}</div>;
 
   if(ld)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh"}}><div className="spin"/></div>;
-
-  // ── Date Range Picker component ──
-  const DatePicker=()=><div className="dr">
-    {[["7d","7 días"],["14d","14 días"],["30d","30 días"],["90d","90 días"],["custom","Personalizado"]].map(([v,l])=>
-      <button key={v} className={"dr-b"+(dateRange===v?" on":"")} onClick={()=>setDR(v)}>{l}</button>
-    )}
-    {dateRange==="custom"&&<>
-      <input type="date" className="dr-i" value={customFrom} onChange={e=>setCF(e.target.value)}/>
-      <span style={{color:"var(--tm)",fontSize:12}}>→</span>
-      <input type="date" className="dr-i" value={customTo} onChange={e=>setCT(e.target.value)}/>
-      <button className="bo" style={{padding:"5px 12px",fontSize:11}} onClick={fetchData}>Aplicar</button>
-    </>}
-  </div>;
 
   return<div className="shell">
-    {/* Sidebar */}
-    <div className="sidebar">
-      <div className="sb-brand"><div className="sb-logo">IG</div><span className="sb-title">InstaMetrics</span></div>
-      {[{id:"overview",i:"📊",l:"Overview"},{id:"posts",i:"📋",l:"Análisis de Posts"},{id:"audience",i:"👥",l:"Audiencia"}].map(t=>
-        <button key={t.id} className={"nav"+(tab===t.id?" on":"")} onClick={()=>setTab(t.id)}><span style={{fontSize:16,width:20,textAlign:"center"}}>{t.i}</span>{t.l}</button>
-      )}
+    <div className="sb">
+      <div className="sb-brand"><div className="sb-logo">IG</div><span style={{fontWeight:700,fontSize:14.5,letterSpacing:"-.02em"}}>InstaMetrics</span></div>
+      {[{id:"overview",i:"📊",l:"Overview"},{id:"posts",i:"📋",l:"Análisis Posts"},{id:"intel",i:"🧠",l:"Inteligencia"},{id:"audience",i:"👥",l:"Audiencia"},{id:"multi",i:"🏆",l:"Multi-cuenta"},{id:"report",i:"📄",l:"Report"}].map(t=><button key={t.id} className={"nv"+(tab===t.id?" on":"")} onClick={()=>setTab(t.id)}><span style={{fontSize:15,width:18,textAlign:"center"}}>{t.i}</span>{t.l}</button>)}
       <div style={{flex:1}}/>
-      {acc&&<div style={{borderTop:"1px solid var(--bdr)",paddingTop:12,marginTop:8}}>
-        <div style={{position:"relative"}}>
-          <button className="nav" onClick={()=>setDd(!ddOpen)} style={{width:"100%"}}>
-            {acc.profile_picture_url&&<img src={acc.profile_picture_url} style={{width:20,height:20,borderRadius:"50%"}}/>}
-            <span style={{fontSize:12,flex:1,textAlign:"left"}}>@{acc.username}</span><span style={{fontSize:10,opacity:0.4}}>▼</span>
-          </button>
-          {ddOpen&&<div className="dd">{accounts.map(a=><div key={a.id} className="ddi" onClick={()=>{setSel(a.id);setDd(false)}}>
-            {a.profile_picture_url?<img src={a.profile_picture_url} style={{width:20,height:20,borderRadius:"50%"}}/>:<span style={{width:20}}/>}
-            <span style={{flex:1}}>@{a.username}</span>
-            <button className="bg" onClick={e=>{e.stopPropagation();removeAcc(a.id)}} style={{fontSize:14}}>✕</button>
-          </div>)}</div>}
-        </div>
-      </div>}
-      <button className="bp" style={{width:"100%",justifyContent:"center",marginTop:8,fontSize:12}} onClick={connectIG}>+ Conectar cuenta</button>
-      <button className="bg" onClick={onLogout} style={{textAlign:"center",marginTop:4,fontSize:11}}>Cerrar sesión</button>
+      {acc&&<div style={{borderTop:"1px solid var(--bdr)",paddingTop:10,marginTop:6}}><div style={{position:"relative"}}><button className="nv" onClick={()=>setDd(!ddO)} style={{width:"100%"}}>{acc.profile_picture_url&&<img src={acc.profile_picture_url} style={{width:18,height:18,borderRadius:"50%"}}/>}<span style={{fontSize:11.5,flex:1,textAlign:"left"}}>@{acc.username}</span><span style={{fontSize:9,opacity:.4}}>▼</span></button>
+        {ddO&&<div className="dd">{accounts.map(a=><div key={a.id} className="ddi" onClick={()=>{setSel(a.id);setDd(false)}}>{a.profile_picture_url?<img src={a.profile_picture_url} style={{width:18,height:18,borderRadius:"50%"}}/>:<span style={{width:18}}/>}<span style={{flex:1}}>@{a.username}</span><button className="bg" onClick={e=>{e.stopPropagation();rmAcc(a.id)}} style={{fontSize:13}}>✕</button></div>)}</div>}</div></div>}
+      <button className="bp" style={{width:"100%",justifyContent:"center",marginTop:6,fontSize:11.5}} onClick={connectIG}>+ Conectar</button>
+      <button className="bg" onClick={onLogout} style={{textAlign:"center",marginTop:3}}>Cerrar sesión</button>
     </div>
 
-    {/* Content */}
-    <div className="content">
-      {!acc?<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"60vh",gap:16}}>
-        <div className="sb-logo" style={{width:64,height:64,borderRadius:18,fontSize:28}}>IG</div>
-        <h2 style={{fontSize:20,fontWeight:700}}>Conecta tu primera cuenta</h2>
-        <p style={{color:"var(--tm)",fontSize:14}}>Necesitas una cuenta Business o Creator.</p>
-        <button className="bp" style={{padding:"12px 24px",marginTop:8}} onClick={connectIG}>+ Conectar Instagram</button>
-      </div>:<div>
-        <div className="topbar">
-          <div><div style={{display:"flex",alignItems:"center",gap:12}}>
-            {acc.profile_picture_url&&<img src={acc.profile_picture_url} style={{width:40,height:40,borderRadius:12,border:"1px solid var(--bdr)"}}/>}
-            <div><h1>@{acc.username}</h1><p>{acc.account_type||""}{acc.name&&acc.name!==acc.username?" · "+acc.name:""}</p></div>
-          </div></div>
-          <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}><DatePicker/><button className="bo" onClick={()=>{fetchData();setDetailed(null)}}>🔄 Actualizar</button></div>
+    <div className="cnt">{!acc?<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"60vh",gap:14}}>
+      <div className="sb-logo" style={{width:60,height:60,borderRadius:16,fontSize:26}}>IG</div><h2 style={{fontSize:18,fontWeight:700}}>Conecta tu primera cuenta</h2>
+      <button className="bp" style={{padding:"11px 22px",marginTop:8}} onClick={connectIG}>+ Conectar Instagram</button>
+    </div>:<div>
+      <div className="tb"><div><div style={{display:"flex",alignItems:"center",gap:11}}>{acc.profile_picture_url&&<img src={acc.profile_picture_url} style={{width:36,height:36,borderRadius:11,border:"1px solid var(--bdr)"}}/>}<div><h1>@{acc.username}</h1><p>{acc.account_type||""}{acc.name&&acc.name!==acc.username?" · "+acc.name:""}</p></div></div></div>
+        <div className="no-print" style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><DP/><button className="bo" onClick={()=>{fetchD();setDet(null)}}>🔄</button></div></div>
+
+      {ldD?<div style={{display:"flex",justifyContent:"center",padding:50}}><div className="spin"/></div>:<div>
+
+        {/* ═══ OVERVIEW ═══ */}
+        {tab==="overview"&&<><div className="kg">
+          <div className="kpi"><div className="kl">Seguidores</div><div className="kv">{n(acc.followers_count||0)}</div></div>
+          <div className="kpi"><div className="kl">Publicaciones</div><div className="kv">{n(acc.media_count||0)}</div></div>
+          <div className="kpi"><div className="kl">Eng. Rate</div><div className="kv">{er}</div></div>
+          <div className="kpi"><div className="kl">Likes (últ.)</div><div className="kv">{n(mS.l)}</div></div>
+          <div className="kpi"><div className="kl">Comentarios</div><div className="kv">{n(mS.c)}</div></div>
+          {analytics&&<div className="kpi"><div className="kl">Posts virales</div><div className="kv" style={{color:"var(--red)"}}>{analytics.viralCount}</div><div className="ks" style={{color:"var(--td)"}}>reach &gt; 2x seguidores</div></div>}
         </div>
+        <div className="g2">
+          {RC&&chartData.length>0&&<div className="pnl gf"><div className="pt">Alcance y Visualizaciones</div><ResponsiveContainer width="100%" height={240}><AreaChart data={chartData}><defs><linearGradient id="gR" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e1306c" stopOpacity={.2}/><stop offset="100%" stopColor="#e1306c" stopOpacity={0}/></linearGradient><linearGradient id="gV" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#3b82f6" stopOpacity={.2}/><stop offset="100%" stopColor="#3b82f6" stopOpacity={0}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.04)"/><XAxis dataKey="date" stroke="rgba(255,255,255,.15)" fontSize={10.5} tickLine={false}/><YAxis stroke="rgba(255,255,255,.15)" fontSize={10.5} tickLine={false} tickFormatter={v=>v>=1000?(v/1000).toFixed(1)+"k":v}/><Tooltip content={<Tip/>}/><Area type="monotone" dataKey="reach" stroke="#e1306c" strokeWidth={2} fill="url(#gR)" name="Alcance"/><Area type="monotone" dataKey="views" stroke="#3b82f6" strokeWidth={2} fill="url(#gV)" name="Views"/></AreaChart></ResponsiveContainer></div>}
+          {analytics&&<div className="pnl"><div className="pt">🏆 Top 5 Posts</div>{analytics.top5.map((p,i)=><div key={p.id||i} style={{display:"flex",alignItems:"center",gap:9,padding:"7px 0",borderBottom:i<4?"1px solid rgba(255,255,255,.03)":"none"}}><ScoreRing score={p.score}/><div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.caption?p.caption.slice(0,35):"Sin caption"}</div><div style={{fontSize:10.5,color:"var(--td)"}}>{p.timestamp?new Date(p.timestamp).toLocaleDateString("es-ES"):""} · <Badge type={p.media_type} pt={p.media_product_type}/></div></div><div style={{fontSize:11.5,fontWeight:700,color:"var(--acc)"}}>❤ {n(p.likes)}</div></div>)}</div>}
+          {analytics&&<div className="pnl"><div className="pt">💀 5 Posts con peor rendimiento</div>{analytics.worst5.map((p,i)=><div key={p.id||i} style={{display:"flex",alignItems:"center",gap:9,padding:"7px 0",borderBottom:i<4?"1px solid rgba(255,255,255,.03)":"none"}}><ScoreRing score={p.score}/><div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.caption?p.caption.slice(0,35):"Sin caption"}</div><div style={{fontSize:10.5,color:"var(--td)"}}><Badge type={p.media_type} pt={p.media_product_type}/></div></div><div style={{fontSize:11.5,fontWeight:600,color:"var(--td)"}}>reach {n(p.reach)}</div></div>)}</div>}
+          {chartData.length===0&&!analytics&&<div className="pnl gf"><p className="empty">📈 Cargando datos...</p></div>}
+        </div></>}
 
-        {ldData?<div style={{display:"flex",justifyContent:"center",padding:60}}><div className="spin"/></div>:<div>
+        {/* ═══ POSTS ═══ */}
+        {tab==="posts"&&<>{ldP?<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:10,padding:50}}><div className="spin"/><p style={{fontSize:12,color:"var(--tm)"}}>Cargando insights por post...</p></div>
+        :!analytics?<p className="empty">No hay posts</p>:<>
+          <div className="g2" style={{marginBottom:14}}>
+            <div className="pnl"><div className="pt">Engagement por formato</div>{analytics.formatStats.map(f=>f.count>0&&<div key={f.key} className="fmr"><div className="fml" style={{color:f.color,fontSize:11.5}}>{f.label} ({f.count})</div><div className="fmbg"><div className="fmb" style={{width:(f.avgEng/Math.max(...analytics.formatStats.map(x=>x.avgEng),.01)*100)+"%",background:f.color+"30"}}/></div><div className="fmv" style={{fontSize:12}}>{f.avgEng.toFixed(2)}%</div></div>)}</div>
+            <div className="pnl"><div className="pt">Alcance por formato</div>{analytics.formatStats.map(f=>f.count>0&&<div key={f.key} className="fmr"><div className="fml" style={{color:f.color,fontSize:11.5}}>{f.label}</div><div className="fmbg"><div className="fmb" style={{width:(f.avgReach/Math.max(...analytics.formatStats.map(x=>x.avgReach),1)*100)+"%",background:f.color+"30"}}/></div><div className="fmv" style={{fontSize:12}}>{n(Math.round(f.avgReach))}</div></div>)}</div>
+          </div>
+          <div className="pnl"><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><div className="pt" style={{margin:0}}>Todos los posts ({filtered.length})</div></div>
+            <div className="fc">{[["all","Todos"],["reel","🎬 Reels"],["photo","📷 Fotos"],["carousel","📑 Carru."]].map(([id,l])=><button key={id} className={"fch"+(tf===id?" on":"")} onClick={()=>setTF(id)}>{l}</button>)}</div>
+            <div style={{overflowX:"auto"}}><table className="tbl"><thead><tr>
+              <th onClick={()=>tS("score")}>Score{sI("score")}</th><th>Tipo</th><th>Viral</th><th onClick={()=>tS("timestamp")}>Fecha{sI("timestamp")}</th><th style={{maxWidth:140}}>Caption</th>
+              <th className="num" onClick={()=>tS("likes")}>❤{sI("likes")}</th><th className="num" onClick={()=>tS("reach")}>Reach{sI("reach")}</th><th className="num" onClick={()=>tS("saves")}>Saves{sI("saves")}</th><th className="num" onClick={()=>tS("shares")}>Shares{sI("shares")}</th><th className="num" onClick={()=>tS("engagement")}>Eng%{sI("engagement")}</th>
+            </tr></thead><tbody>{sorted.map((p,i)=><tr key={p.id||i}>
+              <td><ScoreRing score={p.score}/></td>
+              <td><Badge type={p.media_type} pt={p.media_product_type}/></td>
+              <td><span className={"bdg "+p.labelClass}>{p.label}</span></td>
+              <td style={{fontSize:11.5,whiteSpace:"nowrap"}}>{p.timestamp?new Date(p.timestamp).toLocaleDateString("es-ES"):"—"}</td>
+              <td style={{maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"var(--tm)",fontSize:11.5}}><a href={p.permalink||"#"} target="_blank" rel="noopener" style={{color:"var(--tm)"}}>{p.caption?p.caption.slice(0,40):"—"}</a></td>
+              <td className="num">{n(p.likes)}</td><td className="num">{n(p.reach)}</td><td className="num">{n(p.saves)}</td><td className="num">{n(p.shares)}</td>
+              <td className="num" style={{color:p.engRate*100>5?"var(--grn)":p.engRate*100>2?"var(--org)":"var(--tm)",fontWeight:700}}>{(p.engRate*100).toFixed(2)}%</td>
+            </tr>)}</tbody></table></div></div>
+        </>}</>}
 
-          {/* ═══ OVERVIEW ═══ */}
-          {tab==="overview"&&<>
-            <div className="kpi-g">
-              <div className="kpi"><div className="kpi-l">Seguidores</div><div className="kpi-v">{n(acc.followers_count||0)}</div></div>
-              <div className="kpi"><div className="kpi-l">Siguiendo</div><div className="kpi-v">{n(acc.follows_count||0)}</div></div>
-              <div className="kpi"><div className="kpi-l">Publicaciones</div><div className="kpi-v">{n(acc.media_count||0)}</div></div>
-              <div className="kpi"><div className="kpi-l">Likes (últ. posts)</div><div className="kpi-v">{n(mStats.likes)}</div></div>
-              <div className="kpi"><div className="kpi-l">Comentarios</div><div className="kpi-v">{n(mStats.comments)}</div></div>
-              <div className="kpi"><div className="kpi-l">Eng. Rate</div><div className="kpi-v">{engRate}</div><div className="kpi-s">media interacciones / seguidores</div></div>
+        {/* ═══ INTELLIGENCE ═══ */}
+        {tab==="intel"&&<>{ldP?<div style={{display:"flex",justifyContent:"center",padding:50}}><div className="spin"/></div>
+        :!analytics?<p className="empty">Conecta una cuenta para ver insights</p>:<>
+          {/* Feature 1: What to post now */}
+          <div className="insight-card"><h3>💡 ¿Qué publicar ahora?</h3><p>
+            {analytics.bestFormat?<>Tu mejor formato es <strong style={{color:analytics.bestFormat.color}}>{analytics.bestFormat.label}</strong> con un engagement medio de <strong>{analytics.bestFormat.avgEng.toFixed(2)}%</strong>.{" "}</>:""}
+            {analytics.bestHourToday?<>Hoy ({analytics.dayNames[analytics.currentDay]}), tu mejor hora históricamente es las <strong>{analytics.bestHourToday.hour}:00</strong> con {analytics.bestHourToday.avg.toFixed(2)}% eng. medio.{" "}</>:"No hay datos suficientes para hoy. "}
+            {analytics.currentSlot&&analytics.currentSlot.avg>analytics.overallAvgEng?<span style={{color:"var(--grn)"}}>🟢 Ahora ({analytics.currentHour}:00) es buen momento para publicar.</span>:<span style={{color:"var(--org)"}}>🟡 Las {analytics.currentHour}:00 no es tu mejor hora — espera a las {analytics.bestHourToday?analytics.bestHourToday.hour+":00":"mejor hora"}.</span>}
+          </p></div>
+
+          {/* Feature 4: Fatigue */}
+          <div className="insight-card" style={{borderColor:analytics.fatigueStatus==="critical"?"rgba(239,68,68,.3)":analytics.fatigueStatus==="warning"?"rgba(245,158,11,.3)":"rgba(34,197,94,.15)",background:analytics.fatigueStatus==="critical"?"rgba(239,68,68,.06)":analytics.fatigueStatus==="warning"?"rgba(245,158,11,.06)":"rgba(34,197,94,.04)"}}>
+            <h3>{analytics.fatigueStatus==="critical"?"🚨 Fatiga de contenido detectada":analytics.fatigueStatus==="warning"?"⚠️ Engagement bajando":"✅ Engagement saludable"}</h3>
+            <p>Tu engagement reciente vs anterior: <strong style={{color:analytics.fatigue>=0?"var(--grn)":"var(--red)"}}>{analytics.fatigue>=0?"+":""}{analytics.fatigue.toFixed(1)}%</strong>.
+            {analytics.fatigueStatus!=="healthy"&&<>{" "}Intenta variar el formato de contenido. {analytics.formatStats.find(f=>f.count===0)?" Prueba publicar "+analytics.formatStats.find(f=>f.count===0)?.label+".":""}</>}
+            </p></div>
+
+          <div className="g2">
+            {/* Feature 8: Heatmap */}
+            <div className="pnl gf"><div className="pt">🕐 Mejor hora para publicar</div>
+              <div style={{overflowX:"auto"}}><div style={{display:"grid",gridTemplateColumns:"50px repeat(24, 1fr)",gap:2,fontSize:10}}>
+                <div/>
+                {Array.from({length:24},(_,h)=><div key={h} style={{textAlign:"center",color:"var(--td)",padding:"2px 0"}}>{h}</div>)}
+                {analytics.dayNames.map((day,d)=><React.Fragment key={d}>
+                  <div style={{display:"flex",alignItems:"center",color:"var(--tm)",fontWeight:600,fontSize:10.5}}>{day}</div>
+                  {Array.from({length:24},(_,h)=>{const cell=analytics.heatmapData.find(c=>c.day===d&&c.hour===h);const intensity=cell&&analytics.hmMax>0?cell.avg/analytics.hmMax:0;
+                    return<div key={h} className="hm-cell" style={{background:intensity>0?`rgba(225,48,108,${.1+intensity*.7})`:"rgba(255,255,255,.02)"}} title={`${day} ${h}:00 — ${cell?.count||0} posts, ${cell?.avg?.toFixed(2)||0}% eng`}>
+                      {cell&&cell.count>0?cell.avg.toFixed(1):""}</div>})}
+                </React.Fragment>)}
+              </div></div>
+              <p style={{fontSize:11,color:"var(--td)",marginTop:10}}>Valores = engagement rate medio (%). Basado en {posts.length} posts.</p>
+            </div>
+
+            {/* Feature 7: Caption Analysis */}
+            <div className="pnl"><div className="pt">✍️ Análisis de caption</div>
+              {analytics.captionStats.map((b,i)=><div key={i} style={{marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:11.5,marginBottom:3}}><span style={{fontWeight:600}}>{b.label} <span style={{color:"var(--td)",fontWeight:400}}>({b.count} posts)</span></span><span style={{fontWeight:700,color:C[i%C.length]}}>{b.avgEng.toFixed(2)}%</span></div>
+                <div style={{height:6,borderRadius:3,background:"rgba(255,255,255,.04)",overflow:"hidden"}}><div style={{height:"100%",borderRadius:3,width:(b.avgEng/Math.max(...analytics.captionStats.map(x=>x.avgEng),.01)*100)+"%",background:C[i%C.length]}}/></div>
+              </div>)}</div>
+
+            {/* Engagement trend chart */}
+            {RC&&analytics.engTrend.length>3&&<div className="pnl"><div className="pt">📉 Tendencia de engagement</div>
+              <ResponsiveContainer width="100%" height={200}><AreaChart data={analytics.engTrend}><CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.04)"/><XAxis dataKey="date" stroke="rgba(255,255,255,.15)" fontSize={10} tickLine={false}/><YAxis stroke="rgba(255,255,255,.15)" fontSize={10} tickLine={false} tickFormatter={v=>v.toFixed(1)+"%"}/><Tooltip content={<Tip/>}/><Area type="monotone" dataKey="rolling" stroke="#e1306c" strokeWidth={2} fill="rgba(225,48,108,.1)" name="Eng% (media móvil)"/><Area type="monotone" dataKey="eng" stroke="rgba(255,255,255,.15)" strokeWidth={1} fill="none" name="Eng% (por post)" dot={false}/></AreaChart></ResponsiveContainer>
+            </div>}
+          </div>
+        </>}</>}
+
+        {/* ═══ AUDIENCE ═══ */}
+        {tab==="audience"&&<div className="g2">{demo?.data&&Array.isArray(demo.data)?demo.data.map((m,idx)=>{
+          const labels={"engaged_audience_demographics":"👥 Audiencia comprometida","reached_audience_demographics":"📡 Audiencia alcanzada","follower_demographics":"🎯 Seguidores"};
+          const label=labels[m?.name]||m?.name||"Métrica";const br=m?.total_value?.breakdowns?.[0]?.results;
+          if(!br)return<div key={idx} className="pnl"><div className="pt">{label}</div><p className="empty">Sin datos</p></div>;
+          const s=[...br].sort((a,b)=>(b.value||0)-(a.value||0));const mx=s[0]?.value||1;
+          return<div key={idx} className="pnl"><div className="pt">{label}</div>{s.slice(0,12).map((item,i)=><div key={i} style={{marginBottom:7}}><div style={{display:"flex",justifyContent:"space-between",fontSize:11.5,marginBottom:2}}><span style={{fontWeight:500}}>{Object.values(item.dimension_values||{}).join(" · ")||"—"}</span><span style={{fontWeight:600,color:C[i%C.length]}}>{n(item.value||0)}</span></div><div style={{height:5,borderRadius:3,background:"rgba(255,255,255,.04)",overflow:"hidden"}}><div style={{height:"100%",borderRadius:3,width:((item.value||0)/mx*100)+"%",background:C[i%C.length]}}/></div></div>)}</div>
+        }):<div className="pnl gf"><p className="empty">👥 Datos demográficos requieren mín. 100 seguidores.</p></div>}</div>}
+
+        {/* ═══ MULTI-ACCOUNT ═══ */}
+        {tab==="multi"&&<>{accounts.length<2?<div className="pnl"><p className="empty">Conecta al menos 2 cuentas para ver la comparativa.</p></div>:
+          <div className="pnl"><div className="pt">🏆 Comparativa entre cuentas</div>
+            <div style={{overflowX:"auto"}}><table className="tbl"><thead><tr><th>Cuenta</th><th className="num">Seguidores</th><th className="num">Posts</th><th className="num">Siguiendo</th><th>Tipo</th><th className="num">Ratio S/F</th></tr></thead>
+              <tbody>{accounts.sort((a,b)=>(b.followers_count||0)-(a.followers_count||0)).map((a,i)=><tr key={a.id} style={{background:a.id===selId?"rgba(255,255,255,.04)":"transparent",cursor:"pointer"}} onClick={()=>setSel(a.id)}>
+                <td><div style={{display:"flex",alignItems:"center",gap:8}}>{a.profile_picture_url?<img src={a.profile_picture_url} style={{width:22,height:22,borderRadius:"50%"}}/>:<span style={{width:22,height:22,borderRadius:"50%",background:C[i%C.length],display:"inline-block"}}/>}<span style={{fontWeight:600,fontSize:12.5}}>@{a.username}</span></div></td>
+                <td className="num" style={{fontWeight:700}}>{n(a.followers_count||0)}</td>
+                <td className="num">{n(a.media_count||0)}</td>
+                <td className="num">{n(a.follows_count||0)}</td>
+                <td style={{fontSize:11.5,color:"var(--tm)"}}>{a.account_type||""}</td>
+                <td className="num" style={{color:a.followers_count>a.follows_count?"var(--grn)":"var(--org)"}}>{a.follows_count?(a.followers_count/a.follows_count).toFixed(2):"—"}</td>
+              </tr>)}</tbody></table></div></div>
+        }</>}
+
+        {/* ═══ REPORT ═══ */}
+        {tab==="report"&&<>{!analytics?<>{ldP?<div style={{display:"flex",justifyContent:"center",padding:50}}><div className="spin"/></div>:<p className="empty">Los datos se cargan al entrar en Análisis de Posts o Inteligencia. <button className="bo" style={{marginTop:10}} onClick={()=>{setTab("posts")}}>Cargar datos</button></p>}</>:<div>
+          <div className="no-print" style={{marginBottom:16}}><button className="bp" onClick={()=>window.print()}>🖨 Imprimir / Descargar PDF</button><span style={{fontSize:11.5,color:"var(--tm)",marginLeft:10}}>Usa "Guardar como PDF" en el diálogo de impresión</span></div>
+          <div className="pnl"><div className="pt" style={{fontSize:18}}>📊 Report mensual — @{acc.username}</div><p style={{color:"var(--tm)",fontSize:12,marginBottom:16}}>{new Date().toLocaleDateString("es-ES",{month:"long",year:"numeric"})}</p>
+            <div className="kg" style={{marginBottom:20}}>
+              <div className="kpi"><div className="kl">Seguidores</div><div className="kv">{n(acc.followers_count||0)}</div></div>
+              <div className="kpi"><div className="kl">Eng. Rate</div><div className="kv">{er}</div></div>
+              <div className="kpi"><div className="kl">Posts analizados</div><div className="kv">{posts.length}</div></div>
+              <div className="kpi"><div className="kl">Posts virales</div><div className="kv" style={{color:"var(--red)"}}>{analytics.viralCount}</div></div>
+              <div className="kpi"><div className="kl">Salud engagement</div><div className="kv" style={{color:analytics.fatigueStatus==="healthy"?"var(--grn)":"var(--red)"}}>{analytics.fatigueStatus==="healthy"?"✅":"⚠️"} {analytics.fatigue>=0?"+":""}{analytics.fatigue.toFixed(1)}%</div></div>
             </div>
             <div className="g2">
-              {RC&&chartData.length>0&&<div className="pnl gf"><div className="pnl-t">Alcance y Visualizaciones</div>
-                <ResponsiveContainer width="100%" height={260}><AreaChart data={chartData}>
-                  <defs><linearGradient id="gR" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e1306c" stopOpacity={0.2}/><stop offset="100%" stopColor="#e1306c" stopOpacity={0}/></linearGradient><linearGradient id="gV" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#3b82f6" stopOpacity={0.2}/><stop offset="100%" stopColor="#3b82f6" stopOpacity={0}/></linearGradient></defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)"/><XAxis dataKey="date" stroke="rgba(255,255,255,0.15)" fontSize={11} tickLine={false}/><YAxis stroke="rgba(255,255,255,0.15)" fontSize={11} tickLine={false} tickFormatter={v=>v>=1000?(v/1000).toFixed(1)+"k":v}/>
-                  <Tooltip content={<Tip/>}/><Area type="monotone" dataKey="reach" stroke="#e1306c" strokeWidth={2} fill="url(#gR)" name="Alcance"/><Area type="monotone" dataKey="views" stroke="#3b82f6" strokeWidth={2} fill="url(#gV)" name="Visualizaciones"/>
-                </AreaChart></ResponsiveContainer></div>}
-              <div className="pnl"><div className="pnl-t">🏆 Top Posts</div><div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {media.slice().sort((a,b)=>(b.like_count||0)-(a.like_count||0)).slice(0,5).map((m,i)=>
-                  <a key={m.id||i} href={m.permalink||"#"} target="_blank" rel="noopener" style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,background:"rgba(255,255,255,0.02)"}}>
-                    {(m.thumbnail_url||m.media_url)&&<img src={m.thumbnail_url||m.media_url} style={{width:38,height:38,borderRadius:6,objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>}
-                    <div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.caption?m.caption.slice(0,40):"Sin caption"}</div><div style={{fontSize:11,color:"var(--td)"}}>{m.timestamp?new Date(m.timestamp).toLocaleDateString("es-ES"):""}</div></div>
-                    <div style={{fontSize:13,fontWeight:700,color:"var(--acc)"}}>❤ {n(m.like_count||0)}</div>
-                  </a>
-                )}{media.length===0&&<p className="empty">No hay publicaciones</p>}
-              </div></div>
-              <div className="pnl"><div className="pnl-t">Distribución de contenido</div>
-                {Object.entries(mStats.byType).length>0?<div style={{display:"flex",flexDirection:"column",gap:10}}>
-                  {Object.entries(mStats.byType).map(([type,count],i)=>{const labels={IMAGE:"Fotos",VIDEO:"Reels/Video",CAROUSEL_ALBUM:"Carruseles"};const pct=count/Math.max(media.length,1)*100;return<div key={type}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}}><span style={{fontWeight:600}}>{labels[type]||type}</span><span style={{color:"var(--tm)"}}>{count} ({pct.toFixed(0)}%)</span></div><div style={{height:6,borderRadius:3,background:"rgba(255,255,255,0.04)",overflow:"hidden"}}><div style={{height:"100%",borderRadius:3,width:pct+"%",background:COLS[i%COLS.length]}}/></div></div>})}
-                </div>:<p className="empty">Sin datos</p>}
-              </div>
-              {chartData.length===0&&<div className="pnl gf"><p className="empty">📈 Los insights aparecerán cuando Instagram tenga datos.</p></div>}
+              <div><div className="pt">🏆 Mejores posts</div>{analytics.top5.map((p,i)=><div key={i} style={{fontSize:12,padding:"5px 0",borderBottom:"1px solid rgba(255,255,255,.03)"}}><strong>Score {p.score}</strong> — {p.caption?p.caption.slice(0,50):"Sin caption"} · ❤ {p.likes} · 👁 {n(p.reach)}</div>)}</div>
+              <div><div className="pt">📊 Rendimiento por formato</div>{analytics.formatStats.filter(f=>f.count>0).map(f=><div key={f.key} style={{fontSize:12,padding:"5px 0"}}><strong style={{color:f.color}}>{f.label}</strong>: {f.count} posts · {f.avgEng.toFixed(2)}% eng · {n(Math.round(f.avgReach))} reach medio</div>)}</div>
             </div>
-          </>}
-
-          {/* ═══ POSTS ═══ */}
-          {tab==="posts"&&<>{ldPosts?<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:12,padding:60}}><div className="spin"/><p style={{fontSize:13,color:"var(--tm)"}}>Cargando insights de cada post...</p></div>
-          :posts.length===0?<p className="empty">No hay posts con insights disponibles</p>:<>
-            <div className="g2" style={{marginBottom:16}}>
-              <div className="pnl"><div className="pnl-t">Engagement medio por formato</div>{fmtStats.map(f=>f.n>0&&<div className="fmr" key={f.k}><div className="fml" style={{color:f.c}}>{f.l} <span style={{color:"var(--td)",fontWeight:400}}>({f.n})</span></div><div className="fmbg"><div className="fmb" style={{width:(f.aE/maxE*100)+"%",background:f.c+"30"}}/></div><div className="fmv">{f.aE.toFixed(2)}%</div></div>)}</div>
-              <div className="pnl"><div className="pnl-t">Alcance medio por formato</div>{fmtStats.map(f=>f.n>0&&<div className="fmr" key={f.k}><div className="fml" style={{color:f.c}}>{f.l}</div><div className="fmbg"><div className="fmb" style={{width:(f.aR/maxR*100)+"%",background:f.c+"30"}}/></div><div className="fmv">{n(Math.round(f.aR))}</div></div>)}</div>
+            <div style={{marginTop:16}}><div className="pt">✍️ Recomendaciones</div>
+              <ul style={{fontSize:12.5,color:"var(--tm)",lineHeight:1.8,paddingLeft:18}}>
+                {analytics.bestFormat&&<li>Tu mejor formato es <strong style={{color:analytics.bestFormat.color}}>{analytics.bestFormat.label}</strong>. Publica más de este tipo.</li>}
+                {analytics.bestHourToday&&<li>Tus mejores horas históricas para los {analytics.dayNames[analytics.currentDay]} son alrededor de las {analytics.bestHourToday.hour}:00.</li>}
+                {analytics.captionStats.length>1&&<li>Los captions de tipo "<strong>{analytics.captionStats.sort((a,b)=>b.avgEng-a.avgEng)[0].label}</strong>" tienen mejor engagement ({analytics.captionStats.sort((a,b)=>b.avgEng-a.avgEng)[0].avgEng.toFixed(2)}%).</li>}
+                {analytics.fatigueStatus!=="healthy"&&<li style={{color:"var(--org)"}}>Tu engagement ha bajado un {Math.abs(analytics.fatigue).toFixed(1)}% — intenta variar el contenido.</li>}
+              </ul>
             </div>
-            <div className="pnl">
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><div className="pnl-t" style={{margin:0}}>Todos los posts ({filtered.length})</div></div>
-              <div className="fc">{[["all","Todos"],["reel","🎬 Reels"],["photo","📷 Fotos"],["carousel","📑 Carruseles"]].map(([id,l])=><button key={id} className={"fch"+(typeF===id?" on":"")} onClick={()=>setTF(id)}>{l}</button>)}</div>
-              <div style={{overflowX:"auto"}}><table className="pt"><thead><tr>
-                <th style={{width:40}}>#</th><th>Tipo</th><th onClick={()=>togSort("timestamp")}>Fecha{sIco("timestamp")}</th><th>Caption</th>
-                <th className="num" onClick={()=>togSort("likes")}>❤ Likes{sIco("likes")}</th><th className="num" onClick={()=>togSort("comments")}>💬 Com.{sIco("comments")}</th>
-                <th className="num" onClick={()=>togSort("reach")}>👁 Reach{sIco("reach")}</th><th className="num" onClick={()=>togSort("saves")}>🔖 Saves{sIco("saves")}</th>
-                <th className="num" onClick={()=>togSort("shares")}>↗ Shares{sIco("shares")}</th><th className="num" onClick={()=>togSort("engagement")}>📊 Eng%{sIco("engagement")}</th>
-              </tr></thead><tbody>
-                {sorted.map((p,i)=>{const eng=((p.insights?.total_interactions||(p.like_count||0)+(p.comments_count||0))/fc*100);return<tr key={p.id||i}>
-                  <td style={{color:"var(--td)",fontSize:11}}>{i+1}</td>
-                  <td><Badge type={p.media_type} pt={p.media_product_type}/></td>
-                  <td style={{fontSize:12,whiteSpace:"nowrap"}}>{p.timestamp?new Date(p.timestamp).toLocaleDateString("es-ES"):"—"}</td>
-                  <td className="cap"><a href={p.permalink||"#"} target="_blank" rel="noopener" style={{color:"var(--tm)"}}>{p.caption?p.caption.slice(0,50)+(p.caption.length>50?"...":""):"—"}</a></td>
-                  <td className="num">{n(p.like_count||0)}</td><td className="num">{n(p.comments_count||0)}</td>
-                  <td className="num">{n(p.insights?.reach||0)}</td><td className="num">{n(p.insights?.saved||0)}</td><td className="num">{n(p.insights?.shares||0)}</td>
-                  <td className="num" style={{color:eng>5?"var(--grn)":eng>2?"var(--org)":"var(--tm)",fontWeight:700}}>{eng.toFixed(2)}%</td>
-                </tr>})}
-              </tbody></table></div>
-            </div>
-          </>}</>}
+          </div>
+        </div>}</>}
 
-          {/* ═══ AUDIENCE ═══ */}
-          {tab==="audience"&&<div className="g2">
-            {demo?.data&&Array.isArray(demo.data)?demo.data.map((m,idx)=>{
-              const labels={"engaged_audience_demographics":"👥 Audiencia comprometida","reached_audience_demographics":"📡 Audiencia alcanzada","follower_demographics":"🎯 Seguidores"};
-              const label=labels[m?.name]||m?.name||"Métrica";
-              const br=m?.total_value?.breakdowns?.[0]?.results;
-              if(!br)return<div key={idx} className="pnl"><div className="pnl-t">{label}</div><p className="empty">Sin datos</p></div>;
-              const s=[...br].sort((a,b)=>(b.value||0)-(a.value||0));const mx=s[0]?.value||1;
-              return<div key={idx} className="pnl"><div className="pnl-t">{label}</div><div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {s.slice(0,12).map((item,i)=><div key={i}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:3}}><span style={{fontWeight:500}}>{Object.values(item.dimension_values||{}).join(" · ")||"—"}</span><span style={{fontWeight:600,color:COLS[i%COLS.length]}}>{n(item.value||0)}</span></div><div style={{height:5,borderRadius:3,background:"rgba(255,255,255,0.04)",overflow:"hidden"}}><div style={{height:"100%",borderRadius:3,width:((item.value||0)/mx*100)+"%",background:COLS[i%COLS.length]}}/></div></div>)}
-              </div></div>
-            }):<div className="pnl gf"><p className="empty">👥 Los datos demográficos requieren al menos 100 seguidores.</p></div>}
-          </div>}
-
-        </div>}
-      </div>}
-    </div>
+      </div>}</div>}</div>
     {toast&&<div className={"toast "+toast.t}>{toast.m}</div>}
-    {ddOpen&&<div style={{position:"fixed",inset:0,zIndex:49}} onClick={()=>setDd(false)}/>}
+    {ddO&&<div style={{position:"fixed",inset:0,zIndex:49}} onClick={()=>setDd(false)}/>}
   </div>;
 }
 
-function App(){
-  const[session,setS]=useState(null),[ld,setLd]=useState(true);
+function App(){const[s,setS]=useState(null),[ld,setLd]=useState(true);
   useEffect(()=>{fetch("/api/config").then(r=>r.json()).then(cfg=>{sb=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);sb.auth.getSession().then(r=>{if(r.data.session)setS(r.data.session);setLd(false)});sb.auth.onAuthStateChange((_,s)=>setS(s))}).catch(()=>setLd(false))},[]);
   if(ld)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh"}}><div className="spin"/></div>;
-  if(!session)return<Auth onAuth={s=>setS(s)}/>;
-  return<Dash session={session} onLogout={async()=>{await sb.auth.signOut();setS(null)}}/>;
+  if(!s)return<Auth onAuth={s=>setS(s)}/>;
+  return<Dash session={s} onLogout={async()=>{await sb.auth.signOut();setS(null)}}/>;
 }
-
 ReactDOM.createRoot(document.getElementById("root")).render(<EB><App/></EB>);
 </script>
 </body>
