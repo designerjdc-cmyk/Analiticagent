@@ -40,43 +40,45 @@ function saveAccounts(accounts) {
 const {
   INSTAGRAM_APP_ID,
   INSTAGRAM_APP_SECRET,
-  BASE_URL, // e.g. https://your-app.onrender.com
+  BASE_URL,
   PORT = 3000,
 } = process.env;
 
 const REDIRECT_URI = `${BASE_URL}/auth/callback`;
 const IG_GRAPH = "https://graph.instagram.com";
-const IG_AUTH = "https://api.instagram.com";
 
 // Scopes for Instagram Business Login
-const SCOPES = [
-  "instagram_business_basic",
-  "instagram_business_manage_insights",
-].join(",");
+const SCOPES = "instagram_business_basic,instagram_business_manage_insights";
 
 // ============================================================
 // AUTH ROUTES
 // ============================================================
 
 // Step 1: Redirect user to Instagram OAuth
+// IMPORTANT: Uses www.instagram.com (NOT api.instagram.com)
+// and enable_fb_login=0 for standalone Instagram Business Login
 app.get("/auth/login", (req, res) => {
-  const state = uuidv4(); // CSRF protection
+  const state = uuidv4();
   const authUrl =
-    `${IG_AUTH}/oauth/authorize` +
-    `?client_id=${INSTAGRAM_APP_ID}` +
+    `https://www.instagram.com/oauth/authorize` +
+    `?enable_fb_login=0` +
+    `&force_authentication=1` +
+    `&client_id=${INSTAGRAM_APP_ID}` +
     `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-    `&scope=${SCOPES}` +
+    `&scope=${encodeURIComponent(SCOPES)}` +
     `&response_type=code` +
     `&state=${state}`;
 
+  console.log("Redirecting to:", authUrl);
   res.redirect(authUrl);
 });
 
 // Step 2: Handle OAuth callback
 app.get("/auth/callback", async (req, res) => {
-  const { code, error, error_description } = req.query;
+  const { code, error, error_description, error_reason } = req.query;
 
   if (error) {
+    console.error("OAuth error:", error, error_description, error_reason);
     return res.redirect(`/?error=${encodeURIComponent(error_description || error)}`);
   }
 
@@ -85,9 +87,11 @@ app.get("/auth/callback", async (req, res) => {
   }
 
   try {
+    console.log("Exchanging code for token...");
+
     // Exchange code for short-lived token
     const tokenRes = await axios.post(
-      `${IG_AUTH}/oauth/access_token`,
+      `https://api.instagram.com/oauth/access_token`,
       new URLSearchParams({
         client_id: INSTAGRAM_APP_ID,
         client_secret: INSTAGRAM_APP_SECRET,
@@ -97,6 +101,8 @@ app.get("/auth/callback", async (req, res) => {
       }),
       { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
     );
+
+    console.log("Short-lived token obtained");
 
     const { access_token: shortToken, user_id } = tokenRes.data;
 
@@ -110,7 +116,9 @@ app.get("/auth/callback", async (req, res) => {
     });
 
     const longToken = longTokenRes.data.access_token;
-    const expiresIn = longTokenRes.data.expires_in; // seconds
+    const expiresIn = longTokenRes.data.expires_in;
+
+    console.log("Long-lived token obtained, fetching profile...");
 
     // Fetch basic profile info
     const profileRes = await axios.get(`${IG_GRAPH}/me`, {
@@ -121,11 +129,14 @@ app.get("/auth/callback", async (req, res) => {
     });
 
     const profile = profileRes.data;
+    const accountId = profile.user_id || user_id;
+
+    console.log("Profile fetched:", profile.username);
 
     // Save account
     const accounts = loadAccounts();
-    accounts[profile.user_id || user_id] = {
-      id: profile.user_id || user_id,
+    accounts[accountId] = {
+      id: accountId,
       username: profile.username,
       name: profile.name || profile.username,
       account_type: profile.account_type,
@@ -141,8 +152,8 @@ app.get("/auth/callback", async (req, res) => {
 
     res.redirect("/?connected=" + encodeURIComponent(profile.username));
   } catch (err) {
-    console.error("OAuth error:", err.response?.data || err.message);
-    const msg = err.response?.data?.error_message || err.message;
+    console.error("OAuth token exchange error:", err.response?.data || err.message);
+    const msg = err.response?.data?.error_message || err.response?.data?.error?.message || err.message;
     res.redirect(`/?error=${encodeURIComponent(msg)}`);
   }
 });
@@ -155,10 +166,9 @@ app.get("/auth/callback", async (req, res) => {
 app.get("/api/accounts", (req, res) => {
   const accounts = loadAccounts();
   const safe = Object.values(accounts).map(
-    ({ access_token, token_expires_at, ...rest }) => ({
+    ({ access_token, ...rest }) => ({
       ...rest,
-      token_valid: token_expires_at > Date.now(),
-      token_expires_at,
+      token_valid: rest.token_expires_at > Date.now(),
     })
   );
   res.json(safe);
@@ -186,7 +196,6 @@ app.get("/api/accounts/:id/profile", async (req, res) => {
       },
     });
 
-    // Update stored data
     accounts[req.params.id] = {
       ...account,
       ...r.data,
@@ -200,7 +209,7 @@ app.get("/api/accounts/:id/profile", async (req, res) => {
   }
 });
 
-// Get account insights (follower growth, reach, impressions, etc.)
+// Get account insights
 app.get("/api/accounts/:id/insights", async (req, res) => {
   const accounts = loadAccounts();
   const account = accounts[req.params.id];
@@ -214,7 +223,6 @@ app.get("/api/accounts/:id/insights", async (req, res) => {
     access_token: account.access_token,
   };
 
-  // If date range provided
   if (since) params.since = since;
   if (until) params.until = until;
 
@@ -289,7 +297,7 @@ app.get("/api/accounts/:id/demographics", async (req, res) => {
   }
 });
 
-// Refresh token (call before expiry)
+// Refresh token
 app.post("/api/accounts/:id/refresh-token", async (req, res) => {
   const accounts = loadAccounts();
   const account = accounts[req.params.id];
@@ -312,6 +320,30 @@ app.post("/api/accounts/:id/refresh-token", async (req, res) => {
   } catch (err) {
     handleApiError(err, res);
   }
+});
+
+// ============================================================
+// Privacy policy page (required by Meta)
+// ============================================================
+app.get("/privacy", (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="es">
+    <head><meta charset="UTF-8"><title>Política de Privacidad - InstaMetrics</title>
+    <style>body{font-family:sans-serif;max-width:700px;margin:40px auto;padding:20px;color:#333;line-height:1.6;}</style></head>
+    <body>
+      <h1>Política de Privacidad</h1>
+      <p>InstaMetrics es una herramienta de analítica personal para cuentas de Instagram.</p>
+      <h2>Datos que recopilamos</h2>
+      <p>Solo accedemos a los datos de las cuentas de Instagram que conectas voluntariamente: métricas públicas, publicaciones y datos de audiencia proporcionados por la API de Instagram.</p>
+      <h2>Cómo usamos los datos</h2>
+      <p>Los datos se usan exclusivamente para mostrarte tus métricas en el dashboard. No compartimos, vendemos ni transferimos tus datos a terceros.</p>
+      <h2>Almacenamiento</h2>
+      <p>Los tokens de acceso se almacenan de forma segura en el servidor. Puedes desconectar tu cuenta en cualquier momento.</p>
+      <h2>Contacto</h2>
+      <p>Para cualquier consulta sobre privacidad, contacta al administrador de esta instancia.</p>
+    </body></html>
+  `);
 });
 
 // ============================================================
@@ -340,7 +372,8 @@ app.get("*", (req, res) => {
 app.listen(PORT, () => {
   console.log(`\n🚀 InstaMetrics running at ${BASE_URL || `http://localhost:${PORT}`}`);
   console.log(`📊 Dashboard: ${BASE_URL || `http://localhost:${PORT}`}`);
-  console.log(`🔗 OAuth callback: ${REDIRECT_URI}\n`);
+  console.log(`🔗 OAuth callback: ${REDIRECT_URI}`);
+  console.log(`🔑 App ID: ${INSTAGRAM_APP_ID ? INSTAGRAM_APP_ID.slice(0, 6) + "..." : "NOT SET"}\n`);
 
   if (!INSTAGRAM_APP_ID || !INSTAGRAM_APP_SECRET) {
     console.warn("⚠️  Missing INSTAGRAM_APP_ID or INSTAGRAM_APP_SECRET in .env");
