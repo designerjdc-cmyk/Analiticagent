@@ -242,6 +242,123 @@ function generateIdeas(A){
   return ideas;
 }
 
+// ── GURU ENGINE: Advanced growth intelligence ──
+
+// Hook Analyzer — first line of caption performance
+function analyzeHooks(posts){
+  if(!posts?.length)return[];
+  const hooks=posts.filter(p=>p.caption?.trim()).map(p=>{
+    const first=(p.caption||"").split("\n")[0].trim().slice(0,80);
+    const type=first.endsWith("?")?  "question":first.endsWith("!")?  "exclamation":first.match(/^\d/)?"number":first.match(/^(cómo|como|qué|que|por qué|tip|truco|secreto|error|stop|no |esto )/i)?"hook":"statement";
+    return{text:first,type,eng:p.engRate*100,score:p.score,reach:p.reach};
+  });
+  const byType={};hooks.forEach(h=>{if(!byType[h.type])byType[h.type]={count:0,totalEng:0,totalReach:0,examples:[]};byType[h.type].count++;byType[h.type].totalEng+=h.eng;byType[h.type].totalReach+=h.reach;byType[h.type].examples.push(h)});
+  const labels={question:"❓ Pregunta",exclamation:"❗ Exclamación",number:"🔢 Empieza con número",hook:"🪝 Hook/Curiosidad",statement:"📝 Afirmación"};
+  return Object.entries(byType).map(([type,d])=>({type,label:labels[type]||type,count:d.count,avgEng:d.totalEng/d.count,avgReach:d.totalReach/d.count,best:d.examples.sort((a,b)=>b.eng-a.eng)[0]})).sort((a,b)=>b.avgEng-a.avgEng);
+}
+
+// Content Pillars — auto-detect topics
+function detectPillars(posts){
+  if(!posts?.length)return[];
+  const stopWords=new Set(["de","la","el","en","y","a","que","los","las","un","una","del","por","con","para","es","se","no","lo","al","mi","su","más","ya","te","tu","me","como","pero","sin","son","muy","hay","le","todo","esta","ser","fue","han","era","dos","nos","he","da","este","sus","sus","si","les","está","eso"]);
+  const wordMap={};
+  posts.forEach(p=>{
+    const words=(p.caption||"").toLowerCase().replace(/#[\wáéíóúñü]+/g,"").replace(/[^a-záéíóúñü\s]/g,"").split(/\s+/).filter(w=>w.length>3&&!stopWords.has(w));
+    const unique=new Set(words);
+    unique.forEach(w=>{if(!wordMap[w])wordMap[w]={count:0,totalEng:0,totalReach:0,posts:[]};wordMap[w].count++;wordMap[w].totalEng+=p.engRate*100;wordMap[w].totalReach+=p.reach;wordMap[w].posts.push(p)});
+  });
+  return Object.entries(wordMap).filter(([w,d])=>d.count>=2).map(([word,d])=>({word,count:d.count,avgEng:d.totalEng/d.count,avgReach:d.totalReach/d.count})).sort((a,b)=>b.avgEng*b.count-a.avgEng*a.count).slice(0,15);
+}
+
+// Ghost Follower ratio
+function ghostRatio(posts,fc){
+  if(!posts?.length||!fc)return 0;
+  const uniqueEngaged=new Set();
+  const totalInteractions=posts.reduce((s,p)=>s+(p.interactions||0),0);
+  const avgInterPerPost=totalInteractions/posts.length;
+  const estimatedActive=Math.min(avgInterPerPost*3,fc);// rough estimate: ~3x interactions = unique engaged
+  return Math.round((1-estimatedActive/fc)*100);
+}
+
+// Posting Streak
+function calcStreak(posts){
+  if(!posts?.length)return{current:0,max:0,consistency:0,avgGap:0,lastPost:null};
+  const dates=[...new Set(posts.filter(p=>p.timestamp).map(p=>new Date(p.timestamp).toISOString().slice(0,10)))].sort().reverse();
+  if(!dates.length)return{current:0,max:0,consistency:0,avgGap:0,lastPost:null};
+  const today=new Date().toISOString().slice(0,10);const dayMs=86400000;
+  // Current streak (days posting without >3 day gap)
+  let current=1;for(let i=0;i<dates.length-1;i++){const diff=(new Date(dates[i])-new Date(dates[i+1]))/dayMs;if(diff<=3)current++;else break}
+  // Max streak
+  let max=1,run=1;for(let i=0;i<dates.length-1;i++){const diff=(new Date(dates[i])-new Date(dates[i+1]))/dayMs;if(diff<=3){run++;if(run>max)max=run}else run=1}
+  // Average gap
+  let totalGap=0;for(let i=0;i<dates.length-1;i++)totalGap+=(new Date(dates[i])-new Date(dates[i+1]))/dayMs;
+  const avgGap=dates.length>1?totalGap/(dates.length-1):0;
+  // Consistency score (0-100): how regular is posting
+  const daysSinceLast=(new Date(today)-new Date(dates[0]))/dayMs;
+  const consistency=Math.max(0,Math.min(100,Math.round(100-daysSinceLast*5-avgGap*3)));
+  return{current,max,consistency,avgGap:+avgGap.toFixed(1),lastPost:dates[0],daysSinceLast:Math.round(daysSinceLast)};
+}
+
+// Growth Velocity projection
+function projectGrowth(snaps,fc){
+  if(!snaps?.length||snaps.length<2)return null;
+  const recent=snaps.slice(-14);// last 14 snapshots
+  if(recent.length<2)return null;
+  const first=recent[0],last=recent[recent.length-1];
+  const daysDiff=(new Date(last.snapshot_date)-new Date(first.snapshot_date))/86400000;
+  if(daysDiff<1)return null;
+  const dailyGrowth=(last.followers_count-first.followers_count)/daysDiff;
+  return{daily:+dailyGrowth.toFixed(1),weekly:+(dailyGrowth*7).toFixed(0),monthly:+(dailyGrowth*30).toFixed(0),proj90:Math.round(fc+dailyGrowth*90),proj365:Math.round(fc+dailyGrowth*365)};
+}
+
+// Recycle candidates — old posts worth reposting
+function recycleCandidates(posts){
+  if(!posts?.length)return[];
+  const now=Date.now();const thirtyDays=30*86400000;
+  return posts.filter(p=>p.timestamp&&(now-new Date(p.timestamp).getTime())>thirtyDays).sort((a,b)=>b.score-a.score).slice(0,5).map(p=>({...p,daysAgo:Math.round((now-new Date(p.timestamp).getTime())/86400000)}));
+}
+
+// Viral Predictor — estimate score before posting
+function predictViral(caption,format,hour,day,A){
+  if(!A)return null;let score=50;const factors=[];
+  // Format bonus
+  const fmtKey=format==="reel"?"reel":format==="carousel"?"carousel":"photo";
+  const fmtS=A.fmStats.find(f=>f.key===fmtKey);const bestFmt=A.bestFmt;
+  if(fmtS&&bestFmt){
+    if(fmtS.key===bestFmt.key){score+=15;factors.push({icon:"✅",text:`${fmtS.label} es tu formato estrella`,impact:"+15"})}
+    else{const diff=(fmtS.avgEng-bestFmt.avgEng)/bestFmt.avgEng*100;score+=Math.round(diff/3);factors.push({icon:diff>-20?"🟡":"🔴",text:`${fmtS.label}: ${diff>0?"+":""}${diff.toFixed(0)}% vs tu mejor formato`,impact:Math.round(diff/3)>0?"+"+Math.round(diff/3):""+Math.round(diff/3)})}
+  }
+  // Time bonus
+  const slot=A.hmD.find(h=>h.day===day&&h.hour===hour);
+  if(slot&&slot.count>0){const vs=slot.avg/A.oaE;
+    if(vs>1.3){score+=12;factors.push({icon:"✅",text:`${hour}:00 es una de tus mejores horas (${slot.avg.toFixed(2)}% eng)`,impact:"+12"})}
+    else if(vs>0.8){score+=3;factors.push({icon:"🟡",text:`${hour}:00 es hora normal (${slot.avg.toFixed(2)}% eng)`,impact:"+3"})}
+    else{score-=8;factors.push({icon:"🔴",text:`${hour}:00 es hora baja (${slot.avg.toFixed(2)}% eng)`,impact:"-8"})}
+  }
+  // Caption length
+  const capLen=(caption||"").length;const bestCap=A.capStats.length?[...A.capStats].sort((a,b)=>b.avgEng-a.avgEng)[0]:null;
+  const capCat=capLen===0?"Sin caption":capLen<50?"Corto (<50)":capLen<150?"Medio (50-150)":capLen<300?"Largo (150-300)":"Muy largo (300+)";
+  if(bestCap&&capCat===bestCap.label){score+=10;factors.push({icon:"✅",text:`Longitud "${capCat}" — tu mejor rendimiento`,impact:"+10"})}
+  else if(bestCap){const cs=A.capStats.find(c=>c.label===capCat);const diff=cs?(cs.avgEng-bestCap.avgEng)/bestCap.avgEng*100:-20;score+=Math.round(diff/4);factors.push({icon:diff>-15?"🟡":"🔴",text:`Caption "${capCat}" (óptimo: "${bestCap.label}")`,impact:Math.round(diff/4)>0?"+"+Math.round(diff/4):""+Math.round(diff/4)})}
+  // Hashtag match
+  const tags=(caption||"").match(/#[\wáéíóúñü]+/gi)||[];const topTags=A.hashtags.slice(0,8).map(h=>h.tag);
+  const matching=tags.filter(t=>topTags.includes(t.toLowerCase()));
+  if(matching.length>=3){score+=10;factors.push({icon:"✅",text:`${matching.length} top hashtags incluidos`,impact:"+10"})}
+  else if(matching.length>=1){score+=4;factors.push({icon:"🟡",text:`${matching.length} top hashtag(s). Añade más: ${topTags.filter(t=>!matching.map(m=>m.toLowerCase()).includes(t)).slice(0,3).join(", ")}`,impact:"+4"})}
+  else if(tags.length>0){score-=3;factors.push({icon:"🔴",text:`${tags.length} hashtags pero ninguno de tus top performers`,impact:"-3"})}
+  else{score-=5;factors.push({icon:"🔴",text:"Sin hashtags — añade 3-5 de tus mejores",impact:"-5"})}
+  // Hook analysis
+  const firstLine=(caption||"").split("\n")[0]||"";
+  if(firstLine.endsWith("?")){score+=5;factors.push({icon:"✅",text:"Hook con pregunta — genera curiosidad",impact:"+5"})}
+  else if(firstLine.match(/^\d/)){score+=4;factors.push({icon:"✅",text:"Empieza con número — atrae atención",impact:"+4"})}
+  else if(firstLine.length<10&&caption.length>50){score-=3;factors.push({icon:"🟡",text:"Primera línea muy corta — fortalece el hook",impact:"-3"})}
+  // CTA check
+  if(caption.match(/(guarda|comparte|comenta|etiqueta|cuéntame|dime|opinas|link|bio)/i)){score+=5;factors.push({icon:"✅",text:"Incluye CTA — incentiva interacción",impact:"+5"})}
+  else{factors.push({icon:"🟡",text:"Sin CTA detectado. Añade: guarda, comenta, comparte...",impact:"0"})}
+
+  return{score:Math.max(0,Math.min(100,score)),factors};
+}
+
 function Auth({onAuth}){const[m,setM]=useState("login"),[e,setE]=useState(""),[p,setP]=useState(""),[err,setErr]=useState(null),[ld,setLd]=useState(false);
   const go=async()=>{setErr(null);if(!e||!p)return setErr("Rellena todos los campos");if(p.length<6)return setErr("Mínimo 6 caracteres");setLd(true);try{const r=m==="register"?await sb.auth.signUp({email:e,password:p}):await sb.auth.signInWithPassword({email:e,password:p});if(r.error)throw r.error;if(r.data.user&&!r.data.session){setLd(false);return alert("Revisa tu email para confirmar")}if(r.data.session)onAuth(r.data.session)}catch(x){let msg=x.message;if(msg.includes("Invalid"))msg="Email o contraseña incorrectos";if(msg.includes("already"))msg="Este email ya está registrado";setErr(msg)}setLd(false)};
   return<div className="auth-w"><div className="auth-b">
@@ -270,6 +387,7 @@ function Dash({session,onLogout}){
   const[sc,setSC]=useState("score"),[sd,setSD]=useState("desc"),[tf,setTF]=useState("all"),[page,setPage]=useState(1);
   const[mobMenu,setMob]=useState(false);
   const[analyzeId,setAnalyzeId]=useState(null);
+  const[vpCap,setVpCap]=useState(""),[vpFmt,setVpFmt]=useState("reel"),[vpHr,setVpHr]=useState(new Date().getHours()),[vpDay,setVpDay]=useState(new Date().getDay()),[vpResult,setVpResult]=useState(null);
   const sT=(m,t)=>{setToast({m,t:t||"ok"});setTimeout(()=>setToast(null),3500)};
   const userEmail=session?.user?.email||"";
   const switchTab=t=>{setTab(t);sessionStorage.setItem("im_tab",t);setMob(false)};
@@ -291,6 +409,12 @@ function Dash({session,onLogout}){
   const rmAcc=async id=>{if(!confirm("¿Eliminar esta cuenta?"))return;await api("/api/accounts/"+id,{method:"DELETE"});const u=accounts.filter(a=>a.id!==id);setAcc(u);if(selId===id)setSel(u[0]?.id||null);sT("Cuenta eliminada")};
   const acc=accounts.find(a=>a.id===selId)||null;
   const A=useAnalytics(detailed?.data,detailed?.followers_count||acc?.followers_count);
+  const streak=useMemo(()=>A?calcStreak(A.posts):null,[A]);
+  const hooks=useMemo(()=>A?analyzeHooks(A.posts):null,[A]);
+  const pillars=useMemo(()=>A?detectPillars(A.posts):null,[A]);
+  const ghost=useMemo(()=>A?ghostRatio(A.posts,A.F):0,[A]);
+  const recycle=useMemo(()=>A?recycleCandidates(A.posts):null,[A]);
+  const velocity=useMemo(()=>projectGrowth(snaps,acc?.followers_count||0),[snaps,acc]);
   const chartData=(()=>{if(!insights?.data)return[];const r=insights.data.find(m=>m?.name==="reach"),v=insights.data.find(m=>m?.name==="views");if(!r?.values)return[];return r.values.map((x,i)=>({date:x?.end_time?new Date(x.end_time).toLocaleDateString("es-ES",{day:"2-digit",month:"short"}):"",reach:x?.value||0,views:v?.values?.[i]?.value||0}))})();
   const mS=(()=>{if(!media.length)return{l:0,c:0};let l=0,c=0;media.forEach(m=>{l+=m.like_count||0;c+=m.comments_count||0});return{l,c}})();
   const er=acc?.followers_count&&media.length?((mS.l+mS.c)/Math.max(media.length,1)/acc.followers_count*100).toFixed(2)+"%":"—";
@@ -357,7 +481,33 @@ function Dash({session,onLogout}){
           <div className="kpi"><div className="kl">Engagement</div><div className="kv">{er}</div><div className="ks" style={{color:parseFloat(er)>3?"var(--grn)":parseFloat(er)>1.5?"var(--org)":"var(--td)"}}>{parseFloat(er)>3?"Excelente":parseFloat(er)>1.5?"Bueno":"Bajo"}</div></div>
           <div className="kpi"><div className="kl">Likes totales</div><div className="kv">{n(mS.l)}</div></div>
           {A&&<div className="kpi"><div className="kl">Virales</div><div className="kv" style={{color:A.viralCount?"var(--red)":"var(--td)"}}>{A.viralCount}</div><div className="ks" style={{color:"var(--td)"}}>reach &gt; 2× seguidores</div></div>}
+          {A&&<div className="kpi"><div className="kl">👻 Ghost Followers</div><div className="kv" style={{color:ghost>70?"var(--red)":ghost>50?"var(--org)":"var(--grn)"}}>{ghost}%</div><div className="ks" style={{color:"var(--td)"}}>{ghost>70?"Audiencia poco activa":ghost>50?"Normal":"Audiencia muy activa"}</div></div>}
+          {streak&&<div className="kpi"><div className="kl">🔥 Racha</div><div className="kv">{streak.current}</div><div className="ks" style={{color:streak.daysSinceLast>3?"var(--red)":streak.daysSinceLast>1?"var(--org)":"var(--grn)"}}>{streak.daysSinceLast===0?"Publicaste hoy":streak.daysSinceLast===1?"Ayer":"Hace "+streak.daysSinceLast+" días"}</div></div>}
+          {velocity&&<div className="kpi"><div className="kl">📈 Velocidad</div><div className="kv" style={{color:velocity.daily>0?"var(--grn)":"var(--red)"}}>{velocity.daily>0?"+":""}{velocity.daily}/día</div><div className="ks" style={{color:"var(--td)"}}>{velocity.monthly>0?"+":""}{velocity.monthly}/mes proyectado</div></div>}
         </div>
+
+        {/* Live indicator + Streak */}
+        {A&&<div style={{display:"flex",gap:12,marginBottom:16,flexWrap:"wrap"}}>
+          {(()=>{const slot=A.hmD.find(h=>h.day===A.cDay&&h.hour===A.cHr);const isGood=slot&&slot.avg>A.oaE;const isBest=A.hmD.filter(h=>h.day===A.cDay&&h.count>0).sort((a,b)=>b.avg-a.avg)[0];const isBestNow=isBest&&isBest.hour===A.cHr;
+            return<div className="ins-card" style={{flex:1,minWidth:200,background:isBestNow?"rgba(52,211,153,.05)":isGood?"rgba(251,191,36,.04)":"rgba(248,113,113,.03)",border:"1px solid "+(isBestNow?"rgba(52,211,153,.12)":isGood?"rgba(251,191,36,.1)":"rgba(248,113,113,.08)"),margin:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:12,height:12,borderRadius:"50%",background:isBestNow?"var(--grn)":isGood?"var(--org)":"var(--red)",boxShadow:isBestNow?"0 0 12px rgba(52,211,153,.5)":isGood?"0 0 12px rgba(251,191,36,.4)":"none",animation:isBestNow?"sp 2s ease infinite":""}}/>
+                <h3 style={{fontSize:14,margin:0}}>{isBestNow?"🟢 ¡MEJOR MOMENTO! Publica AHORA":isGood?"🟡 Buen momento para publicar":"🔴 Espera — no es tu mejor hora"}</h3>
+              </div>
+              <p style={{marginTop:6}}>{A.dn[A.cDay]} {A.cHr}:00 — {slot?slot.avg.toFixed(2)+"% eng histórico":"sin datos"}{isBest&&!isBestNow?". Mejor hora hoy: "+isBest.hour+":00":""}</p>
+            </div>})()}
+          {streak&&<div className="ins-card" style={{minWidth:180,background:"rgba(255,255,255,.02)",border:"1px solid var(--bdr)",margin:0}}>
+            <h3 style={{fontSize:13,margin:0}}>🔥 Consistencia</h3>
+            <div style={{display:"flex",alignItems:"center",gap:16,marginTop:8}}>
+              <div style={{textAlign:"center"}}><div style={{fontSize:26,fontWeight:900,color:streak.consistency>60?"var(--grn)":streak.consistency>30?"var(--org)":"var(--red)"}}>{streak.consistency}</div><div style={{fontSize:9,color:"var(--td)",marginTop:2}}>SCORE</div></div>
+              <div style={{fontSize:11.5,color:"var(--tm)",lineHeight:1.6}}>
+                <div>Racha actual: <strong>{streak.current}</strong> · Máxima: <strong>{streak.max}</strong></div>
+                <div>Media: cada <strong>{streak.avgGap}</strong> días</div>
+              </div>
+            </div>
+          </div>}
+        </div>}
+
         <div className="g2">
           {RC&&chartData.length>0&&<div className="pnl gf"><div className="pt">📈 Alcance y visualizaciones</div><ResponsiveContainer width="100%" height={220}><AreaChart data={chartData}><defs><linearGradient id="gR" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e1306c" stopOpacity={.18}/><stop offset="100%" stopColor="#e1306c" stopOpacity={0}/></linearGradient><linearGradient id="gV" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#60a5fa" stopOpacity={.18}/><stop offset="100%" stopColor="#60a5fa" stopOpacity={0}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.03)"/><XAxis dataKey="date" stroke="rgba(255,255,255,.12)" fontSize={10} tickLine={false}/><YAxis stroke="rgba(255,255,255,.12)" fontSize={10} tickLine={false} tickFormatter={v=>v>=1000?(v/1000).toFixed(1)+"k":v}/><Tooltip content={<Tip/>}/><Area type="monotone" dataKey="reach" stroke="#e1306c" strokeWidth={2} fill="url(#gR)" name="Alcance"/><Area type="monotone" dataKey="views" stroke="#60a5fa" strokeWidth={2} fill="url(#gV)" name="Views"/></AreaChart></ResponsiveContainer></div>}
           {RC&&snaps.length>0&&<div className="pnl gf"><div className="pt">📊 Histórico de seguidores</div>{snaps.length===1?<p style={{fontSize:12.5,color:"var(--tm)",padding:"18px 0"}}>📸 Primer snapshot guardado ({n(snaps[0].followers_count)} seg). El gráfico aparecerá mañana con más datos.</p>:<ResponsiveContainer width="100%" height={170}><AreaChart data={snaps.map(s=>({date:new Date(s.snapshot_date).toLocaleDateString("es-ES",{day:"2-digit",month:"short"}),followers:s.followers_count}))}><CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.03)"/><XAxis dataKey="date" stroke="rgba(255,255,255,.12)" fontSize={10} tickLine={false}/><YAxis stroke="rgba(255,255,255,.12)" fontSize={10} tickLine={false} domain={["dataMin-10","dataMax+10"]}/><Tooltip content={<Tip/>}/><Area type="monotone" dataKey="followers" stroke="var(--grn)" strokeWidth={2} fill="rgba(52,211,153,.06)" name="Seguidores"/></AreaChart></ResponsiveContainer>}<p style={{fontSize:10,color:"var(--td)",marginTop:4}}>Se guarda automáticamente cada vez que usas la app</p></div>}
@@ -444,6 +594,62 @@ function Dash({session,onLogout}){
               <p style={{fontSize:10.5,color:"var(--td)",marginTop:4}}>Basado en tu mejor hora por día de la semana, formato más efectivo, y hashtags con mejor rendimiento.</p>
             </div>:<p style={{color:"var(--td)",fontSize:12}}>Necesitas más datos para generar un calendario.</p>})()}
           </div>
+
+          {/* ── VIRAL PREDICTOR ── */}
+          <div className="pnl gf" style={{background:"linear-gradient(135deg,rgba(225,48,108,.04),rgba(131,58,180,.03))",border:"1px solid rgba(225,48,108,.1)"}}>
+            <div className="pt">🔮 Predictor Viral — Prueba tu post antes de publicar</div>
+            <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:12}}>
+              <div style={{flex:"1 1 250px"}}><textarea style={{width:"100%",minHeight:90,padding:12,background:"rgba(255,255,255,.03)",border:"1px solid var(--bdr)",borderRadius:10,color:"var(--t)",fontFamily:"inherit",fontSize:12.5,resize:"vertical",outline:"none"}} placeholder="Pega aquí tu caption completo con hashtags..." value={vpCap} onChange={e=>setVpCap(e.target.value)}/></div>
+              <div style={{display:"flex",flexDirection:"column",gap:8,minWidth:150}}>
+                <div style={{display:"flex",gap:5}}>{[["reel","🎬"],["photo","📷"],["carousel","📑"]].map(([v,i])=><button key={v} className={"fch"+(vpFmt===v?" on":"")} onClick={()=>setVpFmt(v)} style={{fontSize:11}}>{i}</button>)}</div>
+                <select style={{padding:8,background:"rgba(255,255,255,.04)",border:"1px solid var(--bdr)",borderRadius:8,color:"var(--t)",fontSize:12,fontFamily:"inherit"}} value={vpHr} onChange={e=>setVpHr(+e.target.value)}>{Array.from({length:24},(_, h)=><option key={h} value={h}>{h}:00</option>)}</select>
+                <select style={{padding:8,background:"rgba(255,255,255,.04)",border:"1px solid var(--bdr)",borderRadius:8,color:"var(--t)",fontSize:12,fontFamily:"inherit"}} value={vpDay} onChange={e=>setVpDay(+e.target.value)}>{["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].map((d,i)=><option key={i} value={i}>{d}</option>)}</select>
+                <button className="bp" style={{fontSize:12,padding:"9px 0",justifyContent:"center"}} onClick={()=>setVpResult(predictViral(vpCap,vpFmt,vpHr,vpDay,A))}>🔮 Predecir</button>
+              </div>
+            </div>
+            {vpResult&&<div style={{background:"rgba(255,255,255,.02)",borderRadius:12,padding:18}}>
+              <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:14}}>
+                <div style={{width:64,height:64,borderRadius:"50%",border:`4px solid ${vpResult.score>=70?"var(--grn)":vpResult.score>=45?"var(--org)":"var(--red)"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:900,color:vpResult.score>=70?"var(--grn)":vpResult.score>=45?"var(--org)":"var(--red)"}}>{vpResult.score}</div>
+                <div><div style={{fontSize:16,fontWeight:800}}>{vpResult.score>=70?"🔥 Alto potencial":vpResult.score>=45?"🟡 Potencial medio":"🔴 Potencial bajo"}</div><div style={{fontSize:12,color:"var(--tm)",marginTop:3}}>Basado en tu historial de rendimiento</div></div>
+              </div>
+              {vpResult.factors.map((f,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 0",borderBottom:i<vpResult.factors.length-1?"1px solid rgba(255,255,255,.025)":"none"}}><span style={{fontSize:14}}>{f.icon}</span><span style={{flex:1,fontSize:12,color:"var(--tm)"}}>{f.text}</span><span style={{fontSize:11.5,fontWeight:700,color:f.impact.startsWith("+")?"var(--grn)":f.impact.startsWith("-")?"var(--red)":"var(--tm)",minWidth:32,textAlign:"right"}}>{f.impact}</span></div>)}
+            </div>}
+          </div>
+
+          {/* ── HOOK ANALYZER ── */}
+          {hooks&&hooks.length>0&&<div className="pnl gf"><div className="pt">🪝 Análisis de Hooks (primera línea)</div>
+            <p style={{fontSize:11.5,color:"var(--td)",marginBottom:14}}>La primera línea de tu caption es lo que la gente ve antes de "más". ¿Qué tipo de hook funciona mejor para ti?</p>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10}}>
+              {hooks.map((h,i)=><div key={h.type} style={{background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.04)",borderRadius:11,padding:14,borderLeft:"3px solid "+C[i%C.length]}}>
+                <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>{h.label} <span style={{color:"var(--td)",fontWeight:400}}>({h.count})</span></div>
+                <div style={{fontSize:20,fontWeight:900,color:C[i%C.length]}}>{h.avgEng.toFixed(2)}%</div>
+                <div style={{fontSize:10.5,color:"var(--td)",marginTop:4}}>Mejor: "{h.best?.text?.slice(0,40)}..."</div>
+              </div>)}
+            </div>
+          </div>}
+
+          {/* ── CONTENT PILLARS ── */}
+          {pillars&&pillars.length>0&&<div className="pnl gf"><div className="pt">🧬 ADN de tu Contenido — Pilares temáticos</div>
+            <p style={{fontSize:11.5,color:"var(--td)",marginBottom:14}}>Palabras clave que aparecen en tus captions y su rendimiento. Identifica tus temáticas ganadoras.</p>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+              {pillars.map((p,i)=>{const maxEng=pillars[0]?.avgEng||1;const intensity=p.avgEng/maxEng;
+                return<div key={p.word} style={{padding:"8px 16px",borderRadius:10,background:`rgba(225,48,108,${.03+intensity*.12})`,border:`1px solid rgba(225,48,108,${.05+intensity*.15})`,display:"flex",alignItems:"center",gap:8,transition:"all .2s"}}>
+                  <span style={{fontWeight:700,fontSize:13,color:C[i%C.length]}}>{p.word}</span>
+                  <span style={{fontSize:10,color:"var(--tm)"}}>{p.avgEng.toFixed(2)}%</span>
+                  <span style={{fontSize:9,color:"var(--td)",background:"rgba(255,255,255,.05)",padding:"1px 5px",borderRadius:4}}>{p.count}×</span>
+                </div>})}
+            </div>
+          </div>}
+
+          {/* ── RECYCLE SUGGESTIONS ── */}
+          {recycle&&recycle.length>0&&<div className="pnl gf"><div className="pt">♻️ Posts para reciclar</div>
+            <p style={{fontSize:11.5,color:"var(--td)",marginBottom:14}}>Estos posts funcionaron bien y tienen +30 días. Podrías republicarlos con un ángulo nuevo.</p>
+            {recycle.map((p,i)=><div key={p.id||i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:i<recycle.length-1?"1px solid rgba(255,255,255,.03)":"none"}}>
+              <ScoreRing score={p.score}/>
+              <div style={{flex:1,minWidth:0}}><div style={{fontSize:12.5,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.caption?p.caption.slice(0,50):"Sin caption"}</div><div style={{fontSize:10.5,color:"var(--td)",marginTop:2}}><Badge type={p.media_type} pt={p.media_product_type}/> · hace {p.daysAgo} días · ❤ {n(p.likes)} · 👁 {n(p.reach)}</div></div>
+              {p.permalink&&<a href={p.permalink} target="_blank" rel="noopener" style={{fontSize:10.5,color:"var(--p1)",whiteSpace:"nowrap"}}>Ver →</a>}
+            </div>)}
+          </div>}
         </div>
       </>}</>}
       {/* ═══ AUDIENCE ═══ */}
