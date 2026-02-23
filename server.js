@@ -218,7 +218,7 @@ app.get("/api/accounts/:id/insights", async (req, res) => {
   const { period = "day", since, until } = req.query;
 
   const params = {
-    metric: "reach,impressions,accounts_engaged,follows_and_unfollows,profile_views",
+    metric: "reach,views,accounts_engaged,follows_and_unfollows,profile_views",
     period,
     access_token: account.access_token,
   };
@@ -265,7 +265,7 @@ app.get("/api/accounts/:id/media/:mediaId/insights", async (req, res) => {
   try {
     const r = await axios.get(`${IG_GRAPH}/${req.params.mediaId}/insights`, {
       params: {
-        metric: "impressions,reach,saved,shares,likes,comments,total_interactions",
+        metric: "reach,views,saves,shares,likes,comments,total_interactions",
         access_token: account.access_token,
       },
     });
