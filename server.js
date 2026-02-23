@@ -102,6 +102,43 @@ app.get("/api/accounts/:id/snapshots",auth,async(req,res)=>{try{const a=await ge
   const limit=parseInt(req.query.limit)||90;const{data,error}=await supa.from("snapshots").select("*").eq("account_id",a.id).order("snapshot_date",{ascending:true}).limit(limit);
   if(error){console.warn("Snapshots err:",error.message);return res.json([])}res.json(data||[])}catch(e){console.warn("Snapshots err:",e.message);res.json([])}});
 
+// User Settings (Groq API key per user)
+app.get("/api/settings",auth,async(req,res)=>{try{
+  const{data}=await supa.from("user_settings").select("*").eq("user_id",req.user.id).single();
+  res.json(data||{groq_api_key:null})}catch{res.json({groq_api_key:null})}});
+app.post("/api/settings",auth,async(req,res)=>{try{
+  const{groq_api_key}=req.body;
+  await supa.from("user_settings").upsert({user_id:req.user.id,groq_api_key:groq_api_key||null,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+  res.json({ok:true})}catch(e){handleErr(e,res)}});
+
+// AI Chat proxy (Groq)
+app.post("/api/ai/chat",auth,async(req,res)=>{try{
+  const{data:settings}=await supa.from("user_settings").select("groq_api_key").eq("user_id",req.user.id).single();
+  if(!settings?.groq_api_key)return res.status(400).json({error:"Configura tu API key de Groq en Ajustes"});
+  const{messages,context}=req.body;
+  const systemPrompt=`Eres un experto en crecimiento de Instagram y marketing digital. Analiza datos reales y da consejos específicos y accionables. Responde siempre en español. Sé directo y concreto — nada de respuestas genéricas. Si te dan datos de una cuenta, úsalos para personalizar tus respuestas.
+
+DATOS DE LA CUENTA:
+${context||"No hay datos cargados"}
+
+Reglas:
+- Respuestas cortas y accionables (máx 200 palabras)
+- Usa datos concretos de la cuenta cuando los tengas
+- No repitas lo que ya sabe el usuario
+- Da ejemplos específicos, no genéricos
+- Si te piden caption/ideas, adáptalos al nicho de la cuenta`;
+  const r=await axios.post("https://api.groq.com/openai/v1/chat/completions",{
+    model:"llama-3.3-70b-versatile",
+    messages:[{role:"system",content:systemPrompt},...messages],
+    max_tokens:800,temperature:0.7
+  },{headers:{Authorization:`Bearer ${settings.groq_api_key}`,"Content-Type":"application/json"},timeout:30000});
+  res.json({message:r.data.choices?.[0]?.message?.content||"Sin respuesta"});
+}catch(e){
+  const msg=e.response?.data?.error?.message||e.message;
+  if(msg.includes("Invalid API Key"))return res.status(401).json({error:"API key de Groq inválida. Verifica en groq.com"});
+  if(msg.includes("rate"))return res.status(429).json({error:"Límite de Groq alcanzado. Espera un momento"});
+  res.status(500).json({error:msg})}});
+
 app.get("/privacy",(_,r)=>r.send('<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:700px;margin:40px auto;padding:20px"><h1>Privacidad</h1><p>Solo accedemos a datos de cuentas que conectas. No vendemos datos.</p></body></html>'));
 app.get("*",(req,res)=>res.sendFile(path.join(__dirname,"public","index.html")));
 
