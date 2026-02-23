@@ -109,7 +109,7 @@ const{useState,useEffect,useMemo,useRef,Component}=React;
 class EB extends Component{constructor(p){super(p);this.state={e:null}}static getDerivedStateFromError(e){return{e}}render(){return this.state.e?<div style={{padding:40,textAlign:"center",color:"var(--red)"}}><h2>Algo salió mal</h2><button className="bp" onClick={()=>{this.setState({e:null});location.reload()}}>Recargar</button></div>:this.props.children}}
 const RC=typeof Recharts!=="undefined";const{AreaChart,Area,BarChart,Bar,XAxis,YAxis,CartesianGrid,Tooltip,ResponsiveContainer}=RC?Recharts:{};
 const C=["#e1306c","#c13584","#f59e0b","#60a5fa","#34d399","#f87171","#a78bfa","#06b6d4"];let sb=null;
-async function api(u,o){const s=sb?(await sb.auth.getSession()).data.session:null;const h={"Content-Type":"application/json",...(o?.headers||{})};if(s)h.Authorization="Bearer "+s.access_token;const r=await fetch(u,{...o,headers:h});const t=await r.text();let j;try{j=JSON.parse(t)}catch{throw new Error("Bad response")}if(!r.ok)throw new Error(j.error||"Error "+r.status);return j}
+async function api(u,o){const s=sb?(await sb.auth.getSession()).data.session:null;const h={"Content-Type":"application/json",...(o?.headers||{})};if(s)h.Authorization="Bearer "+s.access_token;const r=await fetch(u,{...o,headers:h});const t=await r.text();let j;try{j=JSON.parse(t)}catch(ex){throw new Error("Bad response")}if(!r.ok)throw new Error(j.error||"Error "+r.status);return j}
 function n(v){return typeof v==="number"?v.toLocaleString("es-ES"):(v||"—")}
 function Tip({active,payload,label}){if(!active||!payload?.length)return null;return<div style={{background:"#16141e",border:"1px solid rgba(225,48,108,.15)",borderRadius:10,padding:"10px 14px",fontSize:11.5,boxShadow:"0 8px 24px rgba(0,0,0,.4)"}}><div style={{color:"var(--tm)",marginBottom:4,fontSize:10}}>{label}</div>{payload.map((p,i)=><div key={i} style={{color:p.color,fontWeight:600}}>{p.name}: {n(p.value)}</div>)}</div>}
 function Skel({h=20,w="100%"}){return<div className="skel" style={{height:h,width:w}}/>}
@@ -168,16 +168,10 @@ function AIChat({A,acc,hasKey}){
   const ref=useRef(null);
   useEffect(()=>{if(ref.current)ref.current.scrollTop=ref.current.scrollHeight},[msgs]);
   const buildContext=()=>{if(!A||!acc)return"No hay datos cargados";
-    const top3=A.top5.slice(0,3).map(p=>`- "${(p.caption||"").slice(0,80)}..." (eng:${(p.engRate*100).toFixed(2)}%, reach:${p.reach}, likes:${p.likes}, saves:${p.saves})`).join("\n");
-    const fmts=A.fmStats.filter(f=>f.count>0).map(f=>`${f.label}: ${f.count} posts, ${f.avgEng.toFixed(2)}% eng medio`).join(", ");
-    const tags=A.hashtags.slice(0,8).map(h=>`${h.tag} (${h.avgEng.toFixed(2)}%)`).join(", ");
-    return`@${acc.username} | ${acc.account_type} | ${n(acc.followers_count)} seguidores | ${n(acc.media_count)} posts | Eng rate: ${A.oaE.toFixed(2)}% | Ghost followers: ~${A.ghost}%
-Mejor formato: ${A.bestFmt?.label||"?"} (${A.bestFmt?.avgEng.toFixed(2)||0}%)
-Formatos: ${fmts}
-Mejor hora hoy: ${A.bestHr?A.bestHr.hour+":00":"?"}
-Top hashtags: ${tags}
-Top 3 posts:\n${top3}
-Racha: ${A.streak.current} posts | Hace ${A.streak.daysSinceLast} días el último | Consistencia: ${A.streak.consistency}/100`;
+    const top3=A.top5.slice(0,3).map(p=>"- "+(p.caption||"").slice(0,80)+"... (eng:"+((p.engRate*100).toFixed(2))+"%, reach:"+p.reach+", likes:"+p.likes+", saves:"+p.saves+")").join("; ");
+    const fmts=A.fmStats.filter(f=>f.count>0).map(f=>f.label+": "+f.count+" posts, "+f.avgEng.toFixed(2)+"% eng").join(", ");
+    const tags=A.hashtags.slice(0,8).map(h=>h.tag+" ("+h.avgEng.toFixed(2)+"%)").join(", ");
+    return "@"+acc.username+" | "+acc.account_type+" | "+n(acc.followers_count)+" seg | Eng: "+A.oaE.toFixed(2)+"% | Ghost: ~"+A.ghost+"% | Mejor formato: "+(A.bestFmt?.label||"?")+" ("+((A.bestFmt?.avgEng||0).toFixed(2))+"%) | Formatos: "+fmts+" | Mejor hora hoy: "+(A.bestHr?A.bestHr.hour+":00":"?")+" | Top hashtags: "+tags+" | Top posts: "+top3+" | Racha: "+A.streak.current+" posts, hace "+A.streak.daysSinceLast+" días";
   };
   const send=async()=>{if(!input.trim()||sending)return;if(!hasKey){setMsgs(p=>[...p,{role:"user",text:input},{role:"ai",text:"⚠️ Configura tu API key de Groq en **Ajustes** para usar el asistente IA."}]);setInput("");return}
     const userMsg=input;setInput("");setMsgs(p=>[...p,{role:"user",text:userMsg}]);setSending(true);
@@ -207,7 +201,7 @@ function Dash({session,onLogout}){
   const switchTab=t=>{setTab(t);sessionStorage.setItem("im_tab",t);setMob(false)};
   useEffect(()=>{const p=new URLSearchParams(location.search);if(p.get("connected")){sT("@"+p.get("connected")+" conectada ✓");history.replaceState({},"","/")}if(p.get("error")){sT(decodeURIComponent(p.get("error")),"err");history.replaceState({},"","/")}loadA();loadSettings()},[]);
   const loadA=async()=>{try{const d=await api("/api/accounts");setAcc(Array.isArray(d)?d:[]);if(d.length&&!selId)setSel(d[0].id)}catch(e){console.error(e)}setLd(false)};
-  const loadSettings=async()=>{try{const d=await api("/api/settings");if(d?.groq_api_key){setGroqKey(d.groq_api_key);setGroqSaved(true)}}catch{}};
+  const loadSettings=async()=>{try{const d=await api("/api/settings");if(d?.groq_api_key){setGroqKey(d.groq_api_key);setGroqSaved(true)}}catch(ex){}};
   const saveGroqKey=async()=>{try{await api("/api/settings",{method:"POST",body:JSON.stringify({groq_api_key:groqKey||null})});setGroqSaved(!!groqKey);sT(groqKey?"API key guardada ✓":"API key eliminada")}catch(e){sT(e.message,"err")}};
   useEffect(()=>{if(selId){fetchD();api("/api/accounts/"+selId+"/snapshots").then(setSnaps).catch(()=>setSnaps([]))}},[selId,dr]);
   useEffect(()=>{setDet(null)},[selId]);
@@ -425,7 +419,7 @@ function Dash({session,onLogout}){
             </div>)}</div>}
         </div>
       </div>}
-      </div>}</div>
+      </div>}</div>}</div>
     {toast&&<div className={"toast "+toast.t}>{toast.m}</div>}
     {ddO&&<div style={{position:"fixed",inset:0,zIndex:49}} onClick={()=>setDd(false)}/>}
   </div>;
