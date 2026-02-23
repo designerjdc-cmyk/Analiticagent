@@ -46,8 +46,7 @@ const {
 
 const REDIRECT_URI = `${BASE_URL}/auth/callback`;
 
-// FIX 1: Always use a versioned API endpoint.
-// Instagram Business Login requires v21.0+ for most endpoints.
+// FIX: Always use a versioned API endpoint
 const IG_GRAPH = "https://graph.instagram.com/v21.0";
 
 // Scopes for Instagram Business Login
@@ -57,7 +56,6 @@ const SCOPES = "instagram_business_basic,instagram_business_manage_insights";
 // AUTH ROUTES
 // ============================================================
 
-// Step 1: Redirect user to Instagram OAuth
 app.get("/auth/login", (req, res) => {
   const state = uuidv4();
   const authUrl =
@@ -74,7 +72,6 @@ app.get("/auth/login", (req, res) => {
   res.redirect(authUrl);
 });
 
-// Step 2: Handle OAuth callback
 app.get("/auth/callback", async (req, res) => {
   const { code, error, error_description, error_reason } = req.query;
 
@@ -90,7 +87,7 @@ app.get("/auth/callback", async (req, res) => {
   try {
     console.log("Exchanging code for token...");
 
-    // Exchange code for short-lived token (this endpoint has NO version prefix)
+    // Short-lived token (no version prefix on this endpoint)
     const tokenRes = await axios.post(
       `https://api.instagram.com/oauth/access_token`,
       new URLSearchParams({
@@ -104,10 +101,9 @@ app.get("/auth/callback", async (req, res) => {
     );
 
     console.log("Short-lived token obtained");
-
     const { access_token: shortToken, user_id } = tokenRes.data;
 
-    // Exchange for long-lived token (60 days)
+    // Long-lived token (60 days)
     const longTokenRes = await axios.get(`${IG_GRAPH}/access_token`, {
       params: {
         grant_type: "ig_exchange_token",
@@ -118,10 +114,9 @@ app.get("/auth/callback", async (req, res) => {
 
     const longToken = longTokenRes.data.access_token;
     const expiresIn = longTokenRes.data.expires_in;
-
     console.log("Long-lived token obtained, fetching profile...");
 
-    // Fetch basic profile info
+    // Profile
     const profileRes = await axios.get(`${IG_GRAPH}/me`, {
       params: {
         fields: "user_id,username,name,account_type,profile_picture_url,followers_count,follows_count,media_count",
@@ -130,11 +125,12 @@ app.get("/auth/callback", async (req, res) => {
     });
 
     const profile = profileRes.data;
-    const accountId = profile.user_id || user_id;
+    const accountId = String(profile.user_id || user_id);
 
-    console.log("Profile fetched:", profile.username, "| type:", profile.account_type);
+    console.log("Profile fetched:", profile.username, "| type:", profile.account_type, "| id:", accountId);
+    console.log("Raw profile response keys:", Object.keys(profile));
 
-    // Save account
+    // Save account — always store id as string
     const accounts = loadAccounts();
     accounts[accountId] = {
       id: accountId,
@@ -163,7 +159,7 @@ app.get("/auth/callback", async (req, res) => {
 // API ROUTES
 // ============================================================
 
-// List all connected accounts (without exposing tokens)
+// List connected accounts (without tokens)
 app.get("/api/accounts", (req, res) => {
   const accounts = loadAccounts();
   const safe = Object.values(accounts).map(
@@ -175,7 +171,7 @@ app.get("/api/accounts", (req, res) => {
   res.json(safe);
 });
 
-// Remove an account
+// Remove account
 app.delete("/api/accounts/:id", (req, res) => {
   const accounts = loadAccounts();
   delete accounts[req.params.id];
@@ -183,7 +179,7 @@ app.delete("/api/accounts/:id", (req, res) => {
   res.json({ ok: true });
 });
 
-// Get profile data (refreshed)
+// Profile (refreshed)
 app.get("/api/accounts/:id/profile", async (req, res) => {
   const accounts = loadAccounts();
   const account = accounts[req.params.id];
@@ -197,6 +193,9 @@ app.get("/api/accounts/:id/profile", async (req, res) => {
       },
     });
 
+    console.log("Profile refresh raw keys:", Object.keys(r.data), "| user_id:", r.data.user_id, "| id:", r.data.id);
+
+    // Merge but ALWAYS keep our stored id
     accounts[req.params.id] = {
       ...account,
       ...r.data,
@@ -204,27 +203,22 @@ app.get("/api/accounts/:id/profile", async (req, res) => {
     };
     saveAccounts(accounts);
 
-    res.json(r.data);
+    // FIX: Send response with our stored id, not whatever Instagram returns
+    // This prevents the frontend from getting a mismatched id
+    const safeResponse = { ...r.data, id: account.id };
+    res.json(safeResponse);
   } catch (err) {
     handleApiError(err, res);
   }
 });
 
-// Get account insights
-// FIX 2: Only request Creator-safe metrics.
-// `follows_and_unfollows` and `profile_views` are NOT available for Creator
-// accounts — only for Business accounts. We request only the universally
-// supported set: reach, views, accounts_engaged.
-// If even one metric in a bulk call is unsupported the whole call fails,
-// so we fall back to per-metric calls.
+// Insights (Creator-safe)
 app.get("/api/accounts/:id/insights", async (req, res) => {
   const accounts = loadAccounts();
   const account = accounts[req.params.id];
   if (!account) return res.status(404).json({ error: "Account not found" });
 
   const { period = "day", since, until, metric } = req.query;
-
-  // Default to Creator-safe metrics; caller can override
   const safeMetrics = metric || "reach,views,accounts_engaged";
 
   const params = {
@@ -232,7 +226,6 @@ app.get("/api/accounts/:id/insights", async (req, res) => {
     period,
     access_token: account.access_token,
   };
-
   if (since) params.since = since;
   if (until) params.until = until;
 
@@ -240,8 +233,7 @@ app.get("/api/accounts/:id/insights", async (req, res) => {
     const r = await axios.get(`${IG_GRAPH}/me/insights`, { params });
     res.json(r.data);
   } catch (err) {
-    // If the specific combination fails, try each metric individually and
-    // merge the results so a single bad metric doesn't sink the whole call.
+    // Fallback: try each metric individually
     console.warn("Bulk insights failed, trying individual metrics...");
     const metrics = safeMetrics.split(",");
     const data = [];
@@ -260,28 +252,20 @@ app.get("/api/accounts/:id/insights", async (req, res) => {
     if (data.length > 0) {
       return res.json({ data });
     }
-
     handleApiError(err, res);
   }
 });
 
-// Get recent media with metrics
-// FIX 3: Use the user's numeric ID explicitly (some Business Login tokens
-// don't resolve `me/media` correctly) and request only reliably available
-// fields. Also add a fallback with fewer fields if the first call fails.
+// Media with fallback cascade
 app.get("/api/accounts/:id/media", async (req, res) => {
   const accounts = loadAccounts();
   const account = accounts[req.params.id];
   if (!account) return res.status(404).json({ error: "Account not found" });
 
   const limit = req.query.limit || 25;
-
-  // Full field set
   const fullFields = "id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count";
-  // Minimal fallback (media_url can fail on some media types)
   const safeFields = "id,caption,media_type,thumbnail_url,permalink,timestamp,like_count,comments_count";
 
-  // Try with the user's numeric ID first, then fall back to /me/media
   const endpoints = [
     `${IG_GRAPH}/${account.id}/media`,
     `${IG_GRAPH}/me/media`,
@@ -296,19 +280,16 @@ app.get("/api/accounts/:id/media", async (req, res) => {
         console.log(`Media OK via ${endpoint} (${(r.data && r.data.data && r.data.data.length) || 0} items)`);
         return res.json(r.data);
       } catch (innerErr) {
-        console.warn(`Media attempt failed (${endpoint}, fields=${fields.slice(0, 30)}...):`,
-          innerErr.response?.data?.error?.message || innerErr.message);
+        console.warn(`Media failed (${endpoint}):`, innerErr.response?.data?.error?.message || innerErr.message);
       }
     }
   }
 
-  // All attempts failed — return an empty but valid response so the
-  // frontend doesn't crash.
   console.error("All media fetch attempts failed for account", account.id);
   res.json({ data: [] });
 });
 
-// Get insights for a specific media item
+// Media insights
 app.get("/api/accounts/:id/media/:mediaId/insights", async (req, res) => {
   const accounts = loadAccounts();
   const account = accounts[req.params.id];
@@ -327,7 +308,7 @@ app.get("/api/accounts/:id/media/:mediaId/insights", async (req, res) => {
   }
 });
 
-// Get audience demographics
+// Demographics
 app.get("/api/accounts/:id/demographics", async (req, res) => {
   const accounts = loadAccounts();
   const account = accounts[req.params.id];
@@ -364,10 +345,8 @@ app.post("/api/accounts/:id/refresh-token", async (req, res) => {
     });
 
     accounts[req.params.id].access_token = r.data.access_token;
-    accounts[req.params.id].token_expires_at =
-      Date.now() + r.data.expires_in * 1000;
+    accounts[req.params.id].token_expires_at = Date.now() + r.data.expires_in * 1000;
     saveAccounts(accounts);
-
     res.json({ ok: true, expires_in: r.data.expires_in });
   } catch (err) {
     handleApiError(err, res);
@@ -375,7 +354,221 @@ app.post("/api/accounts/:id/refresh-token", async (req, res) => {
 });
 
 // ============================================================
-// Privacy policy page (required by Meta)
+// DEBUG ENDPOINT — hit /api/debug/:id to diagnose all calls
+// ============================================================
+app.get("/api/debug/:id", async (req, res) => {
+  const accounts = loadAccounts();
+  const account = accounts[req.params.id];
+
+  const report = {
+    timestamp: new Date().toISOString(),
+    graph_base: IG_GRAPH,
+    account_found: !!account,
+    stored_id: req.params.id,
+    stored_id_type: typeof req.params.id,
+    tests: {},
+  };
+
+  if (!account) {
+    report.all_stored_ids = Object.keys(accounts);
+    report.all_stored_id_types = Object.keys(accounts).map(k => typeof k);
+    return res.json(report);
+  }
+
+  report.stored_account = {
+    id: account.id,
+    id_type: typeof account.id,
+    username: account.username,
+    account_type: account.account_type,
+    token_prefix: account.access_token ? account.access_token.slice(0, 20) + "..." : "MISSING",
+    token_expires_at: account.token_expires_at,
+    token_valid: account.token_expires_at > Date.now(),
+    days_until_expiry: Math.floor((account.token_expires_at - Date.now()) / 86400000),
+  };
+
+  // Test 1: /me (profile)
+  try {
+    const r = await axios.get(`${IG_GRAPH}/me`, {
+      params: {
+        fields: "user_id,username,name,account_type,profile_picture_url,followers_count,follows_count,media_count",
+        access_token: account.access_token,
+      },
+    });
+    report.tests.profile = {
+      status: "OK",
+      response_keys: Object.keys(r.data),
+      response_id: r.data.id,
+      response_id_type: typeof r.data.id,
+      response_user_id: r.data.user_id,
+      response_user_id_type: typeof r.data.user_id,
+      id_matches_stored: String(r.data.user_id) === String(account.id),
+      username: r.data.username,
+      account_type: r.data.account_type,
+      followers: r.data.followers_count,
+      media_count: r.data.media_count,
+    };
+  } catch (err) {
+    report.tests.profile = {
+      status: "FAILED",
+      error: err.response?.data?.error || err.message,
+      http_status: err.response?.status,
+    };
+  }
+
+  // Test 2: /me/insights (bulk)
+  try {
+    const r = await axios.get(`${IG_GRAPH}/me/insights`, {
+      params: {
+        metric: "reach,views,accounts_engaged",
+        period: "day",
+        access_token: account.access_token,
+      },
+    });
+    report.tests.insights_bulk = {
+      status: "OK",
+      metrics_returned: (r.data.data || []).map(m => m.name),
+      data_points: (r.data.data || []).map(m => ({
+        name: m.name,
+        values_count: m.values ? m.values.length : 0,
+      })),
+    };
+  } catch (err) {
+    report.tests.insights_bulk = {
+      status: "FAILED",
+      error: err.response?.data?.error || err.message,
+      http_status: err.response?.status,
+    };
+  }
+
+  // Test 3: individual metrics
+  for (const metric of ["reach", "views", "accounts_engaged", "follows_and_unfollows", "profile_views"]) {
+    try {
+      const r = await axios.get(`${IG_GRAPH}/me/insights`, {
+        params: { metric, period: "day", access_token: account.access_token },
+      });
+      report.tests["metric_" + metric] = {
+        status: "OK",
+        values_count: r.data.data && r.data.data[0] ? r.data.data[0].values.length : 0,
+      };
+    } catch (err) {
+      report.tests["metric_" + metric] = {
+        status: "FAILED",
+        error: err.response?.data?.error?.message || err.message,
+        error_code: err.response?.data?.error?.code,
+      };
+    }
+  }
+
+  // Test 4: media via /{id}/media
+  try {
+    const r = await axios.get(`${IG_GRAPH}/${account.id}/media`, {
+      params: {
+        fields: "id,caption,media_type,permalink,timestamp,like_count,comments_count",
+        limit: 5,
+        access_token: account.access_token,
+      },
+    });
+    report.tests.media_by_id = {
+      status: "OK",
+      count: r.data.data ? r.data.data.length : 0,
+      endpoint: `${IG_GRAPH}/${account.id}/media`,
+      sample: r.data.data ? r.data.data.slice(0, 2).map(m => ({
+        id: m.id, type: m.media_type, likes: m.like_count,
+      })) : [],
+    };
+  } catch (err) {
+    report.tests.media_by_id = {
+      status: "FAILED",
+      endpoint: `${IG_GRAPH}/${account.id}/media`,
+      error: err.response?.data?.error?.message || err.message,
+      error_code: err.response?.data?.error?.code,
+    };
+  }
+
+  // Test 5: media via /me/media
+  try {
+    const r = await axios.get(`${IG_GRAPH}/me/media`, {
+      params: {
+        fields: "id,caption,media_type,permalink,timestamp,like_count,comments_count",
+        limit: 5,
+        access_token: account.access_token,
+      },
+    });
+    report.tests.media_by_me = {
+      status: "OK",
+      count: r.data.data ? r.data.data.length : 0,
+      endpoint: `${IG_GRAPH}/me/media`,
+      sample: r.data.data ? r.data.data.slice(0, 2).map(m => ({
+        id: m.id, type: m.media_type, likes: m.like_count,
+      })) : [],
+    };
+  } catch (err) {
+    report.tests.media_by_me = {
+      status: "FAILED",
+      endpoint: `${IG_GRAPH}/me/media`,
+      error: err.response?.data?.error?.message || err.message,
+      error_code: err.response?.data?.error?.code,
+    };
+  }
+
+  // Test 6: demographics
+  try {
+    const r = await axios.get(`${IG_GRAPH}/me/insights`, {
+      params: {
+        metric: "follower_demographics",
+        period: "lifetime",
+        metric_type: "total_value",
+        timeframe: "last_30_days",
+        access_token: account.access_token,
+      },
+    });
+    report.tests.demographics = { status: "OK" };
+  } catch (err) {
+    report.tests.demographics = {
+      status: "FAILED",
+      error: err.response?.data?.error?.message || err.message,
+    };
+  }
+
+  // Summary
+  const testResults = Object.values(report.tests);
+  report.summary = {
+    total: testResults.length,
+    passed: testResults.filter(t => t.status === "OK").length,
+    failed: testResults.filter(t => t.status === "FAILED").length,
+  };
+
+  console.log("\n========== DEBUG REPORT ==========");
+  console.log(JSON.stringify(report, null, 2));
+  console.log("==================================\n");
+
+  res.json(report);
+});
+
+// ============================================================
+// DEBUG: List raw stored data (without token)
+// ============================================================
+app.get("/api/debug-accounts", (req, res) => {
+  const accounts = loadAccounts();
+  const report = {};
+  for (const [key, val] of Object.entries(accounts)) {
+    report[key] = {
+      storage_key: key,
+      storage_key_type: typeof key,
+      id: val.id,
+      id_type: typeof val.id,
+      id_matches_key: key === String(val.id),
+      username: val.username,
+      account_type: val.account_type,
+      token_valid: val.token_expires_at > Date.now(),
+      connected_at: val.connected_at,
+    };
+  }
+  res.json(report);
+});
+
+// ============================================================
+// Privacy
 // ============================================================
 app.get("/privacy", (req, res) => {
   res.send(`
@@ -387,13 +580,13 @@ app.get("/privacy", (req, res) => {
       <h1>Política de Privacidad</h1>
       <p>InstaMetrics es una herramienta de analítica personal para cuentas de Instagram.</p>
       <h2>Datos que recopilamos</h2>
-      <p>Solo accedemos a los datos de las cuentas de Instagram que conectas voluntariamente: métricas públicas, publicaciones y datos de audiencia proporcionados por la API de Instagram.</p>
+      <p>Solo accedemos a los datos de las cuentas de Instagram que conectas voluntariamente.</p>
       <h2>Cómo usamos los datos</h2>
-      <p>Los datos se usan exclusivamente para mostrarte tus métricas en el dashboard. No compartimos, vendemos ni transferimos tus datos a terceros.</p>
+      <p>Los datos se usan exclusivamente para mostrarte tus métricas. No compartimos ni vendemos datos.</p>
       <h2>Almacenamiento</h2>
-      <p>Los tokens de acceso se almacenan de forma segura en el servidor. Puedes desconectar tu cuenta en cualquier momento.</p>
+      <p>Los tokens se almacenan de forma segura. Puedes desconectar tu cuenta en cualquier momento.</p>
       <h2>Contacto</h2>
-      <p>Para cualquier consulta sobre privacidad, contacta al administrador de esta instancia.</p>
+      <p>Para consultas sobre privacidad, contacta al administrador de esta instancia.</p>
     </body></html>
   `);
 });
@@ -411,9 +604,7 @@ function handleApiError(err, res) {
   });
 }
 
-// ============================================================
-// SERVE FRONTEND (SPA fallback)
-// ============================================================
+// SPA fallback
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
@@ -425,11 +616,11 @@ app.listen(PORT, () => {
   console.log(`\n🚀 InstaMetrics running at ${BASE_URL || `http://localhost:${PORT}`}`);
   console.log(`📊 Dashboard: ${BASE_URL || `http://localhost:${PORT}`}`);
   console.log(`🔗 OAuth callback: ${REDIRECT_URI}`);
-  console.log(`📡 Graph API base: ${IG_GRAPH}`);
-  console.log(`🔑 App ID: ${INSTAGRAM_APP_ID ? INSTAGRAM_APP_ID.slice(0, 6) + "..." : "NOT SET"}\n`);
+  console.log(`📡 Graph API: ${IG_GRAPH}`);
+  console.log(`🔑 App ID: ${INSTAGRAM_APP_ID ? INSTAGRAM_APP_ID.slice(0, 6) + "..." : "NOT SET"}`);
+  console.log(`🐛 Debug: ${BASE_URL || `http://localhost:${PORT}`}/api/debug-accounts\n`);
 
   if (!INSTAGRAM_APP_ID || !INSTAGRAM_APP_SECRET) {
-    console.warn("⚠️  Missing INSTAGRAM_APP_ID or INSTAGRAM_APP_SECRET in .env");
-    console.warn("   The app will run but OAuth login won't work.\n");
+    console.warn("⚠️  Missing INSTAGRAM_APP_ID or INSTAGRAM_APP_SECRET in .env\n");
   }
 });
