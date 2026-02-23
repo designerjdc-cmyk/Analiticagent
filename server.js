@@ -27,7 +27,7 @@ async function saveSnapshot(accountId, data) {
   }
 }
 
-async function auth(req,res,next){const t=req.headers.authorization?.replace("Bearer ","");if(!t)return res.status(401).json({error:"No auth"});try{const{data:{user},error}=await supa.auth.getUser(t);if(error||!user)return res.status(401).json({error:"Bad session"});req.user=user;next()}catch{res.status(401).json({error:"Auth error"})}}
+async function auth(req,res,next){const t=req.headers.authorization?.replace("Bearer ","");if(!t)return res.status(401).json({error:"No auth"});try{const{data:{user},error}=await supa.auth.getUser(t);if(error||!user)return res.status(401).json({error:"Bad session"});req.user=user;next()}catch(ex){res.status(401).json({error:"Auth error"})}}
 async function getAcc(uid,id){const{data}=await supa.from("accounts").select("*").eq("id",id).eq("user_id",uid).single();return data||null}
 
 async function tryMedia(a,limit,fieldsList){
@@ -41,7 +41,7 @@ function handleErr(e,r){const x=e.response?.data?.error;console.error("API Error
 app.get("/api/config",(_,r)=>r.json({supabaseUrl:SUPABASE_URL,supabaseAnonKey:SUPABASE_ANON_KEY}));
 
 // OAuth
-app.get("/auth/instagram",async(req,res)=>{const t=req.query.token;if(!t)return res.redirect("/?error=No+auth");try{const{data:{user},error}=await supa.auth.getUser(t);if(error||!user)return res.redirect("/?error=Bad+session");const s=uuidv4();oauthStates.set(s,{userId:user.id,ts:Date.now()});cleanS();res.redirect(`https://www.instagram.com/oauth/authorize?enable_fb_login=0&force_authentication=1&client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES)}&response_type=code&state=${s}`)}catch{res.redirect("/?error=Auth+error")}});
+app.get("/auth/instagram",async(req,res)=>{const t=req.query.token;if(!t)return res.redirect("/?error=No+auth");try{const{data:{user},error}=await supa.auth.getUser(t);if(error||!user)return res.redirect("/?error=Bad+session");const s=uuidv4();oauthStates.set(s,{userId:user.id,ts:Date.now()});cleanS();res.redirect(`https://www.instagram.com/oauth/authorize?enable_fb_login=0&force_authentication=1&client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES)}&response_type=code&state=${s}`)}catch(ex){res.redirect("/?error=Auth+error")}});
 
 app.get("/auth/callback",async(req,res)=>{const{code,error,error_description,state}=req.query;if(error)return res.redirect(`/?error=${encodeURIComponent(error_description||error)}`);if(!code)return res.redirect("/?error=No+code");const od=oauthStates.get(state);if(!od)return res.redirect("/?error=Expired");oauthStates.delete(state);
   try{const tr=await axios.post("https://api.instagram.com/oauth/access_token",new URLSearchParams({client_id:INSTAGRAM_APP_ID,client_secret:INSTAGRAM_APP_SECRET,grant_type:"authorization_code",redirect_uri:REDIRECT_URI,code}),{headers:{"Content-Type":"application/x-www-form-urlencoded"}});
@@ -67,7 +67,7 @@ app.get("/api/accounts/:id/profile",auth,async(req,res)=>{try{const a=await getA
 // Insights
 app.get("/api/accounts/:id/insights",auth,async(req,res)=>{try{const a=await getAcc(req.user.id,req.params.id);if(!a)return res.status(404).json({error:"Not found"});
   const{period="day",since,until,metric}=req.query;const safe=metric||"reach,views,accounts_engaged";const p={metric:safe,period,access_token:a.access_token};if(since)p.since=since;if(until)p.until=until;
-  try{const r=await axios.get(`${IG}/me/insights`,{params:p});res.json(r.data)}catch(e){const ms=safe.split(","),d=[];for(const m of ms){try{const r2=await axios.get(`${IG}/me/insights`,{params:{...p,metric:m}});if(r2.data?.data)d.push(...r2.data.data)}catch{}}if(d.length)return res.json({data:d});handleErr(e,res)}}catch(e){handleErr(e,res)}});
+  try{const r=await axios.get(`${IG}/me/insights`,{params:p});res.json(r.data)}catch(e){const ms=safe.split(","),d=[];for(const m of ms){try{const r2=await axios.get(`${IG}/me/insights`,{params:{...p,metric:m}});if(r2.data?.data)d.push(...r2.data.data)}catch(ex){}}if(d.length)return res.json({data:d});handleErr(e,res)}}catch(e){handleErr(e,res)}});
 
 // Media
 app.get("/api/accounts/:id/media",auth,async(req,res)=>{try{const a=await getAcc(req.user.id,req.params.id);if(!a)return res.status(404).json({error:"Not found"});
@@ -105,7 +105,7 @@ app.get("/api/accounts/:id/snapshots",auth,async(req,res)=>{try{const a=await ge
 // User Settings (Groq API key per user)
 app.get("/api/settings",auth,async(req,res)=>{try{
   const{data}=await supa.from("user_settings").select("*").eq("user_id",req.user.id).single();
-  res.json(data||{groq_api_key:null})}catch{res.json({groq_api_key:null})}});
+  res.json(data||{groq_api_key:null})}catch(ex){res.json({groq_api_key:null})}});
 app.post("/api/settings",auth,async(req,res)=>{try{
   const{groq_api_key}=req.body;
   await supa.from("user_settings").upsert({user_id:req.user.id,groq_api_key:groq_api_key||null,updated_at:new Date().toISOString()},{onConflict:"user_id"});
