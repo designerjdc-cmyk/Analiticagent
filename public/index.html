@@ -270,7 +270,6 @@ function Dash({session,onLogout}){
   const[sc,setSC]=useState("score"),[sd,setSD]=useState("desc"),[tf,setTF]=useState("all"),[page,setPage]=useState(1);
   const[mobMenu,setMob]=useState(false);
   const[analyzeId,setAnalyzeId]=useState(null);
-  const[compUser,setCompUser]=useState(""),[compData,setCompData]=useState(null),[compLd,setCompLd]=useState(false),[compErr,setCompErr]=useState(null);
   const sT=(m,t)=>{setToast({m,t:t||"ok"});setTimeout(()=>setToast(null),3500)};
   const userEmail=session?.user?.email||"";
   const switchTab=t=>{setTab(t);sessionStorage.setItem("im_tab",t);setMob(false)};
@@ -290,18 +289,6 @@ function Dash({session,onLogout}){
   const doRefresh=async()=>{setRefreshing(true);await fetchD();setDet(null);setRefreshing(false);sT("Datos actualizados")};
   const connectIG=async()=>{const s=(await sb.auth.getSession()).data.session;if(!s)return sT("Sesión expirada","err");location.href="/auth/instagram?token="+s.access_token};
   const rmAcc=async id=>{if(!confirm("¿Eliminar esta cuenta?"))return;await api("/api/accounts/"+id,{method:"DELETE"});const u=accounts.filter(a=>a.id!==id);setAcc(u);if(selId===id)setSel(u[0]?.id||null);sT("Cuenta eliminada")};
-  const searchComp=async()=>{if(!compUser.trim()||!selId)return;setCompLd(true);setCompErr(null);setCompData(null);try{const r=await fetch("/api/accounts/"+selId+"/discover/"+encodeURIComponent(compUser.trim().replace("@","")),{headers:{Authorization:"Bearer "+(await sb.auth.getSession()).data.session?.access_token}});const d=await r.json();if(!r.ok){setCompErr(d.error+(d.debug?"\n\nDetalles técnicos: "+d.debug.join(" | "):""))}else if(d&&d.username){setCompData(d)}else{setCompErr("No se encontraron datos")}}catch(e){setCompErr(e.message||"Error de red")}setCompLd(false)};
-  const compAnalysis=useMemo(()=>{if(!compData?.media?.data)return null;const posts=compData.media.data;const fc=compData.followers_count||1;
-    const totalLikes=posts.reduce((s,p)=>s+(p.like_count||0),0);const totalComments=posts.reduce((s,p)=>s+(p.comments_count||0),0);
-    const avgEng=((totalLikes+totalComments)/Math.max(posts.length,1)/fc*100);
-    const fmts={reel:0,photo:0,carousel:0};posts.forEach(p=>{if(p.media_type==="VIDEO"||p.media_product_type==="REELS")fmts.reel++;else if(p.media_type==="CAROUSEL_ALBUM")fmts.carousel++;else fmts.photo++});
-    const top5=[...posts].map(p=>({...p,eng:((p.like_count||0)+(p.comments_count||0))/fc*100})).sort((a,b)=>b.eng-a.eng).slice(0,5);
-    const weeks={};posts.forEach(p=>{if(!p.timestamp)return;const d=new Date(p.timestamp),wk=new Date(d);wk.setDate(d.getDate()-d.getDay());const k=wk.toISOString().slice(0,10);if(!weeks[k])weeks[k]=0;weeks[k]++});
-    const wkCounts=Object.values(weeks);const avgFreq=wkCounts.length?wkCounts.reduce((s,v)=>s+v,0)/wkCounts.length:0;
-    const htMap={};posts.forEach(p=>{(p.caption||"").match(/#[\wáéíóúñü]+/gi)?.forEach(t=>{const tag=t.toLowerCase();htMap[tag]=(htMap[tag]||0)+1})});
-    const topTags=Object.entries(htMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([tag,count])=>({tag,count}));
-    return{avgEng,totalLikes,totalComments,fmts,top5,avgFreq,topTags};
-  },[compData]);
   const acc=accounts.find(a=>a.id===selId)||null;
   const A=useAnalytics(detailed?.data,detailed?.followers_count||acc?.followers_count);
   const chartData=(()=>{if(!insights?.data)return[];const r=insights.data.find(m=>m?.name==="reach"),v=insights.data.find(m=>m?.name==="views");if(!r?.values)return[];return r.values.map((x,i)=>({date:x?.end_time?new Date(x.end_time).toLocaleDateString("es-ES",{day:"2-digit",month:"short"}):"",reach:x?.value||0,views:v?.values?.[i]?.value||0}))})();
@@ -315,7 +302,7 @@ function Dash({session,onLogout}){
 
   const DP=()=><div className="dr no-print">{[["all","Todo"],["7d","7d"],["14d","14d"],["30d","30d"],["90d","90d"],["custom","Fechas"]].map(([v,l])=><button key={v} className={"drb"+(dr===v?" on":"")} onClick={()=>setDR(v)}>{l}</button>)}{dr==="custom"&&<><input type="date" className="dri" value={cf} onChange={e=>setCF(e.target.value)}/><span style={{color:"var(--td)",fontSize:10}}>→</span><input type="date" className="dri" value={ct} onChange={e=>setCT(e.target.value)}/><button className="bo" style={{padding:"3px 9px",fontSize:10}} onClick={fetchD}>OK</button></>}</div>;
 
-  const navItems=[{id:"overview",i:"📊",l:"Overview"},{id:"posts",i:"📋",l:"Posts"},{id:"intel",i:"🧠",l:"Inteligencia"},{id:"compare",i:"🔎",l:"Comparar"},{id:"audience",i:"👥",l:"Audiencia"},{id:"mediakit",i:"💼",l:"Media Kit"},{id:"report",i:"📄",l:"Report"}];
+  const navItems=[{id:"overview",i:"📊",l:"Overview"},{id:"posts",i:"📋",l:"Posts"},{id:"intel",i:"🧠",l:"Inteligencia"},{id:"audience",i:"👥",l:"Audiencia"},{id:"mediakit",i:"💼",l:"Media Kit"},{id:"report",i:"📄",l:"Report"}];
 
   if(ld)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh"}}><div className="spin"/></div>;
 
@@ -459,104 +446,6 @@ function Dash({session,onLogout}){
           </div>
         </div>
       </>}</>}
-
-      {/* ═══ COMPARE ═══ */}
-      {tab==="compare"&&acc&&<div>
-        <div className="pnl" style={{background:"linear-gradient(135deg,rgba(225,48,108,.03),rgba(131,58,180,.02))",border:"1px solid rgba(225,48,108,.08)"}}>
-          <div className="pt">🔎 Buscar cuenta para comparar</div>
-          <p style={{fontSize:12,color:"var(--tm)",marginBottom:14}}>Introduce el username de cualquier cuenta pública de tipo business o creator.</p>
-          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-            <span style={{color:"var(--td)",fontSize:16}}>@</span>
-            <input className="ai" style={{flex:1,maxWidth:280}} placeholder="username" value={compUser} onChange={e=>setCompUser(e.target.value)} onKeyDown={e=>e.key==="Enter"&&searchComp()}/>
-            <button className={"bp"+(compLd?" loading":"")} onClick={searchComp} disabled={compLd} style={{padding:"10px 22px"}}>{compLd?"⏳ Buscando...":"Comparar"}</button>
-          </div>
-          {compErr&&<div className="ae" style={{marginTop:12,whiteSpace:"pre-wrap",fontSize:11.5}}>{compErr}</div>}
-        </div>
-
-        {compData&&compAnalysis&&<>
-          {/* Side by side KPIs */}
-          <div className="pnl" style={{marginTop:14}}>
-            <div className="pt">📊 Comparación</div>
-            <div style={{overflowX:"auto"}}><table className="tbl"><thead><tr><th>Métrica</th><th style={{textAlign:"center"}}>@{acc.username}</th><th style={{textAlign:"center"}}>@{compData.username}</th><th style={{textAlign:"center"}}>Diferencia</th></tr></thead><tbody>
-              {[
-                {label:"Seguidores",mine:acc.followers_count||0,theirs:compData.followers_count||0},
-                {label:"Siguiendo",mine:acc.follows_count||0,theirs:compData.follows_count||0},
-                {label:"Publicaciones",mine:acc.media_count||0,theirs:compData.media_count||0},
-                {label:"Engagement Rate",mine:parseFloat(er)||0,theirs:compAnalysis.avgEng,pct:true},
-                {label:"Posts/semana (media)",mine:A?A.freqData.length?A.freqData.reduce((s,w)=>s+w.posts,0)/A.freqData.length:0:0,theirs:compAnalysis.avgFreq,dec:true},
-              ].map((row,i)=>{const diff=row.mine-row.theirs;const pct=row.pct||row.dec;return<tr key={i}>
-                <td style={{fontWeight:600}}>{row.label}</td>
-                <td style={{textAlign:"center",fontWeight:700}}>{pct?(row.mine||0).toFixed(2)+"%":n(Math.round(row.mine))}</td>
-                <td style={{textAlign:"center",fontWeight:700}}>{pct?(row.theirs||0).toFixed(2)+"%":n(Math.round(row.theirs))}</td>
-                <td style={{textAlign:"center",fontWeight:700,color:diff>0?"var(--grn)":diff<0?"var(--red)":"var(--tm)"}}>{diff>0?"+":""}{pct?diff.toFixed(2)+"%":n(Math.round(diff))}</td>
-              </tr>})}
-            </tbody></table></div>
-          </div>
-
-          {/* Format comparison */}
-          <div className="g2" style={{marginTop:14}}>
-            <div className="pnl"><div className="pt">📱 Formatos — @{acc.username}</div>
-              {A&&A.fmStats.filter(f=>f.count>0).map(f=><div key={f.key} className="fmr"><div className="fml" style={{color:f.color}}>{f.label}</div><div className="fmbg"><div className="fmb" style={{width:Math.max(f.count/Math.max(...A.fmStats.map(x=>x.count),1)*100,5)+"%",background:f.color+"25"}}/></div><div className="fmv">{f.count}</div></div>)}
-            </div>
-            <div className="pnl"><div className="pt">📱 Formatos — @{compData.username}</div>
-              {[{l:"Reels",c:"#a78bfa",v:compAnalysis.fmts.reel},{l:"Fotos",c:"#60a5fa",v:compAnalysis.fmts.photo},{l:"Carruseles",c:"#fbbf24",v:compAnalysis.fmts.carousel}].filter(f=>f.v>0).map(f=><div key={f.l} className="fmr"><div className="fml" style={{color:f.c}}>{f.l}</div><div className="fmbg"><div className="fmb" style={{width:Math.max(f.v/Math.max(compAnalysis.fmts.reel,compAnalysis.fmts.photo,compAnalysis.fmts.carousel,1)*100,5)+"%",background:f.c+"25"}}/></div><div className="fmv">{f.v}</div></div>)}
-            </div>
-          </div>
-
-          {/* Hashtags comparison */}
-          <div className="g2" style={{marginTop:14}}>
-            {A&&A.hashtags.length>0&&<div className="pnl"><div className="pt">#️⃣ Tus hashtags</div>
-              <div style={{display:"flex",flexWrap:"wrap",gap:6}}>{A.hashtags.slice(0,8).map(h=><span key={h.tag} style={{fontSize:11.5,padding:"4px 12px",background:"rgba(225,48,108,.06)",borderRadius:8,color:"var(--p1)"}}>{h.tag} ({h.avgEng.toFixed(1)}%)</span>)}</div>
-            </div>}
-            {compAnalysis.topTags.length>0&&<div className="pnl"><div className="pt">#️⃣ Sus hashtags</div>
-              <div style={{display:"flex",flexWrap:"wrap",gap:6}}>{compAnalysis.topTags.map(h=><span key={h.tag} style={{fontSize:11.5,padding:"4px 12px",background:"rgba(96,165,250,.06)",borderRadius:8,color:"var(--blu)"}}>{h.tag} ({h.count}×)</span>)}</div>
-            </div>}
-          </div>
-
-          {/* Their top posts */}
-          <div className="pnl" style={{marginTop:14}}>
-            <div className="pt">🏆 Top posts de @{compData.username}</div>
-            {compAnalysis.top5.map((p,i)=><div key={p.id||i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:i<4?"1px solid rgba(255,255,255,.03)":"none"}}>
-              <div className="score-ring" style={{border:"3px solid var(--blu)",color:"var(--blu)",fontSize:11,width:34,height:34}}>{p.eng.toFixed(1)}</div>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:12.5,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.caption?p.caption.slice(0,50):"Sin caption"}</div>
-                <div style={{fontSize:10.5,color:"var(--td)",marginTop:2}}><Badge type={p.media_type} pt={p.media_product_type}/> · {p.timestamp?new Date(p.timestamp).toLocaleDateString("es-ES"):""}</div>
-              </div>
-              <div style={{textAlign:"right"}}>
-                <div style={{fontSize:12,fontWeight:700}}>❤ {n(p.like_count||0)}</div>
-                <div style={{fontSize:10,color:"var(--td)"}}>💬 {n(p.comments_count||0)}</div>
-              </div>
-              {p.permalink&&<a href={p.permalink} target="_blank" rel="noopener" style={{fontSize:11,color:"var(--p1)",whiteSpace:"nowrap"}}>Ver →</a>}
-            </div>)}
-          </div>
-
-          {/* Insights */}
-          <div className="ins-card" style={{marginTop:14,background:"rgba(225,48,108,.03)",border:"1px solid rgba(225,48,108,.08)"}}>
-            <h3>💡 Análisis comparativo</h3>
-            <div style={{fontSize:12.5,color:"var(--tm)",lineHeight:1.8}}>
-              {(()=>{const insights=[];
-                const myEng=parseFloat(er)||0;const theirEng=compAnalysis.avgEng;
-                if(myEng>theirEng*1.2)insights.push(`🟢 Tu engagement (${myEng.toFixed(2)}%) supera al de @${compData.username} (${theirEng.toFixed(2)}%). Tu comunidad está más comprometida.`);
-                else if(theirEng>myEng*1.2)insights.push(`🔴 @${compData.username} tiene mejor engagement (${theirEng.toFixed(2)}% vs ${myEng.toFixed(2)}%). Observa qué tipo de contenido publican.`);
-                else insights.push(`🟡 Engagement similar: tú ${myEng.toFixed(2)}% vs ${theirEng.toFixed(2)}%. Estáis al mismo nivel.`);
-                const theirMainFmt=compAnalysis.fmts.reel>=compAnalysis.fmts.photo&&compAnalysis.fmts.reel>=compAnalysis.fmts.carousel?"Reels":compAnalysis.fmts.carousel>=compAnalysis.fmts.photo?"Carruseles":"Fotos";
-                insights.push(`📱 @${compData.username} publica principalmente ${theirMainFmt} (${Math.max(compAnalysis.fmts.reel,compAnalysis.fmts.photo,compAnalysis.fmts.carousel)} de ${(compData.media?.data||[]).length} posts analizados).`);
-                if(compAnalysis.avgFreq>0)insights.push(`📅 Frecuencia: ${compAnalysis.avgFreq.toFixed(1)} posts/semana.`);
-                const sharedTags=A?A.hashtags.filter(h=>compAnalysis.topTags.some(t=>t.tag===h.tag)):[];
-                if(sharedTags.length>0)insights.push(`#️⃣ Compartís ${sharedTags.length} hashtags: ${sharedTags.map(h=>h.tag).join(", ")}. Estáis en el mismo nicho.`);
-                else if(compAnalysis.topTags.length>0)insights.push(`#️⃣ No compartís hashtags. Prueba alguno de los suyos: ${compAnalysis.topTags.slice(0,3).map(t=>t.tag).join(", ")}.`);
-                return insights.map((ins,i)=><p key={i} style={{marginBottom:6}}>{ins}</p>);
-              })()}
-            </div>
-          </div>
-        </>}
-
-        {!compData&&!compLd&&!compErr&&<div style={{textAlign:"center",padding:"40px 20px",color:"var(--td)"}}>
-          <p style={{fontSize:28,marginBottom:12}}>🔎</p>
-          <p style={{fontSize:13}}>Busca cualquier cuenta pública de Instagram (business o creator) para comparar métricas, formatos y hashtags con la tuya.</p>
-        </div>}
-      </div>}
-
       {/* ═══ AUDIENCE ═══ */}
       {tab==="audience"&&acc&&<div className="g2">{demo?.data&&Array.isArray(demo.data)?demo.data.map((m,idx)=>{const labels={"engaged_audience_demographics":"👥 Audiencia comprometida","reached_audience_demographics":"📡 Audiencia alcanzada","follower_demographics":"🎯 Seguidores"};const label=labels[m?.name]||m?.name;const br=m?.total_value?.breakdowns?.[0]?.results;if(!br)return<div key={idx} className="pnl"><div className="pt">{label}</div><p className="empty">Sin datos</p></div>;const s=[...br].sort((a,b)=>(b.value||0)-(a.value||0));const mx=s[0]?.value||1;return<div key={idx} className="pnl"><div className="pt">{label}</div>{s.slice(0,12).map((item,i)=><div key={i} style={{marginBottom:7}}><div style={{display:"flex",justifyContent:"space-between",fontSize:11.5,marginBottom:2}}><span>{Object.values(item.dimension_values||{}).join(" · ")}</span><span style={{fontWeight:600,color:C[i%C.length]}}>{n(item.value)}</span></div><div style={{height:4,borderRadius:2,background:"rgba(255,255,255,.03)",overflow:"hidden"}}><div style={{height:"100%",borderRadius:2,width:((item.value||0)/mx*100)+"%",background:C[i%C.length]}}/></div></div>)}</div>}):<div className="pnl gf"><p className="empty">Los datos demográficos requieren mín. 100 seguidores.</p></div>}</div>}
 
