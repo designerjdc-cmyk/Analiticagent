@@ -107,7 +107,7 @@ function Tip({active,payload,label}){if(!active||!payload?.length)return null;re
 function Skel({h=20,w="100%"}){return<div className="skel" style={{height:h,width:w}}/>}
 function Badge({type,pt}){if(type==="VIDEO"||pt==="REELS")return<span className="bdg bdg-r">🎬 Reel</span>;if(type==="CAROUSEL_ALBUM")return<span className="bdg bdg-c">📑 Carrusel</span>;return<span className="bdg bdg-p">📷 Foto</span>}
 function getDateRange(r){const now=Math.floor(Date.now()/1000);const d={"all":365,"7d":7,"14d":14,"30d":30,"90d":90};const days=d[r];if(days)return{since:now-days*86400,until:now};return{}}
-function exportCSV(posts,fn){const h=["Fecha","Tipo","Likes","Comments","Reach","Saves","Shares","SaveRate%","ShareRate%","ReachEff","Caption"];const rows=posts.map(p=>[p.timestamp?new Date(p.timestamp).toLocaleDateString("es-ES"):"",p.media_type,p.likes,p.comments,p.reach,p.saves,p.shares,(p.saveRate||0).toFixed(2),(p.shareRate||0).toFixed(2),(p.reachEff||0).toFixed(2),'"'+(p.caption||"").replace(/"/g,'""').replace(/\n/g," ").slice(0,200)+'"']);const csv="\uFEFF"+[h,...rows].map(r=>r.join(";")).join("\n");const b=new Blob([csv],{type:"text/csv;charset=utf-8"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=fn||"posts.csv";a.click();URL.revokeObjectURL(u)}
+function exportCSV(posts,fn){const h=["Fecha","Hora","Tipo","Likes","Comments","Reach","Saves","Shares","SaveRate%","ShareRate%","ReachEff","Caption"];const rows=posts.map(p=>[p.timestamp?new Date(p.timestamp).toLocaleDateString("es-ES"):"",p.timestamp?new Date(p.timestamp).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"}):"",p.media_type,p.likes,p.comments,p.reach,p.saves,p.shares,(p.saveRate||0).toFixed(2),(p.shareRate||0).toFixed(2),(p.reachEff||0).toFixed(2),'"'+(p.caption||"").replace(/"/g,'""').replace(/\n/g," ").slice(0,200)+'"']);const csv="\uFEFF"+[h,...rows].map(r=>r.join(";")).join("\n");const b=new Blob([csv],{type:"text/csv;charset=utf-8"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=fn||"posts.csv";a.click();URL.revokeObjectURL(u)}
 function Delta({v,suf}){const cl=v>0?"up":v<0?"dn":"flat";return<span className={"delta "+cl}>{v>0?"+":""}{v}{suf||""}</span>}
 
 function useAnalytics(posts,fc){return useMemo(()=>{if(!posts?.length)return null;const F=fc||1;
@@ -357,7 +357,7 @@ function Dash({session,onLogout}){
         </div>
         <div className="fc">{[["all","Todos"],["reel","🎬 Reels"],["photo","📷 Fotos"],["carousel","📑 Carruseles"]].map(([id,l])=><button key={id} className={"fch"+(tf===id?" on":"")} onClick={()=>setTF(id)}>{l}</button>)}</div>
         <div style={{overflowX:"auto"}}><table className="tbl"><thead><tr>
-          <th>Tipo</th><th onClick={()=>tSrt("timestamp")}>Fecha{sI("timestamp")}</th><th>Caption</th>
+          <th>Tipo</th><th onClick={()=>tSrt("timestamp")}>Fecha{sI("timestamp")}</th><th>Hora</th><th>Caption</th>
           <th className="num" onClick={()=>tSrt("saveRate")}>Save%{sI("saveRate")}</th>
           <th className="num" onClick={()=>tSrt("shareRate")}>Share%{sI("shareRate")}</th>
           <th className="num" onClick={()=>tSrt("reachEff")}>Reach Eff{sI("reachEff")}</th>
@@ -367,6 +367,7 @@ function Dash({session,onLogout}){
         </tr></thead><tbody>{paged.map((p2,i)=><tr key={p2.id||i}>
           <td><Badge type={p2.media_type} pt={p2.media_product_type}/></td>
           <td style={{fontSize:11.5,whiteSpace:"nowrap"}}>{p2.timestamp?new Date(p2.timestamp).toLocaleDateString("es-ES"):"—"}</td>
+          <td style={{fontSize:11.5,whiteSpace:"nowrap",color:"var(--tm)"}}>{p2.timestamp?new Date(p2.timestamp).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"}):"—"}</td>
           <td style={{maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><a href={p2.permalink||"#"} target="_blank" rel="noopener" style={{color:"var(--tm)"}}>{p2.caption?p2.caption.slice(0,40):"—"}</a></td>
           <td className="num" style={{color:p2.saveRate>2?"var(--grn)":p2.saveRate>1?"var(--org)":"var(--tm)"}}>{p2.saveRate.toFixed(2)}%</td>
           <td className="num" style={{color:p2.shareRate>1?"var(--grn)":"var(--tm)"}}>{p2.shareRate.toFixed(2)}%</td>
