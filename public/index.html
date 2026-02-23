@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>InstaMetrics — Analytics Pro</title>
+<title>InstaMetrics — Growth Analytics</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='url(%23g)'/><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop stop-color='%23f9ce34'/><stop offset='.5' stop-color='%23ee2a7b'/><stop offset='1' stop-color='%236228d7'/></linearGradient></defs><text x='16' y='22' text-anchor='middle' fill='white' font-size='16' font-weight='800' font-family='system-ui'>M</text></svg>"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -12,16 +12,8 @@
 <script crossorigin src="https://unpkg.com/recharts@2.5.0/umd/Recharts.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
 <style>
-:root{
-  --bg:#07060b;--s1:#0e0d14;--s2:#13121a;--card:rgba(255,255,255,0.025);--ch:rgba(255,255,255,0.05);
-  --bdr:rgba(255,255,255,0.055);--bh:rgba(255,255,255,0.1);
-  --t:#f0eef5;--tm:rgba(240,238,245,0.5);--td:rgba(240,238,245,0.25);
-  --p1:#e1306c;--p2:#c13584;--p3:#833ab4;--p4:#6228d7;
-  --grn:#34d399;--red:#f87171;--org:#fbbf24;--blu:#60a5fa;
-  --glow:0 0 20px rgba(225,48,108,.08);--r:14px
-}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--t);min-height:100vh;font-size:13px;-webkit-font-smoothing:antialiased}
+:root{--bg:#07060b;--s1:#0e0d14;--s2:#13121a;--card:rgba(255,255,255,0.025);--ch:rgba(255,255,255,0.05);--bdr:rgba(255,255,255,0.055);--bh:rgba(255,255,255,0.1);--t:#f0eef5;--tm:rgba(240,238,245,0.5);--td:rgba(240,238,245,0.25);--p1:#e1306c;--p2:#c13584;--p3:#833ab4;--p4:#6228d7;--grn:#34d399;--red:#f87171;--org:#fbbf24;--blu:#60a5fa;--glow:0 0 20px rgba(225,48,108,.08);--r:14px}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--t);min-height:100vh;font-size:13px;-webkit-font-smoothing:antialiased}
 ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.06);border-radius:4px}
 a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer}
 .shell{display:flex;min-height:100vh}
@@ -34,23 +26,18 @@ a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer}
 .sb-account:hover{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.07)}
 .sb-account img{width:32px;height:32px;border-radius:9px;border:1.5px solid rgba(255,255,255,.08)}
 .nv{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;font-size:12.5px;font-weight:500;color:var(--tm);transition:all .2s;border:none;background:none;width:100%;text-align:left}
-.nv:hover{color:var(--t);background:rgba(255,255,255,0.04)}
-.nv.on{color:var(--t);background:linear-gradient(135deg,rgba(225,48,108,.1),rgba(131,58,180,.08));font-weight:600;border:1px solid rgba(225,48,108,.12)}
+.nv:hover{color:var(--t);background:rgba(255,255,255,0.04)}.nv.on{color:var(--t);background:linear-gradient(135deg,rgba(225,48,108,.1),rgba(131,58,180,.08));font-weight:600;border:1px solid rgba(225,48,108,.12)}
 .nv-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
 .cnt{margin-left:230px;flex:1;padding:28px 32px;max-width:1160px}
 .bp{background:linear-gradient(135deg,var(--p1),var(--p3));border:none;border-radius:11px;padding:9px 20px;color:#fff;font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;gap:7px;transition:all .2s;box-shadow:0 2px 12px rgba(225,48,108,.2)}.bp:hover{opacity:.9;transform:translateY(-1px)}
-.bo{background:rgba(255,255,255,.03);border:1px solid var(--bdr);border-radius:11px;padding:8px 16px;color:var(--t);font-size:12.5px;font-weight:500;display:inline-flex;align-items:center;gap:6px;transition:all .2s}.bo:hover{border-color:var(--bh);background:rgba(255,255,255,.05)}
-.bo.loading{opacity:.6;pointer-events:none}
+.bo{background:rgba(255,255,255,.03);border:1px solid var(--bdr);border-radius:11px;padding:8px 16px;color:var(--t);font-size:12.5px;font-weight:500;display:inline-flex;align-items:center;gap:6px;transition:all .2s}.bo:hover{border-color:var(--bh);background:rgba(255,255,255,.05)}.bo.loading{opacity:.6;pointer-events:none}
 .bg{background:none;border:none;color:var(--tm);font-size:11.5px;padding:5px 8px;transition:color .15s}.bg:hover{color:var(--t)}
 .kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:22px}
 .kpi{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:18px;transition:all .25s;position:relative;overflow:hidden}
 .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--p1),var(--p3));opacity:0;transition:opacity .25s}
 .kpi:hover{background:var(--ch);border-color:var(--bh);transform:translateY(-1px);box-shadow:var(--glow)}.kpi:hover::before{opacity:1}
-.kl{font-size:10.5px;color:var(--tm);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
-.kv{font-size:22px;font-weight:800;letter-spacing:-.03em;margin-top:5px;background:linear-gradient(135deg,var(--t),rgba(240,238,245,.7));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.ks{font-size:10.5px;margin-top:4px}
-.pnl{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:22px;margin-bottom:14px;transition:border-color .2s}
-.pnl:hover{border-color:rgba(255,255,255,.07)}
+.kl{font-size:10.5px;color:var(--tm);font-weight:600;text-transform:uppercase;letter-spacing:.06em}.kv{font-size:22px;font-weight:800;letter-spacing:-.03em;margin-top:5px;background:linear-gradient(135deg,var(--t),rgba(240,238,245,.7));-webkit-background-clip:text;-webkit-text-fill-color:transparent}.ks{font-size:10.5px;margin-top:4px}
+.pnl{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:22px;margin-bottom:14px;transition:border-color .2s}.pnl:hover{border-color:rgba(255,255,255,.07)}
 .pt{font-size:14px;font-weight:700;margin-bottom:16px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.gf{grid-column:1/-1}
 .dr{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
@@ -58,8 +45,7 @@ a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer}
 .dri{background:rgba(255,255,255,.04);border:1px solid var(--bdr);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--t);font-family:inherit;outline:none}.dri:focus{border-color:var(--p1)}
 .tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px}
 .tbl th{text-align:left;padding:10px;font-size:10px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--bdr);cursor:pointer;user-select:none;white-space:nowrap;transition:color .15s}.tbl th:hover{color:var(--t)}
-.tbl td{padding:10px;border-bottom:1px solid rgba(255,255,255,.025);vertical-align:middle}
-.tbl tr{transition:background .15s}.tbl tbody tr:hover td{background:rgba(225,48,108,.02)}
+.tbl td{padding:10px;border-bottom:1px solid rgba(255,255,255,.025);vertical-align:middle}.tbl tr{transition:background .15s}.tbl tbody tr:hover td{background:rgba(225,48,108,.02)}
 .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
 .bdg{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:7px;font-size:10.5px;font-weight:600}
 .bdg-r{background:rgba(139,92,246,.1);color:#a78bfa}.bdg-p{background:rgba(96,165,250,.1);color:#93c5fd}.bdg-c{background:rgba(251,191,36,.1);color:#fcd34d}
@@ -79,27 +65,33 @@ a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer}
 .spin{width:24px;height:24px;border:2.5px solid rgba(255,255,255,.06);border-top-color:var(--p1);border-radius:50%;animation:sp .7s linear infinite}
 .skel{background:linear-gradient(90deg,rgba(255,255,255,.03) 25%,rgba(255,255,255,.06) 50%,rgba(255,255,255,.03) 75%);background-size:200% 100%;animation:skel 1.5s ease infinite;border-radius:8px}
 .pag{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:16px;padding-top:14px;border-top:1px solid var(--bdr)}
-.pag button{width:32px;height:32px;border-radius:8px;border:1px solid var(--bdr);background:none;color:var(--tm);font-size:12px;font-weight:600;transition:all .15s;font-family:inherit}
-.pag button:hover{border-color:var(--bh);color:var(--t)}.pag button.on{background:linear-gradient(135deg,rgba(225,48,108,.15),rgba(131,58,180,.1));border-color:rgba(225,48,108,.2);color:var(--t)}
-.sett-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--bdr)}.sett-row:last-child{border:none}
-.sett-label{font-size:12.5px;color:var(--tm)}.sett-value{font-size:13px;font-weight:600}
-/* AI Chat */
+.pag button{width:32px;height:32px;border-radius:8px;border:1px solid var(--bdr);background:none;color:var(--tm);font-size:12px;font-weight:600;transition:all .15s;font-family:inherit}.pag button:hover{border-color:var(--bh);color:var(--t)}.pag button.on{background:linear-gradient(135deg,rgba(225,48,108,.15),rgba(131,58,180,.1));border-color:rgba(225,48,108,.2);color:var(--t)}
 .chat-w{border:1px solid rgba(225,48,108,.1);border-radius:16px;background:linear-gradient(135deg,rgba(225,48,108,.02),rgba(131,58,180,.015));overflow:hidden}
 .chat-msgs{max-height:420px;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px}
 .chat-msg{max-width:85%;padding:12px 16px;border-radius:14px;font-size:12.5px;line-height:1.65}
 .chat-msg.user{align-self:flex-end;background:linear-gradient(135deg,var(--p1),var(--p3));color:#fff;border-bottom-right-radius:4px}
-.chat-msg.ai{align-self:flex-start;background:rgba(255,255,255,.04);border:1px solid var(--bdr);border-bottom-left-radius:4px;color:var(--tm)}
-.chat-msg.ai strong{color:var(--t)}
+.chat-msg.ai{align-self:flex-start;background:rgba(255,255,255,.04);border:1px solid var(--bdr);border-bottom-left-radius:4px;color:var(--tm)}.chat-msg.ai strong{color:var(--t)}
 .chat-input{display:flex;gap:8px;padding:14px;border-top:1px solid rgba(255,255,255,.04)}
 .chat-input input{flex:1;padding:10px 16px;background:rgba(255,255,255,.03);border:1px solid var(--bdr);border-radius:10px;color:var(--t);font-size:12.5px;font-family:inherit;outline:none}.chat-input input:focus{border-color:var(--p1)}
+/* Matrix */
+.matrix{position:relative;width:100%;height:320px;background:rgba(255,255,255,.01);border-radius:12px;border:1px solid var(--bdr);overflow:hidden}
+.matrix-dot{position:absolute;width:10px;height:10px;border-radius:50%;transition:all .2s;cursor:pointer;z-index:2}.matrix-dot:hover{transform:scale(2);z-index:10}
+.matrix-q{position:absolute;font-size:10px;font-weight:600;color:var(--td);pointer-events:none;z-index:1}
+.matrix-ax{position:absolute;font-size:9px;color:var(--td);pointer-events:none}
+.matrix-line{position:absolute;background:rgba(255,255,255,.04)}
+/* Quadrant backgrounds */
+.q-gold{position:absolute;top:0;right:0;width:50%;height:50%;background:rgba(52,211,153,.03)}
+.q-candy{position:absolute;top:0;left:0;width:50%;height:50%;background:rgba(251,191,36,.02)}
+.q-gem{position:absolute;bottom:0;right:0;width:50%;height:50%;background:rgba(96,165,250,.02)}
+.q-dead{position:absolute;bottom:0;left:0;width:50%;height:50%;background:rgba(248,113,113,.02)}
+.delta{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:6px;display:inline-block}
+.delta.up{color:var(--grn);background:rgba(52,211,153,.08)}.delta.dn{color:var(--red);background:rgba(248,113,113,.08)}.delta.flat{color:var(--td);background:rgba(255,255,255,.03)}
 .hamburger{display:none;position:fixed;top:14px;left:14px;z-index:60;width:40px;height:40px;border-radius:10px;background:var(--s1);border:1px solid var(--bdr);align-items:center;justify-content:center;font-size:18px;color:var(--t);box-shadow:0 4px 12px rgba(0,0,0,.3)}
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:45;backdrop-filter:blur(4px)}
 @keyframes su{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-@keyframes sp{to{transform:rotate(360deg)}}
-@keyframes skel{0%{background-position:200% 0}100%{background-position:-200% 0}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-@media print{.sb,.no-print,.hamburger{display:none!important}.cnt{margin-left:0!important;padding:16px!important;max-width:100%!important}body{background:#fff!important;color:#1a1a1a!important}.pnl,.kpi{border:1px solid #e0e0e0!important;background:#fafafa!important;box-shadow:none!important}.kv{background:none!important;-webkit-text-fill-color:#1a1a1a!important}.kl,.pt{color:#333!important}.ins-card{background:#f5f5f5!important;border:1px solid #ddd!important}.toast,.overlay,.dd{display:none!important}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}
-@media(max-width:900px){.sb{transform:translateX(-100%)}.sb.open{transform:translateX(0)}.hamburger{display:flex}.overlay.show{display:block}.cnt{margin-left:0;padding:16px;padding-top:60px}.g2{grid-template-columns:1fr}.kg{grid-template-columns:repeat(2,1fr)}}
+@keyframes sp{to{transform:rotate(360deg)}}@keyframes skel{0%{background-position:200% 0}100%{background-position:-200% 0}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@media print{.sb,.no-print,.hamburger{display:none!important}.cnt{margin-left:0!important;padding:16px!important;max-width:100%!important}body{background:#fff!important;color:#1a1a1a!important}.pnl,.kpi{border:1px solid #e0e0e0!important;background:#fafafa!important;box-shadow:none!important}.kv{background:none!important;-webkit-text-fill-color:#1a1a1a!important}.kl,.pt{color:#333!important}.toast,.overlay,.dd,.matrix-q{display:none!important}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}
+@media(max-width:900px){.sb{transform:translateX(-100%)}.sb.open{transform:translateX(0)}.hamburger{display:flex}.overlay.show{display:block}.cnt{margin-left:0;padding:16px;padding-top:60px}.g2{grid-template-columns:1fr}.kg{grid-template-columns:repeat(2,1fr)}.matrix{height:260px}}
 </style>
 </head>
 <body>
@@ -107,105 +99,181 @@ a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer}
 <script type="text/babel" data-type="module">
 const{useState,useEffect,useMemo,useRef,Component}=React;
 class EB extends Component{constructor(p){super(p);this.state={e:null}}static getDerivedStateFromError(e){return{e}}render(){return this.state.e?<div style={{padding:40,textAlign:"center",color:"var(--red)"}}><h2>Algo salió mal</h2><button className="bp" onClick={()=>{this.setState({e:null});location.reload()}}>Recargar</button></div>:this.props.children}}
-const RC=typeof Recharts!=="undefined";const{AreaChart,Area,BarChart,Bar,XAxis,YAxis,CartesianGrid,Tooltip,ResponsiveContainer}=RC?Recharts:{};
+const RC=typeof Recharts!=="undefined";const{AreaChart,Area,BarChart,Bar,XAxis,YAxis,CartesianGrid,Tooltip,ResponsiveContainer,ScatterChart,Scatter,ZAxis,Cell}=RC?Recharts:{};
 const C=["#e1306c","#c13584","#f59e0b","#60a5fa","#34d399","#f87171","#a78bfa","#06b6d4"];let sb=null;
 async function api(u,o){const s=sb?(await sb.auth.getSession()).data.session:null;const h={"Content-Type":"application/json",...(o?.headers||{})};if(s)h.Authorization="Bearer "+s.access_token;const r=await fetch(u,{...o,headers:h});const t=await r.text();let j;try{j=JSON.parse(t)}catch(ex){throw new Error("Bad response")}if(!r.ok)throw new Error(j.error||"Error "+r.status);return j}
 function n(v){return typeof v==="number"?v.toLocaleString("es-ES"):(v||"—")}
 function Tip({active,payload,label}){if(!active||!payload?.length)return null;return<div style={{background:"#16141e",border:"1px solid rgba(225,48,108,.15)",borderRadius:10,padding:"10px 14px",fontSize:11.5,boxShadow:"0 8px 24px rgba(0,0,0,.4)"}}><div style={{color:"var(--tm)",marginBottom:4,fontSize:10}}>{label}</div>{payload.map((p,i)=><div key={i} style={{color:p.color,fontWeight:600}}>{p.name}: {n(p.value)}</div>)}</div>}
 function Skel({h=20,w="100%"}){return<div className="skel" style={{height:h,width:w}}/>}
+function Badge({type,pt}){if(type==="VIDEO"||pt==="REELS")return<span className="bdg bdg-r">🎬 Reel</span>;if(type==="CAROUSEL_ALBUM")return<span className="bdg bdg-c">📑 Carrusel</span>;return<span className="bdg bdg-p">📷 Foto</span>}
+function getDateRange(r){const now=Math.floor(Date.now()/1000);const d={"all":365,"7d":7,"14d":14,"30d":30,"90d":90};const days=d[r];if(days)return{since:now-days*86400,until:now};return{}}
+function exportCSV(posts,fn){const h=["Fecha","Tipo","Likes","Comments","Reach","Saves","Shares","SaveRate%","ShareRate%","ReachEff","Caption"];const rows=posts.map(p=>[p.timestamp?new Date(p.timestamp).toLocaleDateString("es-ES"):"",p.media_type,p.likes,p.comments,p.reach,p.saves,p.shares,(p.saveRate||0).toFixed(2),(p.shareRate||0).toFixed(2),(p.reachEff||0).toFixed(2),'"'+(p.caption||"").replace(/"/g,'""').replace(/\n/g," ").slice(0,200)+'"']);const csv="\uFEFF"+[h,...rows].map(r=>r.join(";")).join("\n");const b=new Blob([csv],{type:"text/csv;charset=utf-8"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=fn||"posts.csv";a.click();URL.revokeObjectURL(u)}
+function Delta({v,suf}){const cl=v>0?"up":v<0?"dn":"flat";return<span className={"delta "+cl}>{v>0?"+":""}{v}{suf||""}</span>}
 
 function useAnalytics(posts,fc){return useMemo(()=>{if(!posts?.length)return null;const F=fc||1;
-  const m=posts.map(p=>{const l=p.like_count||0,c=p.comments_count||0,r=p.insights?.reach||0,sv=p.insights?.saved||0,sh=p.insights?.shares||0,it=p.insights?.total_interactions||(l+c);return{...p,likes:l,comments:c,reach:r,saves:sv,shares:sh,interactions:it,engRate:it/F}});
+  const dn=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+  // ── Enrich posts with deep metrics ──
+  const m=posts.map(p=>{const l=p.like_count||0,c=p.comments_count||0,r=p.insights?.reach||0,sv=p.insights?.saved||0,sh=p.insights?.shares||0,it=p.insights?.total_interactions||(l+c);
+    const saveRate=r>0?(sv/r*100):0;const shareRate=r>0?(sh/r*100):0;const reachEff=F>0?(r/F):0;const viralCoeff=r>0?(sh/r):0;
+    return{...p,likes:l,comments:c,reach:r,saves:sv,shares:sh,interactions:it,engRate:it/F,saveRate,shareRate,reachEff,viralCoeff}});
+  const chrono=[...m].sort((a,b)=>new Date(a.timestamp||0)-new Date(b.timestamp||0));
   const aR=m.reduce((s,x)=>s+x.reach,0)/m.length||1;
   const oaE=m.reduce((s,x)=>s+x.engRate*100,0)/m.length||.01;
-  const chrono=[...m].sort((a,b)=>new Date(a.timestamp||0)-new Date(b.timestamp||0));
+  const avgSaveRate=m.reduce((s,x)=>s+x.saveRate,0)/m.length;
+  const avgShareRate=m.reduce((s,x)=>s+x.shareRate,0)/m.length;
+  const avgReachEff=m.reduce((s,x)=>s+x.reachEff,0)/m.length;
+  // ── Engagement trend ──
   const engTrend=chrono.map((p,i)=>{const start=Math.max(0,i-4),w=chrono.slice(start,i+1);return{date:p.timestamp?new Date(p.timestamp).toLocaleDateString("es-ES",{day:"2-digit",month:"short"}):"",eng:+(p.engRate*100).toFixed(2),rolling:+(w.reduce((s,x)=>s+x.engRate*100,0)/w.length).toFixed(2)}});
-  const dn=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];const hm={};m.forEach(p=>{if(!p.timestamp)return;const d=new Date(p.timestamp),k=d.getDay()+"-"+d.getHours();if(!hm[k])hm[k]={t:0,c:0};hm[k].t+=p.engRate*100;hm[k].c++});
+  // ── Heatmap ──
+  const hm={};m.forEach(p=>{if(!p.timestamp)return;const d=new Date(p.timestamp),k=d.getDay()+"-"+d.getHours();if(!hm[k])hm[k]={t:0,c:0};hm[k].t+=p.engRate*100;hm[k].c++});
   const hmD=[];let hmM=0;for(let d=0;d<7;d++)for(let h=0;h<24;h++){const k=d+"-"+h,a=hm[k]?hm[k].t/hm[k].c:0;if(a>hmM)hmM=a;hmD.push({day:d,hour:h,avg:a,count:hm[k]?.c||0})}
-  const fm={reel:{l:"Reels",c:"#a78bfa",p:[]},photo:{l:"Fotos",c:"#60a5fa",p:[]},carousel:{l:"Carruseles",c:"#fbbf24",p:[]}};
-  m.forEach(p=>{if(p.media_type==="VIDEO"||p.media_product_type==="REELS")fm.reel.p.push(p);else if(p.media_type==="IMAGE")fm.photo.p.push(p);else if(p.media_type==="CAROUSEL_ALBUM")fm.carousel.p.push(p)});
-  const fmStats=Object.entries(fm).map(([k,v])=>({key:k,label:v.l,color:v.c,count:v.p.length,avgEng:v.p.length?v.p.reduce((s,x)=>s+x.engRate*100,0)/v.p.length:0,avgReach:v.p.length?v.p.reduce((s,x)=>s+x.reach,0)/v.p.length:0}));
-  const bestFmt=[...fmStats].filter(f=>f.count>0).sort((a,b)=>b.avgEng-a.avgEng)[0];
   const now=new Date(),cDay=now.getDay(),cHr=now.getHours();
   const bestHr=hmD.filter(h=>h.day===cDay&&h.count>0).sort((a,b)=>b.avg-a.avg)[0];
   const curSlot=hmD.find(h=>h.day===cDay&&h.hour===cHr);
-  const htMap={};m.forEach(p=>{const tags=(p.caption||"").match(/#[\wáéíóúñü]+/gi)||[];tags.forEach(tag=>{const t=tag.toLowerCase();if(!htMap[t])htMap[t]={count:0,totalEng:0};htMap[t].count++;htMap[t].totalEng+=p.engRate*100})});
-  const hashtags=Object.entries(htMap).map(([tag,d])=>({tag,count:d.count,avgEng:d.totalEng/d.count})).sort((a,b)=>b.avgEng-a.avgEng);
+  // ── Formats ──
+  const fm={reel:{l:"Reels",c:"#a78bfa",p:[]},photo:{l:"Fotos",c:"#60a5fa",p:[]},carousel:{l:"Carruseles",c:"#fbbf24",p:[]}};
+  m.forEach(p=>{if(p.media_type==="VIDEO"||p.media_product_type==="REELS")fm.reel.p.push(p);else if(p.media_type==="IMAGE")fm.photo.p.push(p);else if(p.media_type==="CAROUSEL_ALBUM")fm.carousel.p.push(p)});
+  const fmStats=Object.entries(fm).map(([k,v])=>({key:k,label:v.l,color:v.c,count:v.p.length,avgEng:v.p.length?v.p.reduce((s,x)=>s+x.engRate*100,0)/v.p.length:0,avgSave:v.p.length?v.p.reduce((s,x)=>s+x.saveRate,0)/v.p.length:0,avgReach:v.p.length?v.p.reduce((s,x)=>s+x.reach,0)/v.p.length:0,avgReachEff:v.p.length?v.p.reduce((s,x)=>s+x.reachEff,0)/v.p.length:0}));
+  const bestFmt=[...fmStats].filter(f=>f.count>0).sort((a,b)=>b.avgEng-a.avgEng)[0];
+  // ── Hashtags ──
+  const htMap={};m.forEach(p=>{const tags=(p.caption||"").match(/#[\wáéíóúñü]+/gi)||[];tags.forEach(tag=>{const t=tag.toLowerCase();if(!htMap[t])htMap[t]={count:0,totalEng:0,totalSave:0};htMap[t].count++;htMap[t].totalEng+=p.engRate*100;htMap[t].totalSave+=p.saveRate})});
+  const hashtags=Object.entries(htMap).map(([tag,d])=>({tag,count:d.count,avgEng:d.totalEng/d.count,avgSave:d.totalSave/d.count})).sort((a,b)=>b.avgSave-a.avgSave);
+  // ── Frequency ──
   const weekMap={};m.forEach(p=>{if(!p.timestamp)return;const d=new Date(p.timestamp),wk=new Date(d);wk.setDate(d.getDate()-d.getDay());const key=wk.toISOString().slice(0,10);if(!weekMap[key])weekMap[key]={posts:0,totalEng:0};weekMap[key].posts++;weekMap[key].totalEng+=p.engRate*100});
   const freqData=Object.entries(weekMap).sort(([a],[b])=>a.localeCompare(b)).map(([wk,d])=>({week:new Date(wk).toLocaleDateString("es-ES",{day:"2-digit",month:"short"}),posts:d.posts,avgEng:+(d.totalEng/d.posts).toFixed(2)}));
-  // Ghost followers estimate
+  // ── Ghost followers ──
   const totalInter=m.reduce((s,p)=>s+p.interactions,0);const avgInter=totalInter/m.length;const estActive=Math.min(avgInter*3,F);
   const ghost=Math.round((1-estActive/F)*100);
-  // Streak
+  // ── Streak ──
   const dates=[...new Set(m.filter(p=>p.timestamp).map(p=>new Date(p.timestamp).toISOString().slice(0,10)))].sort().reverse();
   let streakCur=dates.length?1:0;for(let i=0;i<dates.length-1;i++){if((new Date(dates[i])-new Date(dates[i+1]))/86400000<=3)streakCur++;else break}
   let streakMax=1,run=1;for(let i=0;i<dates.length-1;i++){if((new Date(dates[i])-new Date(dates[i+1]))/86400000<=3){run++;if(run>streakMax)streakMax=run}else run=1}
   const daysSinceLast=dates.length?Math.round((new Date()-new Date(dates[0]))/86400000):99;
   const avgGap=dates.length>1?(new Date(dates[0])-new Date(dates[dates.length-1]))/86400000/(dates.length-1):0;
   const consistency=Math.max(0,Math.min(100,Math.round(100-daysSinceLast*5-avgGap*3)));
-  // Rate estimation
+  // ── Content Value Matrix (4 quadrants) ──
+  const medianEng=m.length?[...m].sort((a,b)=>a.engRate-b.engRate)[Math.floor(m.length/2)].engRate*100:0;
+  const medianSave=m.length?[...m].sort((a,b)=>a.saveRate-b.saveRate)[Math.floor(m.length/2)].saveRate:0;
+  const matrix=m.map(p=>{const e=p.engRate*100,s=p.saveRate;const q=e>=medianEng?(s>=medianSave?"gold":"candy"):(s>=medianSave?"gem":"dead");return{...p,mx_eng:e,mx_save:s,quadrant:q}});
+  const qCounts={gold:matrix.filter(p=>p.quadrant==="gold").length,candy:matrix.filter(p=>p.quadrant==="candy").length,gem:matrix.filter(p=>p.quadrant==="gem").length,dead:matrix.filter(p=>p.quadrant==="dead").length};
+  // ── Optimal Gap ──
+  const gapAnalysis=chrono.length>1?chrono.slice(1).map((p,i)=>{const prev=chrono[i];const gap=(new Date(p.timestamp)-new Date(prev.timestamp))/86400000;return{gap:+gap.toFixed(1),eng:p.engRate*100,saveRate:p.saveRate,post:p}}).filter(g=>g.gap>0&&g.gap<30):[];
+  const gapBuckets=[{label:"<1 día",min:0,max:1},{label:"1-2 días",min:1,max:2},{label:"2-3 días",min:2,max:3},{label:"3-5 días",min:3,max:5},{label:"5-7 días",min:5,max:7},{label:"7+ días",min:7,max:999}];
+  const gapStats=gapBuckets.map(b=>{const items=gapAnalysis.filter(g=>g.gap>=b.min&&g.gap<b.max);return{...b,count:items.length,avgEng:items.length?items.reduce((s,i)=>s+i.eng,0)/items.length:0,avgSave:items.length?items.reduce((s,i)=>s+i.saveRate,0)/items.length:0}}).filter(b=>b.count>0);
+  // ── Format Trend (temporal) ──
+  const fmtTrend=(()=>{const weeks={};chrono.forEach(p=>{if(!p.timestamp)return;const d=new Date(p.timestamp),wk=new Date(d);wk.setDate(d.getDate()-d.getDay());const key=wk.toISOString().slice(0,10);const fmt=p.media_type==="VIDEO"||p.media_product_type==="REELS"?"reel":p.media_type==="CAROUSEL_ALBUM"?"carousel":"photo";
+    if(!weeks[key])weeks[key]={reel:{t:0,c:0},photo:{t:0,c:0},carousel:{t:0,c:0}};weeks[key][fmt].t+=p.engRate*100;weeks[key][fmt].c++});
+    return Object.entries(weeks).sort(([a],[b])=>a.localeCompare(b)).map(([wk,d])=>({week:new Date(wk).toLocaleDateString("es-ES",{day:"2-digit",month:"short"}),reel:d.reel.c?+(d.reel.t/d.reel.c).toFixed(2):null,photo:d.photo.c?+(d.photo.t/d.photo.c).toFixed(2):null,carousel:d.carousel.c?+(d.carousel.t/d.carousel.c).toFixed(2):null}))})();
+  // ── Caption Structure ──
+  const capStructure=(()=>{const feats=m.filter(p=>p.caption).map(p=>{const cap=p.caption||"";const firstLine=cap.split("\n")[0]||"";return{hasQuestion:firstLine.includes("?")?1:0,hasCTA:cap.match(/(guarda|comparte|comenta|etiqueta|cuéntame|dime|opinas|link|bio|like)/i)?1:0,hasEmoji:cap.match(/[\u{1F300}-\u{1FAFF}]/u)?1:0,hashtagCount:(cap.match(/#/g)||[]).length,lineBreaks:(cap.match(/\n/g)||[]).length,saveRate:p.saveRate,shareRate:p.shareRate,engRate:p.engRate*100,reach:p.reach}});
+    if(feats.length<3)return null;
+    const avg=(arr,key)=>arr.reduce((s,x)=>s+x[key],0)/arr.length;
+    const withQ=feats.filter(f=>f.hasQuestion),withoutQ=feats.filter(f=>!f.hasQuestion);
+    const withCTA=feats.filter(f=>f.hasCTA),withoutCTA=feats.filter(f=>!f.hasCTA);
+    const withEmoji=feats.filter(f=>f.hasEmoji),withoutEmoji=feats.filter(f=>!f.hasEmoji);
+    const lowHash=feats.filter(f=>f.hashtagCount<=3),midHash=feats.filter(f=>f.hashtagCount>3&&f.hashtagCount<=10),highHash=feats.filter(f=>f.hashtagCount>10);
+    const fewBreaks=feats.filter(f=>f.lineBreaks<=2),manyBreaks=feats.filter(f=>f.lineBreaks>2);
+    return[
+      {feat:"❓ Pregunta en hook",yes:withQ.length,no:withoutQ.length,yesSave:withQ.length?avg(withQ,"saveRate"):0,noSave:withoutQ.length?avg(withoutQ,"saveRate"):0,yesShare:withQ.length?avg(withQ,"shareRate"):0,noShare:withoutQ.length?avg(withoutQ,"shareRate"):0},
+      {feat:"📣 CTA (guarda/comenta...)",yes:withCTA.length,no:withoutCTA.length,yesSave:withCTA.length?avg(withCTA,"saveRate"):0,noSave:withoutCTA.length?avg(withoutCTA,"saveRate"):0,yesShare:withCTA.length?avg(withCTA,"shareRate"):0,noShare:withoutCTA.length?avg(withoutCTA,"shareRate"):0},
+      {feat:"😀 Emojis",yes:withEmoji.length,no:withoutEmoji.length,yesSave:withEmoji.length?avg(withEmoji,"saveRate"):0,noSave:withoutEmoji.length?avg(withoutEmoji,"saveRate"):0,yesShare:withEmoji.length?avg(withEmoji,"shareRate"):0,noShare:withoutEmoji.length?avg(withoutEmoji,"shareRate"):0},
+      {feat:"↩️ Formato largo (>2 saltos)",yes:manyBreaks.length,no:fewBreaks.length,yesSave:manyBreaks.length?avg(manyBreaks,"saveRate"):0,noSave:fewBreaks.length?avg(fewBreaks,"saveRate"):0,yesShare:manyBreaks.length?avg(manyBreaks,"shareRate"):0,noShare:fewBreaks.length?avg(fewBreaks,"shareRate"):0},
+    ].filter(f=>f.yes>0||f.no>0)})();
+  // ── Post-Viral Retention ──
+  const viralRetention=(()=>{const threshold=aR*1.5;const viralIndices=chrono.map((p,i)=>p.reach>threshold?i:-1).filter(i=>i>=0&&i<chrono.length-1);
+    if(viralIndices.length<1)return null;
+    const retentions=viralIndices.map(i=>{const viral=chrono[i],next=chrono[i+1];return{viralReach:viral.reach,nextReach:next.reach,retention:next.reach/viral.reach*100,viralCaption:(viral.caption||"").slice(0,50),nextCaption:(next.caption||"").slice(0,50)}});
+    const avgRetention=retentions.reduce((s,r)=>s+r.retention,0)/retentions.length;
+    return{avg:+avgRetention.toFixed(1),cases:retentions,count:retentions.length}})();
+  // ── Period comparison ──
+  const half=Math.floor(m.length/2);const recent=m.slice(0,half),older=m.slice(half);
+  const recentEng=recent.length?recent.reduce((s,p)=>s+p.engRate*100,0)/recent.length:0;
+  const olderEng=older.length?older.reduce((s,p)=>s+p.engRate*100,0)/older.length:0;
+  const recentSave=recent.length?recent.reduce((s,p)=>s+p.saveRate,0)/recent.length:0;
+  const olderSave=older.length?older.reduce((s,p)=>s+p.saveRate,0)/older.length:0;
+  const recentReach=recent.length?recent.reduce((s,p)=>s+p.reach,0)/recent.length:0;
+  const olderReach=older.length?older.reduce((s,p)=>s+p.reach,0)/older.length:0;
+  const periodDelta={eng:olderEng?+((recentEng-olderEng)/olderEng*100).toFixed(1):0,save:olderSave?+((recentSave-olderSave)/olderSave*100).toFixed(1):0,reach:olderReach?+((recentReach-olderReach)/olderReach*100).toFixed(1):0};
+  // ── Rate estimation ──
   const rateBase=F<1000?10:F<5000?25:F<10000?50:F<50000?150:F<100000?400:F<500000?1500:5000;
   const estimatedRate=Math.round(rateBase*(oaE>5?2:oaE>3?1.5:oaE>1.5?1:0.7));
-  return{posts:m,engTrend,hmD,hmM,dn,fmStats,bestFmt,bestHr,curSlot,cDay,cHr,oaE,aR,hashtags,freqData,estimatedRate,F,ghost,
+  return{posts:m,chrono,engTrend,hmD,hmM,dn,fmStats,bestFmt,bestHr,curSlot,cDay,cHr,oaE,aR,hashtags,freqData,estimatedRate,F,ghost,
     streak:{current:streakCur,max:streakMax,consistency,avgGap:+avgGap.toFixed(1),daysSinceLast},
     viralCount:m.filter(p=>p.reach>F*2).length,
-    top5:[...m].sort((a,b)=>(b.engRate-a.engRate)).slice(0,5),worst5:[...m].sort((a,b)=>a.engRate-b.engRate).slice(0,5)};
+    avgSaveRate,avgShareRate,avgReachEff,
+    matrix,medianEng,medianSave,qCounts,
+    gapStats,fmtTrend,capStructure,viralRetention,periodDelta,
+    top5:[...m].sort((a,b)=>b.saveRate-a.saveRate).slice(0,5),
+    topViral:[...m].sort((a,b)=>b.viralCoeff-a.viralCoeff).slice(0,5)};
 },[posts,fc])}
 
-function exportCSV(posts,fn){const h=["Fecha","Tipo","Likes","Comments","Reach","Saves","Shares","Eng%","Caption"];const rows=posts.map(p=>[p.timestamp?new Date(p.timestamp).toLocaleDateString("es-ES"):"",p.media_type,p.likes,p.comments,p.reach,p.saves,p.shares,(p.engRate*100).toFixed(2),'"'+(p.caption||"").replace(/"/g,'""').replace(/\n/g," ").slice(0,200)+'"']);const csv="\uFEFF"+[h,...rows].map(r=>r.join(";")).join("\n");const b=new Blob([csv],{type:"text/csv;charset=utf-8"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=fn||"posts.csv";a.click();URL.revokeObjectURL(u)}
-
-function getDateRange(r){const now=Math.floor(Date.now()/1000);const d={"all":365,"7d":7,"14d":14,"30d":30,"90d":90};const days=d[r];if(days)return{since:now-days*86400,until:now};return{}}
-function Badge({type,pt}){if(type==="VIDEO"||pt==="REELS")return<span className="bdg bdg-r">🎬 Reel</span>;if(type==="CAROUSEL_ALBUM")return<span className="bdg bdg-c">📑 Carrusel</span>;return<span className="bdg bdg-p">📷 Foto</span>}
-
-function Auth({onAuth}){const[m,setM]=useState("login"),[e,setE]=useState(""),[p,setP]=useState(""),[err,setErr]=useState(null),[ld,setLd]=useState(false);
-  const go=async()=>{setErr(null);if(!e||!p)return setErr("Rellena todos los campos");if(p.length<6)return setErr("Mínimo 6 caracteres");setLd(true);try{const r=m==="register"?await sb.auth.signUp({email:e,password:p}):await sb.auth.signInWithPassword({email:e,password:p});if(r.error)throw r.error;if(r.data.user&&!r.data.session){setLd(false);return alert("Revisa tu email para confirmar")}if(r.data.session)onAuth(r.data.session)}catch(x){let msg=x.message;if(msg.includes("Invalid"))msg="Email o contraseña incorrectos";if(msg.includes("already"))msg="Este email ya está registrado";setErr(msg)}setLd(false)};
-  return<div className="auth-w"><div className="auth-b"><div className="sb-logo" style={{width:56,height:56,borderRadius:16,fontSize:22,margin:"0 auto 18px"}}>M</div><h1 style={{fontSize:26,fontWeight:900,letterSpacing:"-.04em",marginBottom:2}}>InstaMetrics</h1><p style={{color:"var(--tm)",fontSize:13,marginBottom:28}}>Analítica profesional para Instagram</p><div style={{display:"flex",flexDirection:"column",gap:10}}><input className="ai" type="email" placeholder="Email" value={e} onChange={x=>setE(x.target.value)} onKeyDown={x=>x.key==="Enter"&&go()}/><input className="ai" type="password" placeholder="Contraseña" value={p} onChange={x=>setP(x.target.value)} onKeyDown={x=>x.key==="Enter"&&go()}/>{err&&<div className="ae">{err}</div>}<button className="bp" style={{width:"100%",justifyContent:"center",padding:13,marginTop:4}} onClick={go} disabled={ld}>{ld?"Cargando...":m==="login"?"Iniciar sesión":"Crear cuenta"}</button><button className="bg" style={{textAlign:"center"}} onClick={()=>{setM(m==="login"?"register":"login");setErr(null)}}>{m==="login"?"¿No tienes cuenta? Regístrate":"¿Ya tienes cuenta? Inicia sesión"}</button></div></div></div>}
-
-// ── AI CHAT COMPONENT ──
 function AIChat({A,acc,hasKey}){
-  const[msgs,setMsgs]=useState([{role:"ai",text:"¡Hola! Soy tu asistente de crecimiento. Pregúntame lo que quieras sobre tu cuenta, estrategia de contenido, o pídeme que te escriba captions. Necesitas configurar tu API key de Groq en Ajustes para empezar."}]);
+  const[msgs,setMsgs]=useState([{role:"ai",text:"Soy tu growth coach. Tengo acceso a todos tus datos: save rate, share rate, viral coefficient, matriz de contenido, gap analysis... Pregúntame lo que quieras."}]);
   const[input,setInput]=useState(""),[sending,setSending]=useState(false);
   const ref=useRef(null);
   useEffect(()=>{if(ref.current)ref.current.scrollTop=ref.current.scrollHeight},[msgs]);
-  const buildContext=()=>{if(!A||!acc)return"No hay datos cargados";
-    const top3=A.top5.slice(0,3).map(p=>"- "+(p.caption||"").slice(0,80)+"... (eng:"+((p.engRate*100).toFixed(2))+"%, reach:"+p.reach+", likes:"+p.likes+", saves:"+p.saves+")").join("; ");
-    const fmts=A.fmStats.filter(f=>f.count>0).map(f=>f.label+": "+f.count+" posts, "+f.avgEng.toFixed(2)+"% eng").join(", ");
-    const tags=A.hashtags.slice(0,8).map(h=>h.tag+" ("+h.avgEng.toFixed(2)+"%)").join(", ");
-    return "@"+acc.username+" | "+acc.account_type+" | "+n(acc.followers_count)+" seg | Eng: "+A.oaE.toFixed(2)+"% | Ghost: ~"+A.ghost+"% | Mejor formato: "+(A.bestFmt?.label||"?")+" ("+((A.bestFmt?.avgEng||0).toFixed(2))+"%) | Formatos: "+fmts+" | Mejor hora hoy: "+(A.bestHr?A.bestHr.hour+":00":"?")+" | Top hashtags: "+tags+" | Top posts: "+top3+" | Racha: "+A.streak.current+" posts, hace "+A.streak.daysSinceLast+" días";
+  const buildContext=()=>{if(!A||!acc)return"No hay datos";
+    const top3=A.top5.slice(0,3).map(p=>"- "+(p.caption||"").slice(0,60)+" (save:"+p.saveRate.toFixed(2)+"%, share:"+p.shareRate.toFixed(2)+"%, reachEff:"+p.reachEff.toFixed(2)+")").join("; ");
+    const fmts=A.fmStats.filter(f=>f.count>0).map(f=>f.label+": "+f.count+"x, eng:"+f.avgEng.toFixed(2)+"%, save:"+f.avgSave.toFixed(2)+"%, reachEff:"+f.avgReachEff.toFixed(2)).join(" | ");
+    const qc=A.qCounts;
+    return"@"+acc.username+" | "+n(acc.followers_count)+" seg | Eng:"+A.oaE.toFixed(2)+"% | SaveRate:"+A.avgSaveRate.toFixed(2)+"% | ShareRate:"+A.avgShareRate.toFixed(2)+"% | ReachEff:"+A.avgReachEff.toFixed(2)+" | Ghost:"+A.ghost+"% | Matriz: Oro:"+qc.gold+" Candy:"+qc.candy+" Gems:"+qc.gem+" Muertos:"+qc.dead+" | Formatos: "+fmts+" | Top posts (por saves): "+top3+" | Racha:"+A.streak.current+" | Gap medio:"+A.streak.avgGap+"d | Periodo: eng "+(A.periodDelta.eng>0?"+":"")+A.periodDelta.eng+"%, save "+(A.periodDelta.save>0?"+":"")+A.periodDelta.save+"%, reach "+(A.periodDelta.reach>0?"+":"")+A.periodDelta.reach+"%"+(A.viralRetention?" | Retención post-viral:"+A.viralRetention.avg+"%":"");
   };
-  const send=async()=>{if(!input.trim()||sending)return;if(!hasKey){setMsgs(p=>[...p,{role:"user",text:input},{role:"ai",text:"⚠️ Configura tu API key de Groq en **Ajustes** para usar el asistente IA."}]);setInput("");return}
+  const send=async()=>{if(!input.trim()||sending)return;if(!hasKey){setMsgs(p=>[...p,{role:"user",text:input},{role:"ai",text:"⚠️ Configura tu API key de Groq en Ajustes para usar el coach IA."}]);setInput("");return}
     const userMsg=input;setInput("");setMsgs(p=>[...p,{role:"user",text:userMsg}]);setSending(true);
-    try{const history=msgs.filter(m=>m.role!=="ai"||msgs.indexOf(m)>0).slice(-8).map(m=>({role:m.role==="user"?"user":"assistant",content:m.text}));
+    try{const history=msgs.filter(m2=>m2.role!=="ai"||msgs.indexOf(m2)>0).slice(-8).map(m2=>({role:m2.role==="user"?"user":"assistant",content:m2.text}));
       const r=await api("/api/ai/chat",{method:"POST",body:JSON.stringify({messages:[...history,{role:"user",content:userMsg}],context:buildContext()})});
       setMsgs(p=>[...p,{role:"ai",text:r.message}])}
     catch(e){setMsgs(p=>[...p,{role:"ai",text:"❌ "+e.message}])}setSending(false)};
-  const suggestions=["¿Por qué mi último post funcionó bien?","Dame 3 ideas de contenido para esta semana","Escríbeme un caption para un reel sobre mi nicho","¿Qué debería mejorar en mi estrategia?","¿Cuándo debería publicar hoy?"];
+  const suggestions=["¿Qué tipo de contenido debería crear más?","¿Por qué mis posts no se guardan?","Dame 3 ideas basadas en mis datos","¿Cuál es mi gap óptimo entre posts?","Escríbeme un caption para mi nicho","¿Cómo bajo mi % de ghost followers?"];
   return<div className="chat-w"><div className="chat-msgs" ref={ref}>
-    {msgs.map((m,i)=><div key={i} className={"chat-msg "+m.role} style={{whiteSpace:"pre-wrap"}}>{m.text}</div>)}
-    {sending&&<div className="chat-msg ai" style={{animation:"pulse 1.5s ease infinite"}}>Pensando...</div>}
+    {msgs.map((m2,i)=><div key={i} className={"chat-msg "+m2.role} style={{whiteSpace:"pre-wrap"}}>{m2.text}</div>)}
+    {sending&&<div className="chat-msg ai" style={{animation:"pulse 1.5s ease infinite"}}>Analizando tus datos...</div>}
     {msgs.length<=1&&<div style={{display:"flex",flexWrap:"wrap",gap:6,padding:"8px 0"}}>{suggestions.map((s,i)=><button key={i} className="fch" style={{fontSize:10.5}} onClick={()=>{setInput(s)}}>{s}</button>)}</div>}
-  </div><div className="chat-input"><input placeholder={hasKey?"Pregúntame sobre tu cuenta...":"Configura Groq API key en Ajustes"} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} disabled={sending}/><button className="bp" style={{padding:"8px 18px"}} onClick={send} disabled={sending||!input.trim()}>→</button></div></div>}
+  </div><div className="chat-input"><input placeholder={hasKey?"Pregúntame sobre tu crecimiento...":"Configura Groq API key en Ajustes"} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} disabled={sending}/><button className="bp" style={{padding:"8px 18px"}} onClick={send} disabled={sending||!input.trim()}>→</button></div></div>}
+
+function ContentMatrix({matrix,medianEng,medianSave}){
+  if(!matrix?.length)return null;
+  const maxEng=Math.max(...matrix.map(p=>p.mx_eng),medianEng*2);const maxSave=Math.max(...matrix.map(p=>p.mx_save),medianSave*2);
+  const pad=40;const colors={gold:"var(--grn)",candy:"var(--org)",gem:"var(--blu)",dead:"var(--red)"};
+  return<div className="matrix">
+    <div className="q-gold"/><div className="q-candy"/><div className="q-gem"/><div className="q-dead"/>
+    <div className="matrix-line" style={{left:pad,right:0,top:"50%",height:1}}/>
+    <div className="matrix-line" style={{top:pad,bottom:0,left:"50%",width:1}}/>
+    <div className="matrix-q" style={{top:pad+8,right:12}}>🌟 ORO</div>
+    <div className="matrix-q" style={{top:pad+8,left:pad+4}}>🍬 CANDY</div>
+    <div className="matrix-q" style={{bottom:8,right:12}}>📚 GEM</div>
+    <div className="matrix-q" style={{bottom:8,left:pad+4}}>💀 MUERTO</div>
+    <div className="matrix-ax" style={{left:2,top:"50%",transform:"translateY(-50%) rotate(-90deg)",transformOrigin:"center"}}>Engagement →</div>
+    <div className="matrix-ax" style={{bottom:2,left:"50%",transform:"translateX(-50%)"}}>Save Rate →</div>
+    {matrix.map((p,i)=>{const x=pad+(p.mx_save/maxSave)*(100-pad/100*100)*0.9;const y=pad+(1-p.mx_eng/maxEng)*(100-pad/100*100)*0.9;
+      const xPct=Math.min(95,Math.max(2,pad/3+p.mx_save/maxSave*85));const yPct=Math.min(95,Math.max(5,5+(1-p.mx_eng/maxEng)*85));
+      return<div key={i} className="matrix-dot" style={{left:xPct+"%",top:yPct+"%",background:colors[p.quadrant],opacity:.75,boxShadow:"0 0 6px "+colors[p.quadrant]}} title={((p.caption||"").slice(0,30)||"Post")+" | Eng:"+p.mx_eng.toFixed(1)+"% Save:"+p.mx_save.toFixed(2)+"%"}/>})}
+  </div>}
+
+function Auth({onAuth}){const[m,setM]=useState("login"),[e,setE]=useState(""),[p,setP]=useState(""),[err,setErr]=useState(null),[ld,setLd]=useState(false);
+  const go=async()=>{setErr(null);if(!e||!p)return setErr("Rellena todos los campos");if(p.length<6)return setErr("Mínimo 6 caracteres");setLd(true);try{const r=m==="register"?await sb.auth.signUp({email:e,password:p}):await sb.auth.signInWithPassword({email:e,password:p});if(r.error)throw r.error;if(r.data.user&&!r.data.session){setLd(false);return alert("Revisa tu email para confirmar")}if(r.data.session)onAuth(r.data.session)}catch(x){let msg=x.message;if(msg.includes("Invalid"))msg="Email o contraseña incorrectos";if(msg.includes("already"))msg="Este email ya está registrado";setErr(msg)}setLd(false)};
+  return<div className="auth-w"><div className="auth-b"><div className="sb-logo" style={{width:56,height:56,borderRadius:16,fontSize:22,margin:"0 auto 18px"}}>M</div><h1 style={{fontSize:26,fontWeight:900,letterSpacing:"-.04em",marginBottom:2}}>InstaMetrics</h1><p style={{color:"var(--tm)",fontSize:13,marginBottom:28}}>Growth Analytics para Instagram</p><div style={{display:"flex",flexDirection:"column",gap:10}}><input className="ai" type="email" placeholder="Email" value={e} onChange={x=>setE(x.target.value)} onKeyDown={x=>x.key==="Enter"&&go()}/><input className="ai" type="password" placeholder="Contraseña" value={p} onChange={x=>setP(x.target.value)} onKeyDown={x=>x.key==="Enter"&&go()}/>{err&&<div className="ae">{err}</div>}<button className="bp" style={{width:"100%",justifyContent:"center",padding:13,marginTop:4}} onClick={go} disabled={ld}>{ld?"Cargando...":m==="login"?"Iniciar sesión":"Crear cuenta"}</button><button className="bg" style={{textAlign:"center"}} onClick={()=>{setM(m==="login"?"register":"login");setErr(null)}}>{m==="login"?"¿No tienes cuenta? Regístrate":"¿Ya tienes cuenta? Inicia sesión"}</button></div></div></div>}
 
 const PER_PAGE=15;
 function Dash({session,onLogout}){
-  const[accounts,setAcc]=useState([]),[selId,setSel]=useState(null),[tab,setTab]=useState(()=>sessionStorage.getItem("im_tab")||"overview");
+  const[accounts,setAcc]=useState([]),[selId,setSel]=useState(null),[tab,setTab]=useState(()=>sessionStorage.getItem("im_tab")||"dash");
   const[ld,setLd]=useState(true),[toast,setToast]=useState(null),[insights,setIns]=useState(null),[media,setMedia]=useState([]);
   const[detailed,setDet]=useState(null),[snaps,setSnaps]=useState([]);
   const[ldD,setLdD]=useState(false),[ldP,setLdP]=useState(false),[refreshing,setRefreshing]=useState(false);
   const[ddO,setDd]=useState(false),[dr,setDR]=useState("30d"),[cf,setCF]=useState(""),[ct,setCT]=useState("");
-  const[sc,setSC]=useState("engagement"),[sd,setSD]=useState("desc"),[tf,setTF]=useState("all"),[page,setPage]=useState(1);
+  const[sc,setSC]=useState("saveRate"),[sd,setSD]=useState("desc"),[tf,setTF]=useState("all"),[page,setPage]=useState(1);
   const[mobMenu,setMob]=useState(false);
   const[groqKey,setGroqKey]=useState(""),[groqSaved,setGroqSaved]=useState(false);
-  const sT=(m,t)=>{setToast({m,t:t||"ok"});setTimeout(()=>setToast(null),3500)};
+  const sT=(m2,t)=>{setToast({m:m2,t:t||"ok"});setTimeout(()=>setToast(null),3500)};
   const userEmail=session?.user?.email||"";
   const switchTab=t=>{setTab(t);sessionStorage.setItem("im_tab",t);setMob(false)};
-  useEffect(()=>{const p=new URLSearchParams(location.search);if(p.get("connected")){sT("@"+p.get("connected")+" conectada ✓");history.replaceState({},"","/")}if(p.get("error")){sT(decodeURIComponent(p.get("error")),"err");history.replaceState({},"","/")}loadA();loadSettings()},[]);
-  const loadA=async()=>{try{const d=await api("/api/accounts");setAcc(Array.isArray(d)?d:[]);if(d.length&&!selId)setSel(d[0].id)}catch(e){console.error(e)}setLd(false)};
+  useEffect(()=>{const p2=new URLSearchParams(location.search);if(p2.get("connected")){sT("@"+p2.get("connected")+" conectada ✓");history.replaceState({},"","/")}if(p2.get("error")){sT(decodeURIComponent(p2.get("error")),"err");history.replaceState({},"","/")}loadA();loadSettings()},[]);
+  const loadA=async()=>{try{const d=await api("/api/accounts");setAcc(Array.isArray(d)?d:[]);if(d.length&&!selId)setSel(d[0].id)}catch(e2){console.error(e2)}setLd(false)};
   const loadSettings=async()=>{try{const d=await api("/api/settings");if(d?.groq_api_key){setGroqKey(d.groq_api_key);setGroqSaved(true)}}catch(ex){}};
-  const saveGroqKey=async()=>{try{await api("/api/settings",{method:"POST",body:JSON.stringify({groq_api_key:groqKey||null})});setGroqSaved(!!groqKey);sT(groqKey?"API key guardada ✓":"API key eliminada")}catch(e){sT(e.message,"err")}};
+  const saveGroqKey=async()=>{try{await api("/api/settings",{method:"POST",body:JSON.stringify({groq_api_key:groqKey||null})});setGroqSaved(!!groqKey);sT(groqKey?"API key guardada ✓":"API key eliminada")}catch(e2){sT(e2.message,"err")}};
   useEffect(()=>{if(selId){fetchD();api("/api/accounts/"+selId+"/snapshots").then(setSnaps).catch(()=>setSnaps([]))}},[selId,dr]);
   useEffect(()=>{setDet(null)},[selId]);
-  useEffect(()=>{if(["posts","intel","mediakit","report"].includes(tab)&&selId&&!detailed&&!ldP){setLdP(true);api("/api/accounts/"+selId+"/media-detailed?limit=50").then(d=>{setDet(d);setLdP(false)}).catch(()=>setLdP(false))}},[tab,selId]);
+  useEffect(()=>{if(["posts","deep","coach","mediakit"].includes(tab)&&selId&&!detailed&&!ldP){setLdP(true);api("/api/accounts/"+selId+"/media-detailed?limit=50").then(d=>{setDet(d);setLdP(false)}).catch(()=>setLdP(false))}},[tab,selId]);
   useEffect(()=>{setPage(1)},[tf,sc,sd]);
   const fetchD=async()=>{setLdD(true);const d=dr==="custom"?(cf&&ct?{since:Math.floor(new Date(cf).getTime()/1000),until:Math.floor(new Date(ct).getTime()/1000)}:{}):getDateRange(dr);
     const iq="/api/accounts/"+selId+"/insights?period=day"+(d.since?"&since="+d.since+"&until="+d.until:"");
@@ -214,33 +282,30 @@ function Dash({session,onLogout}){
     if(r[2].status==="fulfilled"){const a=r[2].value?.data||[];setMedia(Array.isArray(a)?a:[])}else setMedia([]);
     if(r[0].status==="fulfilled"&&r[0].value)setAcc(prev=>prev.map(a=>a.id===selId?{...a,...r[0].value,id:a.id}:a));setLdD(false)};
   const doRefresh=async()=>{setRefreshing(true);await fetchD();setDet(null);setLdP(true);try{const d=await api("/api/accounts/"+selId+"/media-detailed?limit=50");setDet(d)}catch(ex){}setLdP(false);setRefreshing(false);sT("Datos actualizados")};
-  const connectIG=async()=>{const s=(await sb.auth.getSession()).data.session;if(!s)return sT("Sesión expirada","err");location.href="/auth/instagram?token="+s.access_token};
+  const connectIG=async()=>{const s2=(await sb.auth.getSession()).data.session;if(!s2)return sT("Sesión expirada","err");location.href="/auth/instagram?token="+s2.access_token};
   const rmAcc=async id=>{if(!confirm("¿Eliminar esta cuenta?"))return;await api("/api/accounts/"+id,{method:"DELETE"});const u=accounts.filter(a=>a.id!==id);setAcc(u);if(selId===id)setSel(u[0]?.id||null);sT("Cuenta eliminada")};
   const acc=accounts.find(a=>a.id===selId)||null;
   const A=useAnalytics(detailed?.data,detailed?.followers_count||acc?.followers_count);
   const velocity=useMemo(()=>{if(!snaps||snaps.length<2)return null;const r=snaps.slice(-14);if(r.length<2)return null;const d=(new Date(r[r.length-1].snapshot_date)-new Date(r[0].snapshot_date))/86400000;if(d<1)return null;const g=(r[r.length-1].followers_count-r[0].followers_count)/d;return{daily:+g.toFixed(1),monthly:+(g*30).toFixed(0)}},[snaps]);
-  const chartData=(()=>{if(!insights?.data)return[];const r=insights.data.find(m=>m?.name==="reach"),v=insights.data.find(m=>m?.name==="views");if(!r?.values)return[];return r.values.map((x,i)=>({date:x?.end_time?new Date(x.end_time).toLocaleDateString("es-ES",{day:"2-digit",month:"short"}):"",reach:x?.value||0,views:v?.values?.[i]?.value||0}))})();
-  const mS=(()=>{if(!media.length)return{l:0,c:0};let l=0,c=0;media.forEach(m=>{l+=m.like_count||0;c+=m.comments_count||0});return{l,c}})();
-  const er=acc?.followers_count&&media.length?((mS.l+mS.c)/Math.max(media.length,1)/acc.followers_count*100).toFixed(2)+"%":"—";
+  const chartData=(()=>{if(!insights?.data)return[];const r=insights.data.find(m2=>m2?.name==="reach"),v=insights.data.find(m2=>m2?.name==="views");if(!r?.values)return[];return r.values.map((x,i)=>({date:x?.end_time?new Date(x.end_time).toLocaleDateString("es-ES",{day:"2-digit",month:"short"}):"",reach:x?.value||0,views:v?.values?.[i]?.value||0}))})();
   const posts=A?.posts||[];
-  const filtered=posts.filter(p=>{if(tf==="all")return true;if(tf==="reel")return p.media_type==="VIDEO"||p.media_product_type==="REELS";if(tf==="photo")return p.media_type==="IMAGE";if(tf==="carousel")return p.media_type==="CAROUSEL_ALBUM";return true});
-  const sorted=[...filtered].sort((a,b)=>{const key={engagement:"engRate",timestamp:"timestamp",likes:"likes",reach:"reach",saves:"saves",shares:"shares"}[sc]||"engRate";let va=a[key],vb=b[key];if(sc==="timestamp"){va=new Date(a.timestamp||0);vb=new Date(b.timestamp||0)}return sd==="desc"?(vb>va?1:-1):(va>vb?1:-1)});
+  const filtered=posts.filter(p2=>{if(tf==="all")return true;if(tf==="reel")return p2.media_type==="VIDEO"||p2.media_product_type==="REELS";if(tf==="photo")return p2.media_type==="IMAGE";if(tf==="carousel")return p2.media_type==="CAROUSEL_ALBUM";return true});
+  const sorted=[...filtered].sort((a,b)=>{const key=sc;let va=a[key],vb=b[key];if(sc==="timestamp"){va=new Date(a.timestamp||0);vb=new Date(b.timestamp||0)}return sd==="desc"?(vb>va?1:-1):(va>vb?1:-1)});
   const totalPages=Math.ceil(sorted.length/PER_PAGE);const paged=sorted.slice((page-1)*PER_PAGE,page*PER_PAGE);
   const tSrt=c=>{if(sc===c)setSD(sd==="desc"?"asc":"desc");else{setSC(c);setSD("desc")}};const sI=c=>sc===c?(sd==="desc"?" ↓":" ↑"):"";
-  const DP=()=><div className="dr no-print">{[["all","Todo"],["7d","7d"],["14d","14d"],["30d","30d"],["90d","90d"],["custom","Fechas"]].map(([v,l])=><button key={v} className={"drb"+(dr===v?" on":"")} onClick={()=>setDR(v)}>{l}</button>)}{dr==="custom"&&<><input type="date" className="dri" value={cf} onChange={e=>setCF(e.target.value)}/><span style={{color:"var(--td)",fontSize:10}}>→</span><input type="date" className="dri" value={ct} onChange={e=>setCT(e.target.value)}/><button className="bo" style={{padding:"3px 9px",fontSize:10}} onClick={fetchD}>OK</button></>}</div>;
-  const navItems=[{id:"overview",i:"📊",l:"Overview"},{id:"posts",i:"📋",l:"Posts"},{id:"intel",i:"🧠",l:"Inteligencia"},{id:"mediakit",i:"💼",l:"Media Kit"},{id:"report",i:"📄",l:"Report"}];
+  const DP=()=><div className="dr no-print">{[["all","Todo"],["7d","7d"],["14d","14d"],["30d","30d"],["90d","90d"],["custom","Fechas"]].map(([v,l])=><button key={v} className={"drb"+(dr===v?" on":"")} onClick={()=>setDR(v)}>{l}</button>)}{dr==="custom"&&<><input type="date" className="dri" value={cf} onChange={e2=>setCF(e2.target.value)}/><span style={{color:"var(--td)",fontSize:10}}>→</span><input type="date" className="dri" value={ct} onChange={e2=>setCT(e2.target.value)}/><button className="bo" style={{padding:"3px 9px",fontSize:10}} onClick={fetchD}>OK</button></>}</div>;
+  const navItems=[{id:"dash",i:"📈",l:"Dashboard"},{id:"posts",i:"📋",l:"Posts"},{id:"deep",i:"🔬",l:"Deep Analytics"},{id:"coach",i:"🤖",l:"AI Coach"},{id:"mediakit",i:"💼",l:"Media Kit"}];
   if(ld)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh"}}><div className="spin"/></div>;
-
   return<div className="shell">
     <button className="hamburger" onClick={()=>setMob(!mobMenu)}>☰</button>
     <div className={"overlay"+(mobMenu?" show":"")} onClick={()=>setMob(false)}/>
     <div className={"sb"+(mobMenu?" open":"")}>
-      <div className="sb-brand"><div className="sb-logo">M</div><div><div style={{fontWeight:800,fontSize:15,letterSpacing:"-.03em"}}>InstaMetrics</div><div style={{fontSize:9.5,color:"var(--td)",marginTop:1,textTransform:"uppercase",letterSpacing:".08em",fontWeight:600}}>Analytics Pro</div></div></div>
+      <div className="sb-brand"><div className="sb-logo">M</div><div><div style={{fontWeight:800,fontSize:15,letterSpacing:"-.03em"}}>InstaMetrics</div><div style={{fontSize:9.5,color:"var(--td)",marginTop:1,textTransform:"uppercase",letterSpacing:".08em",fontWeight:600}}>Growth Analytics</div></div></div>
       {acc&&<div className="sb-account" onClick={()=>setDd(!ddO)}>
         {acc.profile_picture_url?<img src={acc.profile_picture_url}/>:<div style={{width:32,height:32,borderRadius:9,background:"linear-gradient(135deg,var(--p1),var(--p3))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700}}>@</div>}
         <div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>@{acc.username}</div><div style={{fontSize:10,color:"var(--td)",marginTop:1}}>{n(acc.followers_count)} seg.</div></div>
         <span style={{fontSize:9,color:"var(--td)"}}>▼</span>
-        {ddO&&<div className="dd">{accounts.map(a=><div key={a.id} className="ddi" onClick={e=>{e.stopPropagation();setSel(a.id);setDd(false)}}>{a.profile_picture_url?<img src={a.profile_picture_url} style={{width:22,height:22,borderRadius:7}}/>:<span style={{width:22,height:22,borderRadius:7,background:"var(--p1)",display:"inline-block"}}/>}<span style={{flex:1,fontWeight:selId===a.id?700:400}}>@{a.username}</span>{selId===a.id&&<span style={{color:"var(--grn)",fontSize:11}}>✓</span>}</div>)}</div>}
+        {ddO&&<div className="dd">{accounts.map(a=><div key={a.id} className="ddi" onClick={e2=>{e2.stopPropagation();setSel(a.id);setDd(false)}}>{a.profile_picture_url?<img src={a.profile_picture_url} style={{width:22,height:22,borderRadius:7}}/>:<span style={{width:22,height:22,borderRadius:7,background:"var(--p1)",display:"inline-block"}}/>}<span style={{flex:1,fontWeight:selId===a.id?700:400}}>@{a.username}</span>{selId===a.id&&<span style={{color:"var(--grn)",fontSize:11}}>✓</span>}</div>)}</div>}
       </div>}
       <div className="sb-sep"/>
       {navItems.map(t=><button key={t.id} className={"nv"+(tab===t.id?" on":"")} onClick={()=>switchTab(t.id)}><span className="nv-icon">{t.i}</span>{t.l}</button>)}
@@ -249,96 +314,166 @@ function Dash({session,onLogout}){
       <div style={{flex:1}}/>
       <button className="bp" style={{width:"100%",justifyContent:"center",fontSize:11.5,padding:"10px"}} onClick={connectIG}>+ Conectar cuenta</button>
     </div>
-    <div className="cnt">{!acc&&tab!=="settings"?<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"60vh",gap:18,textAlign:"center"}}><div className="sb-logo" style={{width:72,height:72,borderRadius:20,fontSize:30,boxShadow:"0 8px 32px rgba(225,48,108,.3)"}}>M</div><h2 style={{fontSize:24,fontWeight:900}}>Bienvenido a InstaMetrics</h2><p style={{color:"var(--tm)",fontSize:13.5,maxWidth:360,lineHeight:1.6}}>Conecta tu cuenta de Instagram profesional para empezar.</p><button className="bp" style={{padding:"13px 28px",marginTop:8,fontSize:14}} onClick={connectIG}>+ Conectar Instagram</button></div>:<div>
+    <div className="cnt">{!acc&&tab!=="settings"?<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"60vh",gap:18,textAlign:"center"}}><div className="sb-logo" style={{width:72,height:72,borderRadius:20,fontSize:30,boxShadow:"0 8px 32px rgba(225,48,108,.3)"}}>M</div><h2 style={{fontSize:24,fontWeight:900}}>Bienvenido a InstaMetrics</h2><p style={{color:"var(--tm)",fontSize:13.5,maxWidth:360,lineHeight:1.6}}>Conecta tu cuenta de Instagram profesional.</p><button className="bp" style={{padding:"13px 28px",marginTop:8,fontSize:14}} onClick={connectIG}>+ Conectar Instagram</button></div>:<div>
       {acc&&tab!=="settings"&&<div className="no-print" style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:24,gap:14,flexWrap:"wrap"}}><h1 style={{fontSize:20,fontWeight:800,letterSpacing:"-.03em"}}>{navItems.find(x=>x.id===tab)?.i} {navItems.find(x=>x.id===tab)?.l||"Ajustes"}</h1><div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><DP/><button className={"bo"+(refreshing?" loading":"")} onClick={doRefresh}>{refreshing?"⏳ Cargando...":"🔄 Actualizar"}</button></div></div>}
       {ldD&&tab!=="settings"?<div style={{padding:40}}><div className="kg">{[1,2,3,4,5].map(i=><div key={i} className="kpi"><Skel h={12} w="60%"/><Skel h={28} w="50%"/></div>)}</div><Skel h={220}/></div>:<div>
 
-      {/* ═══ OVERVIEW ═══ */}
-      {tab==="overview"&&acc&&<>
+      {/* ═══ DASHBOARD ═══ */}
+      {tab==="dash"&&acc&&<>
         <div className="kg">
-          <div className="kpi"><div className="kl">Seguidores</div><div className="kv">{n(acc.followers_count||0)}</div></div>
-          <div className="kpi"><div className="kl">Siguiendo</div><div className="kv">{n(acc.follows_count||0)}</div></div>
-          <div className="kpi"><div className="kl">Publicaciones</div><div className="kv">{n(acc.media_count||0)}</div></div>
-          <div className="kpi"><div className="kl">Engagement</div><div className="kv">{er}</div><div className="ks" style={{color:parseFloat(er)>3?"var(--grn)":parseFloat(er)>1.5?"var(--org)":"var(--td)"}}>{parseFloat(er)>3?"Excelente":parseFloat(er)>1.5?"Bueno":"Bajo"}</div></div>
-          <div className="kpi"><div className="kl">Likes totales</div><div className="kv">{n(mS.l)}</div></div>
-          {A&&<div className="kpi"><div className="kl">🔥 Virales</div><div className="kv" style={{color:A.viralCount?"var(--red)":"var(--td)"}}>{A.viralCount}</div></div>}
-          {A&&<div className="kpi"><div className="kl">👻 Ghost Followers</div><div className="kv" style={{color:A.ghost>70?"var(--red)":A.ghost>50?"var(--org)":"var(--grn)"}}>{A.ghost}%</div><div className="ks" style={{color:"var(--td)"}}>{A.ghost>70?"Audiencia poco activa":"Audiencia activa"}</div></div>}
-          {velocity&&<div className="kpi"><div className="kl">📈 Velocidad</div><div className="kv" style={{color:velocity.daily>0?"var(--grn)":"var(--red)"}}>{velocity.daily>0?"+":""}{velocity.daily}/día</div><div className="ks" style={{color:"var(--td)"}}>{velocity.monthly>0?"+":""}{velocity.monthly}/mes</div></div>}
+          <div className="kpi"><div className="kl">Seguidores</div><div className="kv">{n(acc.followers_count||0)}</div>{velocity&&<div className="ks"><Delta v={velocity.daily} suf="/día"/></div>}</div>
+          {A&&<div className="kpi"><div className="kl">💎 Save Rate</div><div className="kv" style={{fontSize:20}}>{A.avgSaveRate.toFixed(2)}%</div><div className="ks"><Delta v={A.periodDelta.save} suf="% vs ant."/></div></div>}
+          {A&&<div className="kpi"><div className="kl">⚡ Share Rate</div><div className="kv" style={{fontSize:20}}>{A.avgShareRate.toFixed(2)}%</div></div>}
+          {A&&<div className="kpi"><div className="kl">📡 Reach Efficiency</div><div className="kv" style={{fontSize:20}}>{A.avgReachEff.toFixed(2)}x</div><div className="ks" style={{color:A.avgReachEff>1?"var(--grn)":"var(--td)"}}>{A.avgReachEff>1?"Supera tus seguidores":"Dentro de tu burbuja"}</div></div>}
+          {A&&<div className="kpi"><div className="kl">👻 Ghost Followers</div><div className="kv" style={{color:A.ghost>70?"var(--red)":A.ghost>50?"var(--org)":"var(--grn)"}}>{A.ghost}%</div></div>}
+          {A&&<div className="kpi"><div className="kl">🔥 Consistencia</div><div className="kv" style={{color:A.streak.consistency>60?"var(--grn)":A.streak.consistency>30?"var(--org)":"var(--red)"}}>{A.streak.consistency}</div><div className="ks">{A.streak.daysSinceLast===0?"Hoy":"Hace "+A.streak.daysSinceLast+"d"} · Racha: {A.streak.current}</div></div>}
         </div>
-        {/* Live indicator */}
-        {A&&<div style={{display:"flex",gap:12,marginBottom:16,flexWrap:"wrap"}}>
-          {(()=>{const slot=A.curSlot;const isGood=slot&&slot.avg>A.oaE;const bestToday=A.hmD.filter(h=>h.day===A.cDay&&h.count>0).sort((a,b)=>b.avg-a.avg)[0];const isBestNow=bestToday&&bestToday.hour===A.cHr;
-            return<div className="ins-card" style={{flex:1,minWidth:200,background:isBestNow?"rgba(52,211,153,.05)":isGood?"rgba(251,191,36,.04)":"rgba(248,113,113,.03)",border:"1px solid "+(isBestNow?"rgba(52,211,153,.12)":isGood?"rgba(251,191,36,.1)":"rgba(248,113,113,.08)"),margin:0}}>
-              <div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:12,height:12,borderRadius:"50%",background:isBestNow?"var(--grn)":isGood?"var(--org)":"var(--red)",boxShadow:isBestNow?"0 0 12px rgba(52,211,153,.5)":"none"}}/><h3 style={{fontSize:14,margin:0}}>{isBestNow?"🟢 ¡MEJOR MOMENTO! Publica AHORA":isGood?"🟡 Buen momento para publicar":"🔴 Espera — no es tu mejor hora"}</h3></div>
-              <p style={{marginTop:6}}>{A.dn[A.cDay]} {A.cHr}:00{slot?" — "+slot.avg.toFixed(2)+"% eng histórico":""}{bestToday&&!isBestNow?". Mejor hoy: "+bestToday.hour+":00":""}</p>
-            </div>})()}
-          {A.streak&&<div className="ins-card" style={{minWidth:180,background:"rgba(255,255,255,.02)",border:"1px solid var(--bdr)",margin:0}}>
-            <h3 style={{fontSize:13,margin:0}}>🔥 Consistencia</h3>
-            <div style={{display:"flex",alignItems:"center",gap:16,marginTop:8}}>
-              <div style={{textAlign:"center"}}><div style={{fontSize:26,fontWeight:900,color:A.streak.consistency>60?"var(--grn)":A.streak.consistency>30?"var(--org)":"var(--red)"}}>{A.streak.consistency}</div><div style={{fontSize:9,color:"var(--td)"}}>SCORE</div></div>
-              <div style={{fontSize:11.5,color:"var(--tm)",lineHeight:1.6}}><div>Racha: <strong>{A.streak.current}</strong> · Máx: <strong>{A.streak.max}</strong></div><div>{A.streak.daysSinceLast===0?"Publicaste hoy":"Hace "+A.streak.daysSinceLast+" días"}</div></div>
-            </div>
-          </div>}
+        {/* Live semaphore */}
+        {A&&(()=>{const slot=A.curSlot;const isGood=slot&&slot.avg>A.oaE;const best=A.hmD.filter(h=>h.day===A.cDay&&h.count>0).sort((a,b)=>b.avg-a.avg)[0];const isBest=best&&best.hour===A.cHr;
+          return<div className="ins-card" style={{background:isBest?"rgba(52,211,153,.05)":isGood?"rgba(251,191,36,.04)":"rgba(248,113,113,.03)",border:"1px solid "+(isBest?"rgba(52,211,153,.12)":isGood?"rgba(251,191,36,.1)":"rgba(248,113,113,.08)"),margin:"0 0 16px"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:12,height:12,borderRadius:"50%",background:isBest?"var(--grn)":isGood?"var(--org)":"var(--red)",boxShadow:isBest?"0 0 12px rgba(52,211,153,.5)":"none"}}/><h3 style={{fontSize:14,margin:0}}>{isBest?"🟢 ¡MEJOR MOMENTO! Publica AHORA":isGood?"🟡 Buen momento":"🔴 Espera — no es tu mejor hora"}</h3></div>
+            <p style={{marginTop:6}}>{A.dn[A.cDay]} {A.cHr}:00{slot?" — "+slot.avg.toFixed(2)+"% eng":""}{best&&!isBest?". Mejor hoy: "+best.hour+":00":""}</p></div>})()}
+        {/* Period comparison */}
+        {A&&<div className="pnl gf" style={{background:"linear-gradient(135deg,rgba(225,48,108,.02),rgba(131,58,180,.015))"}}>
+          <div className="pt">📊 Evolución reciente vs anterior</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:16}}>
+            <div><div style={{fontSize:11,color:"var(--tm)"}}>Engagement</div><div style={{fontSize:18,fontWeight:800,marginTop:4}}>{A.oaE.toFixed(2)}%</div><Delta v={A.periodDelta.eng} suf="%"/></div>
+            <div><div style={{fontSize:11,color:"var(--tm)"}}>Save Rate</div><div style={{fontSize:18,fontWeight:800,marginTop:4}}>{A.avgSaveRate.toFixed(2)}%</div><Delta v={A.periodDelta.save} suf="%"/></div>
+            <div><div style={{fontSize:11,color:"var(--tm)"}}>Reach medio</div><div style={{fontSize:18,fontWeight:800,marginTop:4}}>{n(Math.round(A.aR))}</div><Delta v={A.periodDelta.reach} suf="%"/></div>
+            {velocity&&<div><div style={{fontSize:11,color:"var(--tm)"}}>Velocidad</div><div style={{fontSize:18,fontWeight:800,marginTop:4,color:velocity.daily>0?"var(--grn)":"var(--red)"}}>{velocity.daily>0?"+":""}{velocity.daily}/d</div><div style={{fontSize:11,color:"var(--td)"}}>{velocity.monthly>0?"+":""}{velocity.monthly}/mes</div></div>}
+          </div>
         </div>}
         <div className="g2">
-          {RC&&chartData.length>0&&<div className="pnl gf"><div className="pt">📈 Alcance y visualizaciones</div><ResponsiveContainer width="100%" height={220}><AreaChart data={chartData}><defs><linearGradient id="gR" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e1306c" stopOpacity={.18}/><stop offset="100%" stopColor="#e1306c" stopOpacity={0}/></linearGradient><linearGradient id="gV" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#60a5fa" stopOpacity={.18}/><stop offset="100%" stopColor="#60a5fa" stopOpacity={0}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.03)"/><XAxis dataKey="date" stroke="rgba(255,255,255,.12)" fontSize={10} tickLine={false}/><YAxis stroke="rgba(255,255,255,.12)" fontSize={10} tickLine={false} tickFormatter={v=>v>=1000?(v/1000).toFixed(1)+"k":v}/><Tooltip content={<Tip/>}/><Area type="monotone" dataKey="reach" stroke="#e1306c" strokeWidth={2} fill="url(#gR)" name="Alcance"/><Area type="monotone" dataKey="views" stroke="#60a5fa" strokeWidth={2} fill="url(#gV)" name="Views"/></AreaChart></ResponsiveContainer></div>}
-          {RC&&snaps.length>0&&<div className="pnl gf"><div className="pt">📊 Histórico de seguidores</div>{snaps.length===1?<p style={{fontSize:12.5,color:"var(--tm)",padding:"18px 0"}}>📸 Primer snapshot. El gráfico aparecerá con más datos.</p>:<ResponsiveContainer width="100%" height={170}><AreaChart data={snaps.map(s=>({date:new Date(s.snapshot_date).toLocaleDateString("es-ES",{day:"2-digit",month:"short"}),followers:s.followers_count}))}><CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.03)"/><XAxis dataKey="date" stroke="rgba(255,255,255,.12)" fontSize={10} tickLine={false}/><YAxis stroke="rgba(255,255,255,.12)" fontSize={10} tickLine={false} domain={["dataMin-10","dataMax+10"]}/><Tooltip content={<Tip/>}/><Area type="monotone" dataKey="followers" stroke="var(--grn)" strokeWidth={2} fill="rgba(52,211,153,.06)" name="Seguidores"/></AreaChart></ResponsiveContainer>}</div>}
-          {A?<><div className="pnl"><div className="pt">🏆 Top 5 posts</div>{A.top5.map((p,i)=><div key={p.id||i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<4?"1px solid rgba(255,255,255,.03)":"none"}}><div style={{fontSize:12,fontWeight:800,color:"var(--p1)",minWidth:24}}>{(p.engRate*100).toFixed(1)}%</div><div style={{flex:1,minWidth:0}}><div style={{fontSize:12.5,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.caption?p.caption.slice(0,40):"Sin caption"}</div><div style={{fontSize:10.5,color:"var(--td)",marginTop:2}}><Badge type={p.media_type} pt={p.media_product_type}/></div></div><div style={{textAlign:"right"}}><div style={{fontSize:12,fontWeight:700}}>❤ {n(p.likes)}</div><div style={{fontSize:10,color:"var(--td)"}}>{n(p.reach)} reach</div></div></div>)}</div>
-          <div className="pnl"><div className="pt">📉 Peor rendimiento</div>{A.worst5.map((p,i)=><div key={p.id||i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<4?"1px solid rgba(255,255,255,.03)":"none"}}><div style={{fontSize:12,fontWeight:800,color:"var(--td)",minWidth:24}}>{(p.engRate*100).toFixed(1)}%</div><div style={{flex:1,minWidth:0}}><div style={{fontSize:12.5,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.caption?p.caption.slice(0,40):"Sin caption"}</div></div><div style={{fontSize:11,color:"var(--td)"}}>{n(p.reach)} reach</div></div>)}</div></>:
-          <div className="pnl gf" style={{padding:40,textAlign:"center"}}><p style={{color:"var(--tm)"}}>Entra en <strong>Posts</strong> para cargar el análisis</p></div>}
+          {RC&&chartData.length>0&&<div className="pnl gf"><div className="pt">📈 Alcance y views</div><ResponsiveContainer width="100%" height={200}><AreaChart data={chartData}><defs><linearGradient id="gR" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e1306c" stopOpacity={.18}/><stop offset="100%" stopColor="#e1306c" stopOpacity={0}/></linearGradient><linearGradient id="gV" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#60a5fa" stopOpacity={.18}/><stop offset="100%" stopColor="#60a5fa" stopOpacity={0}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.03)"/><XAxis dataKey="date" stroke="rgba(255,255,255,.12)" fontSize={10} tickLine={false}/><YAxis stroke="rgba(255,255,255,.12)" fontSize={10} tickLine={false} tickFormatter={v2=>v2>=1000?(v2/1000).toFixed(1)+"k":v2}/><Tooltip content={<Tip/>}/><Area type="monotone" dataKey="reach" stroke="#e1306c" strokeWidth={2} fill="url(#gR)" name="Alcance"/><Area type="monotone" dataKey="views" stroke="#60a5fa" strokeWidth={2} fill="url(#gV)" name="Views"/></AreaChart></ResponsiveContainer></div>}
+          {RC&&snaps.length>1&&<div className="pnl gf"><div className="pt">📊 Histórico seguidores</div><ResponsiveContainer width="100%" height={160}><AreaChart data={snaps.map(s2=>({date:new Date(s2.snapshot_date).toLocaleDateString("es-ES",{day:"2-digit",month:"short"}),followers:s2.followers_count}))}><CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.03)"/><XAxis dataKey="date" stroke="rgba(255,255,255,.12)" fontSize={10} tickLine={false}/><YAxis stroke="rgba(255,255,255,.12)" fontSize={10} tickLine={false} domain={["dataMin-10","dataMax+10"]}/><Tooltip content={<Tip/>}/><Area type="monotone" dataKey="followers" stroke="var(--grn)" strokeWidth={2} fill="rgba(52,211,153,.06)" name="Seguidores"/></AreaChart></ResponsiveContainer></div>}
         </div>
       </>}
 
       {/* ═══ POSTS ═══ */}
-      {tab==="posts"&&acc&&<>{ldP?<div style={{padding:40}}><Skel h={40}/><div style={{height:14}}/><Skel h={300}/></div>:!A?<p className="empty">No hay posts</p>:<>
-        <div className="pnl">
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:10}}>
-            <div style={{fontSize:13,fontWeight:600,color:"var(--tm)"}}>{filtered.length} posts · Pág {page}/{totalPages||1}</div>
-            <button className="bo no-print" style={{fontSize:11}} onClick={()=>exportCSV(sorted,"instametrics-"+acc.username+".csv")}>📥 CSV</button>
+      {tab==="posts"&&acc&&<>{ldP?<Skel h={300}/>:!A?<p style={{color:"var(--tm)"}}>Cargando...</p>:<div className="pnl">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:10}}>
+          <div style={{fontSize:13,fontWeight:600,color:"var(--tm)"}}>{filtered.length} posts · Pág {page}/{totalPages||1}</div>
+          <button className="bo no-print" style={{fontSize:11}} onClick={()=>exportCSV(sorted,"instametrics-"+acc.username+".csv")}>📥 CSV</button>
+        </div>
+        <div className="fc">{[["all","Todos"],["reel","🎬 Reels"],["photo","📷 Fotos"],["carousel","📑 Carruseles"]].map(([id,l])=><button key={id} className={"fch"+(tf===id?" on":"")} onClick={()=>setTF(id)}>{l}</button>)}</div>
+        <div style={{overflowX:"auto"}}><table className="tbl"><thead><tr>
+          <th>Tipo</th><th onClick={()=>tSrt("timestamp")}>Fecha{sI("timestamp")}</th><th>Caption</th>
+          <th className="num" onClick={()=>tSrt("saveRate")}>Save%{sI("saveRate")}</th>
+          <th className="num" onClick={()=>tSrt("shareRate")}>Share%{sI("shareRate")}</th>
+          <th className="num" onClick={()=>tSrt("reachEff")}>Reach Eff{sI("reachEff")}</th>
+          <th className="num" onClick={()=>tSrt("likes")}>Likes{sI("likes")}</th>
+          <th className="num" onClick={()=>tSrt("reach")}>Reach{sI("reach")}</th>
+          <th className="num" onClick={()=>tSrt("engRate")}>Eng%{sI("engRate")}</th>
+        </tr></thead><tbody>{paged.map((p2,i)=><tr key={p2.id||i}>
+          <td><Badge type={p2.media_type} pt={p2.media_product_type}/></td>
+          <td style={{fontSize:11.5,whiteSpace:"nowrap"}}>{p2.timestamp?new Date(p2.timestamp).toLocaleDateString("es-ES"):"—"}</td>
+          <td style={{maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><a href={p2.permalink||"#"} target="_blank" rel="noopener" style={{color:"var(--tm)"}}>{p2.caption?p2.caption.slice(0,40):"—"}</a></td>
+          <td className="num" style={{color:p2.saveRate>2?"var(--grn)":p2.saveRate>1?"var(--org)":"var(--tm)"}}>{p2.saveRate.toFixed(2)}%</td>
+          <td className="num" style={{color:p2.shareRate>1?"var(--grn)":"var(--tm)"}}>{p2.shareRate.toFixed(2)}%</td>
+          <td className="num" style={{color:p2.reachEff>1?"var(--grn)":"var(--tm)"}}>{p2.reachEff.toFixed(2)}x</td>
+          <td className="num">{n(p2.likes)}</td><td className="num">{n(p2.reach)}</td>
+          <td className="num" style={{fontWeight:700}}>{(p2.engRate*100).toFixed(2)}%</td>
+        </tr>)}</tbody></table></div>
+        {totalPages>1&&<div className="pag">{Array.from({length:totalPages},(_,i)=><button key={i} className={page===i+1?"on":""} onClick={()=>setPage(i+1)}>{i+1}</button>)}</div>}
+      </div>}</>}
+
+      {/* ═══ DEEP ANALYTICS ═══ */}
+      {tab==="deep"&&acc&&<>{ldP&&!A?<Skel h={400}/>:!A?<p style={{color:"var(--tm)"}}>Carga datos...</p>:<>
+        {/* Content Value Matrix */}
+        <div className="pnl gf"><div className="pt">🧊 Matriz de Valor del Contenido</div>
+          <p style={{fontSize:11.5,color:"var(--td)",marginBottom:14}}>Cada punto es un post. Eje X = save rate, Eje Y = engagement. Los posts ORO son lo que debes replicar.</p>
+          <ContentMatrix matrix={A.matrix} medianEng={A.medianEng} medianSave={A.medianSave}/>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginTop:14}}>
+            {[["🌟 Oro",A.qCounts.gold,"var(--grn)","Alto eng + alto save = algoritmo lo empuja"],["🍬 Candy",A.qCounts.candy,"var(--org)","Entretiene pero no crece"],["📚 Hidden Gem",A.qCounts.gem,"var(--blu)","Saves altos = el algoritmo lo empujará"],["💀 Muerto",A.qCounts.dead,"var(--red)","Ni engagement ni saves"]].map(([label,count,color,desc],i)=>
+              <div key={i} style={{padding:12,borderRadius:10,background:"rgba(255,255,255,.02)",border:"1px solid var(--bdr)",borderLeft:"3px solid "+color}}>
+                <div style={{fontSize:13,fontWeight:800,color}}>{label}: {count}</div>
+                <div style={{fontSize:10,color:"var(--td)",marginTop:4}}>{desc}</div>
+              </div>)}
           </div>
-          <div className="fc">{[["all","Todos"],["reel","🎬 Reels"],["photo","📷 Fotos"],["carousel","📑 Carruseles"]].map(([id,l])=><button key={id} className={"fch"+(tf===id?" on":"")} onClick={()=>setTF(id)}>{l}</button>)}</div>
-          <div style={{overflowX:"auto"}}><table className="tbl"><thead><tr>
-            <th>Tipo</th><th onClick={()=>tSrt("timestamp")}>Fecha{sI("timestamp")}</th><th>Caption</th>
-            <th className="num" onClick={()=>tSrt("likes")}>Likes{sI("likes")}</th>
-            <th className="num" onClick={()=>tSrt("reach")}>Reach{sI("reach")}</th>
-            <th className="num" onClick={()=>tSrt("saves")}>Saves{sI("saves")}</th>
-            <th className="num" onClick={()=>tSrt("shares")}>Shares{sI("shares")}</th>
-            <th className="num" onClick={()=>tSrt("engagement")}>Eng%{sI("engagement")}</th>
-          </tr></thead><tbody>{paged.map((p,i)=><tr key={p.id||i}>
-            <td><Badge type={p.media_type} pt={p.media_product_type}/></td>
-            <td style={{fontSize:11.5,whiteSpace:"nowrap"}}>{p.timestamp?new Date(p.timestamp).toLocaleDateString("es-ES"):"—"}</td>
-            <td style={{maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"var(--tm)"}}><a href={p.permalink||"#"} target="_blank" rel="noopener" style={{color:"var(--tm)"}}>{p.caption?p.caption.slice(0,45):"—"}</a></td>
-            <td className="num">{n(p.likes)}</td><td className="num">{n(p.reach)}</td><td className="num">{n(p.saves)}</td><td className="num">{n(p.shares)}</td>
-            <td className="num" style={{color:p.engRate*100>5?"var(--grn)":p.engRate*100>2?"var(--org)":"var(--tm)",fontWeight:700}}>{(p.engRate*100).toFixed(2)}%</td>
-          </tr>)}</tbody></table></div>
-          {totalPages>1&&<div className="pag">{Array.from({length:totalPages},(_,i)=><button key={i} className={page===i+1?"on":""} onClick={()=>setPage(i+1)}>{i+1}</button>)}</div>}
+        </div>
+        <div className="g2">
+          {/* Save Rate Leaders */}
+          <div className="pnl"><div className="pt">💎 Top Save Rate</div>
+            {A.top5.map((p2,i)=><div key={p2.id||i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<4?"1px solid rgba(255,255,255,.03)":"none"}}>
+              <div style={{fontSize:14,fontWeight:900,color:"var(--grn)",minWidth:50}}>{p2.saveRate.toFixed(1)}%</div>
+              <div style={{flex:1,minWidth:0}}><div style={{fontSize:12,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p2.caption?p2.caption.slice(0,40):"—"}</div><div style={{fontSize:10,color:"var(--td)",marginTop:2}}><Badge type={p2.media_type} pt={p2.media_product_type}/> · 👁 {n(p2.reach)}</div></div>
+            </div>)}
+          </div>
+          {/* Viral Coefficient Leaders */}
+          <div className="pnl"><div className="pt">⚡ Top Viral Coefficient</div>
+            {A.topViral.map((p2,i)=><div key={p2.id||i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<4?"1px solid rgba(255,255,255,.03)":"none"}}>
+              <div style={{fontSize:14,fontWeight:900,color:"var(--blu)",minWidth:50}}>{(p2.viralCoeff*100).toFixed(1)}%</div>
+              <div style={{flex:1,minWidth:0}}><div style={{fontSize:12,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p2.caption?p2.caption.slice(0,40):"—"}</div><div style={{fontSize:10,color:"var(--td)",marginTop:2}}>shares/reach · 🔄 {n(p2.shares)} shares</div></div>
+            </div>)}
+          </div>
+          {/* Optimal Gap */}
+          {A.gapStats.length>0&&<div className="pnl"><div className="pt">📉 Gap Óptimo entre Posts</div>
+            <p style={{fontSize:11,color:"var(--td)",marginBottom:10}}>¿Cuántos días entre posts maximiza tu rendimiento?</p>
+            {A.gapStats.map((g,i)=>{const best=A.gapStats.reduce((a,b)=>b.avgSave>a.avgSave?b:a);const isBest=g.label===best.label;
+              return<div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 0",borderBottom:i<A.gapStats.length-1?"1px solid rgba(255,255,255,.03)":"none"}}>
+                <div style={{minWidth:70,fontSize:12,fontWeight:isBest?800:500,color:isBest?"var(--grn)":"var(--tm)"}}>{g.label}{isBest?" ✓":""}</div>
+                <div className="fmbg" style={{flex:1}}><div className="fmb" style={{width:Math.max(g.avgSave/Math.max(...A.gapStats.map(x=>x.avgSave),.01)*100,3)+"%",background:isBest?"rgba(52,211,153,.3)":"rgba(255,255,255,.08)"}}/></div>
+                <div style={{minWidth:55,textAlign:"right",fontSize:12,fontWeight:700}}>{g.avgSave.toFixed(2)}%</div>
+                <div style={{minWidth:35,textAlign:"right",fontSize:10,color:"var(--td)"}}>{g.count}x</div>
+              </div>})}
+          </div>}
+          {/* Format by Save Rate */}
+          <div className="pnl"><div className="pt">📊 Formato: lo que importa</div>
+            {A.fmStats.filter(f=>f.count>0).map(f=><div key={f.key} style={{marginBottom:14}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><span style={{fontWeight:700,color:f.color}}>{f.label} <span style={{fontWeight:400,color:"var(--td)"}}>({f.count})</span></span></div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,fontSize:11}}>
+                <div style={{padding:8,background:"rgba(255,255,255,.02)",borderRadius:8,textAlign:"center"}}><div style={{color:"var(--td)"}}>Save Rate</div><div style={{fontSize:16,fontWeight:800,marginTop:2}}>{f.avgSave.toFixed(2)}%</div></div>
+                <div style={{padding:8,background:"rgba(255,255,255,.02)",borderRadius:8,textAlign:"center"}}><div style={{color:"var(--td)"}}>Reach Eff</div><div style={{fontSize:16,fontWeight:800,marginTop:2}}>{f.avgReachEff.toFixed(2)}x</div></div>
+                <div style={{padding:8,background:"rgba(255,255,255,.02)",borderRadius:8,textAlign:"center"}}><div style={{color:"var(--td)"}}>Engagement</div><div style={{fontSize:16,fontWeight:800,marginTop:2}}>{f.avgEng.toFixed(2)}%</div></div>
+              </div>
+            </div>)}
+          </div>
+        </div>
+        <div className="g2">
+          {/* Caption Structure */}
+          {A.capStructure&&<div className="pnl gf"><div className="pt">🔬 Estructura del Caption vs Save Rate</div>
+            <p style={{fontSize:11,color:"var(--td)",marginBottom:12}}>Correlación real de cada elemento de tu caption con saves y shares.</p>
+            <table className="tbl"><thead><tr><th>Elemento</th><th className="num">Con</th><th className="num">Save% con</th><th className="num">Sin</th><th className="num">Save% sin</th><th className="num">Impacto</th></tr></thead>
+            <tbody>{A.capStructure.map((c,i)=>{const diff=c.yesSave-c.noSave;return<tr key={i}><td style={{fontWeight:600}}>{c.feat}</td><td className="num">{c.yes}</td><td className="num" style={{fontWeight:700}}>{c.yesSave.toFixed(2)}%</td><td className="num">{c.no}</td><td className="num">{c.noSave.toFixed(2)}%</td><td className="num"><Delta v={+diff.toFixed(2)} suf="%"/></td></tr>})}</tbody></table>
+          </div>}
+          {/* Format Trend */}
+          {RC&&A.fmtTrend.length>2&&<div className="pnl gf"><div className="pt">📈 Tendencia de formatos en el tiempo</div>
+            <p style={{fontSize:11,color:"var(--td)",marginBottom:10}}>¿Se está agotando un formato? Detecta cambios antes de que sea obvio.</p>
+            <ResponsiveContainer width="100%" height={180}><AreaChart data={A.fmtTrend}><CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.03)"/><XAxis dataKey="week" stroke="rgba(255,255,255,.1)" fontSize={10} tickLine={false}/><YAxis stroke="rgba(255,255,255,.1)" fontSize={10} tickLine={false} tickFormatter={v2=>v2?v2.toFixed(1)+"%":""}/><Tooltip content={<Tip/>}/><Area type="monotone" dataKey="reel" stroke="#a78bfa" strokeWidth={2} fill="rgba(167,139,250,.06)" name="Reels" connectNulls/><Area type="monotone" dataKey="photo" stroke="#60a5fa" strokeWidth={2} fill="rgba(96,165,250,.06)" name="Fotos" connectNulls/><Area type="monotone" dataKey="carousel" stroke="#fbbf24" strokeWidth={2} fill="rgba(251,191,36,.06)" name="Carruseles" connectNulls/></AreaChart></ResponsiveContainer>
+          </div>}
+          {/* Heatmap */}
+          <div className="pnl gf"><div className="pt">🕐 Mejor hora para publicar</div><div style={{overflowX:"auto"}}><div style={{display:"grid",gridTemplateColumns:"45px repeat(24,1fr)",gap:2,fontSize:9}}><div/>{Array.from({length:24},(_,h)=><div key={h} style={{textAlign:"center",color:"var(--td)",padding:"2px 0"}}>{h}h</div>)}{A.dn.map((day,d)=><React.Fragment key={d}><div style={{display:"flex",alignItems:"center",color:"var(--tm)",fontWeight:600,fontSize:10.5}}>{day}</div>{Array.from({length:24},(_,h)=>{const c=A.hmD.find(x=>x.day===d&&x.hour===h);const intensity=c&&A.hmM>0?c.avg/A.hmM:0;return<div key={h} className="hm-cell" style={{background:intensity>0?"rgba(225,48,108,"+(0.06+intensity*0.6)+")":"rgba(255,255,255,.015)"}} title={day+" "+h+":00"}>{c&&c.count>0?c.avg.toFixed(1):""}</div>})}</React.Fragment>)}</div></div></div>
+          {/* Hashtags by Save Rate */}
+          <div className="pnl gf"><div className="pt">#️⃣ Hashtags por Save Rate</div>
+            {A.hashtags.length>0?<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(250px,1fr))",gap:6}}>{A.hashtags.slice(0,12).map((h,i)=><div key={h.tag} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0"}}><span style={{fontSize:11.5,fontWeight:600,color:C[i%C.length],minWidth:100,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.tag}</span><div style={{flex:1,height:4,borderRadius:2,background:"rgba(255,255,255,.03)",overflow:"hidden"}}><div style={{height:"100%",borderRadius:2,width:Math.max(h.avgSave/Math.max(A.hashtags[0]?.avgSave,.01)*100,3)+"%",background:C[i%C.length]}}/></div><span style={{fontSize:11.5,fontWeight:700,minWidth:48,textAlign:"right"}}>{h.avgSave.toFixed(2)}%</span></div>)}</div>:<p style={{color:"var(--td)"}}>Sin hashtags</p>}
+          </div>
+          {/* Post-Viral Retention */}
+          {A.viralRetention&&<div className="pnl gf"><div className="pt">🔄 Retención Post-Viral</div>
+            <p style={{fontSize:11.5,color:"var(--tm)",marginBottom:12}}>Después de un post viral, ¿retienes la audiencia nueva? Media: <strong style={{color:A.viralRetention.avg>40?"var(--grn)":"var(--red)"}}>{A.viralRetention.avg}%</strong> de retención ({A.viralRetention.count} casos)</p>
+            {A.viralRetention.cases.slice(0,4).map((c,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 0",borderBottom:i<3?"1px solid rgba(255,255,255,.03)":"none",fontSize:12}}>
+              <div style={{minWidth:70,color:"var(--grn)"}}>{n(c.viralReach)} →</div>
+              <div style={{minWidth:70,color:c.retention>50?"var(--grn)":"var(--red)"}}>{n(c.nextReach)} ({c.retention.toFixed(0)}%)</div>
+              <div style={{flex:1,color:"var(--td)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.viralCaption}...</div>
+            </div>)}
+          </div>}
         </div>
       </>}</>}
 
-      {/* ═══ INTELIGENCIA ═══ */}
-      {tab==="intel"&&acc&&<>{ldP&&!A?<Skel h={300}/>:!A?<p className="empty">Cargando análisis...</p>:<>
-        {/* AI CHAT — main feature */}
+      {/* ═══ AI COACH ═══ */}
+      {tab==="coach"&&acc&&<>{ldP&&!A?<Skel h={400}/>:!A?<p style={{color:"var(--tm)"}}>Carga datos primero en Posts</p>:<>
         <div className="pnl gf" style={{padding:0,overflow:"hidden"}}>
           <div style={{padding:"18px 22px 0",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <div className="pt" style={{margin:0}}>🤖 Asistente IA</div>
+            <div className="pt" style={{margin:0}}>🤖 Growth Coach IA</div>
             {!groqSaved&&<button className="fch" style={{fontSize:10}} onClick={()=>switchTab("settings")}>⚙️ Configurar API key</button>}
           </div>
+          <p style={{padding:"0 22px 10px",fontSize:11.5,color:"var(--td)"}}>Tiene acceso a TODOS tus datos: save rate, share rate, viral coefficient, matriz de contenido, gap analysis, caption structure...</p>
           <AIChat A={A} acc={acc} hasKey={groqSaved}/>
-        </div>
-        {/* Real data panels */}
-        <div className="g2" style={{marginTop:14}}>
-          <div className="pnl"><div className="pt">📊 Engagement por formato</div>{A.fmStats.filter(f=>f.count>0).map(f=><div key={f.key} className="fmr"><div className="fml" style={{color:f.color}}>{f.label} <span style={{color:"var(--td)",fontWeight:400}}>({f.count})</span></div><div className="fmbg"><div className="fmb" style={{width:Math.max(f.avgEng/Math.max(...A.fmStats.map(x=>x.avgEng),.01)*100,5)+"%",background:f.color+"20"}}/></div><div className="fmv">{f.avgEng.toFixed(2)}%</div></div>)}</div>
-          <div className="pnl"><div className="pt">👁 Alcance por formato</div>{A.fmStats.filter(f=>f.count>0).map(f=><div key={f.key} className="fmr"><div className="fml" style={{color:f.color}}>{f.label}</div><div className="fmbg"><div className="fmb" style={{width:Math.max(f.avgReach/Math.max(...A.fmStats.map(x=>x.avgReach),1)*100,5)+"%",background:f.color+"20"}}/></div><div className="fmv">{n(Math.round(f.avgReach))}</div></div>)}</div>
-          <div className="pnl gf"><div className="pt">🕐 Mejor hora para publicar</div><div style={{overflowX:"auto"}}><div style={{display:"grid",gridTemplateColumns:"45px repeat(24,1fr)",gap:2,fontSize:9}}><div/>{Array.from({length:24},(_,h)=><div key={h} style={{textAlign:"center",color:"var(--td)",padding:"2px 0"}}>{h}h</div>)}{A.dn.map((day,d)=><React.Fragment key={d}><div style={{display:"flex",alignItems:"center",color:"var(--tm)",fontWeight:600,fontSize:10.5}}>{day}</div>{Array.from({length:24},(_,h)=>{const c=A.hmD.find(x=>x.day===d&&x.hour===h);const i=c&&A.hmM>0?c.avg/A.hmM:0;return<div key={h} className="hm-cell" style={{background:i>0?`rgba(225,48,108,${.06+i*.6})`:"rgba(255,255,255,.015)"}} title={`${day} ${h}:00`}>{c&&c.count>0?c.avg.toFixed(1):""}</div>})}</React.Fragment>)}</div></div></div>
-          <div className="pnl gf"><div className="pt">#️⃣ Hashtags más efectivos</div>{A.hashtags.length>0?<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(250px,1fr))",gap:6}}>{A.hashtags.slice(0,12).map((h,i)=><div key={h.tag} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0"}}><span style={{fontSize:11.5,fontWeight:600,color:C[i%C.length],minWidth:100,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.tag}</span><div style={{flex:1,height:4,borderRadius:2,background:"rgba(255,255,255,.03)",overflow:"hidden"}}><div style={{height:"100%",borderRadius:2,width:Math.max(h.avgEng/Math.max(A.hashtags[0]?.avgEng,.01)*100,3)+"%",background:C[i%C.length]}}/></div><span style={{fontSize:11.5,fontWeight:700,minWidth:48,textAlign:"right"}}>{h.avgEng.toFixed(2)}%</span></div>)}</div>:<p style={{color:"var(--td)"}}>No se encontraron hashtags</p>}</div>
-          {RC&&A.freqData.length>2&&<div className="pnl gf"><div className="pt">📅 Frecuencia vs engagement</div><ResponsiveContainer width="100%" height={190}><BarChart data={A.freqData}><CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.03)"/><XAxis dataKey="week" stroke="rgba(255,255,255,.1)" fontSize={10} tickLine={false}/><YAxis yAxisId="l" stroke="rgba(255,255,255,.1)" fontSize={10} tickLine={false}/><YAxis yAxisId="r" orientation="right" stroke="rgba(255,255,255,.1)" fontSize={10} tickLine={false} tickFormatter={v=>v.toFixed(1)+"%"}/><Tooltip content={<Tip/>}/><Bar yAxisId="l" dataKey="posts" fill="rgba(96,165,250,.2)" radius={[4,4,0,0]} name="Posts/semana"/><Bar yAxisId="r" dataKey="avgEng" fill="rgba(225,48,108,.35)" radius={[4,4,0,0]} name="Eng%"/></BarChart></ResponsiveContainer></div>}
-          {RC&&A.engTrend.length>3&&<div className="pnl gf"><div className="pt">📉 Evolución del engagement</div><ResponsiveContainer width="100%" height={170}><AreaChart data={A.engTrend}><CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.03)"/><XAxis dataKey="date" stroke="rgba(255,255,255,.1)" fontSize={10} tickLine={false}/><YAxis stroke="rgba(255,255,255,.1)" fontSize={10} tickLine={false} tickFormatter={v=>v.toFixed(1)+"%"}/><Tooltip content={<Tip/>}/><Area type="monotone" dataKey="rolling" stroke="#e1306c" strokeWidth={2} fill="rgba(225,48,108,.06)" name="Eng% (media 5)"/></AreaChart></ResponsiveContainer></div>}
         </div>
       </>}</>}
 
       {/* ═══ MEDIA KIT ═══ */}
       {tab==="mediakit"&&acc&&<>{ldP&&!A?<Skel h={300}/>:<div>
-        <div className="no-print" style={{marginBottom:16,display:"flex",alignItems:"center",gap:10}}><button className="bp" onClick={()=>window.print()}>🖨 Guardar como PDF</button></div>
+        <div className="no-print" style={{marginBottom:16}}><button className="bp" onClick={()=>window.print()}>🖨 Guardar como PDF</button></div>
         <div className="pnl" style={{padding:34}}>
           <div style={{textAlign:"center",paddingBottom:26,borderBottom:"1px solid var(--bdr)",marginBottom:30}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginBottom:12}}>
@@ -348,44 +483,22 @@ function Dash({session,onLogout}){
           </div>
           <div className="kg" style={{marginBottom:28}}>
             <div className="kpi" style={{textAlign:"center"}}><div className="kl">Seguidores</div><div className="kv">{n(acc.followers_count||0)}</div></div>
-            <div className="kpi" style={{textAlign:"center"}}><div className="kl">Engagement</div><div className="kv">{er}</div></div>
-            <div className="kpi" style={{textAlign:"center"}}><div className="kl">Publicaciones</div><div className="kv">{n(acc.media_count||0)}</div></div>
+            {A&&<div className="kpi" style={{textAlign:"center"}}><div className="kl">Engagement</div><div className="kv">{A.oaE.toFixed(2)}%</div></div>}
+            {A&&<div className="kpi" style={{textAlign:"center"}}><div className="kl">Save Rate</div><div className="kv">{A.avgSaveRate.toFixed(2)}%</div></div>}
             {A&&<div className="kpi" style={{textAlign:"center"}}><div className="kl">Reach medio</div><div className="kv">{n(Math.round(A.aR))}</div></div>}
           </div>
           {A&&<>
             <div style={{marginBottom:30,padding:24,background:"linear-gradient(135deg,rgba(52,211,153,.05),rgba(52,211,153,.02))",border:"1px solid rgba(52,211,153,.1)",borderRadius:16}}>
               <div style={{fontSize:13.5,fontWeight:700,color:"var(--grn)",marginBottom:8}}>💰 Tarifa estimada</div>
               <div style={{fontSize:40,fontWeight:900,color:"var(--grn)"}}>{A.estimatedRate}€ — {Math.round(A.estimatedRate*1.5)}€</div>
-              <p style={{fontSize:11.5,color:"var(--td)",marginTop:8}}>Basado en {n(A.F)} seguidores y {A.oaE.toFixed(2)}% engagement</p>
+              <p style={{fontSize:11.5,color:"var(--td)",marginTop:8}}>Basado en {n(A.F)} seguidores × {A.oaE.toFixed(2)}% engagement × {A.avgSaveRate.toFixed(2)}% save rate</p>
             </div>
             <div className="g2" style={{marginBottom:26}}>
-              <div><div className="pt">📊 Formatos</div>{A.fmStats.filter(f=>f.count>0).map(f=><div key={f.key} style={{fontSize:13,padding:"7px 0",borderBottom:"1px solid rgba(255,255,255,.03)"}}><strong style={{color:f.color}}>{f.label}</strong>: {f.avgEng.toFixed(2)}% eng · {n(Math.round(f.avgReach))} reach</div>)}</div>
+              <div><div className="pt">📊 Rendimiento por formato</div>{A.fmStats.filter(f=>f.count>0).map(f=><div key={f.key} style={{fontSize:13,padding:"7px 0",borderBottom:"1px solid rgba(255,255,255,.03)"}}><strong style={{color:f.color}}>{f.label}</strong>: {f.avgEng.toFixed(2)}% eng · {f.avgSave.toFixed(2)}% save · {n(Math.round(f.avgReach))} reach</div>)}</div>
               <div>{A.hashtags.length>0&&<><div className="pt">🏷️ Temáticas</div><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{A.hashtags.slice(0,8).map(h=><span key={h.tag} style={{fontSize:12.5,padding:"6px 16px",background:"rgba(225,48,108,.06)",borderRadius:9,color:"var(--p1)",fontWeight:600,border:"1px solid rgba(225,48,108,.1)"}}>{h.tag}</span>)}</div></>}</div>
             </div>
-            <div><div className="pt">🏆 Top publicaciones</div>{A.top5.map((p,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:"1px solid rgba(255,255,255,.03)"}}><div style={{fontSize:12,fontWeight:800,color:"var(--p1)"}}>{(p.engRate*100).toFixed(1)}%</div><div style={{flex:1}}><div style={{fontSize:13,fontWeight:600}}>{p.caption?p.caption.slice(0,65):"Sin caption"}</div><div style={{fontSize:11,color:"var(--td)",marginTop:2}}><Badge type={p.media_type} pt={p.media_product_type}/> · ❤ {n(p.likes)} · 👁 {n(p.reach)}</div></div></div>)}</div>
+            <div><div className="pt">🏆 Top publicaciones (por save rate)</div>{A.top5.map((p2,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:"1px solid rgba(255,255,255,.03)"}}><div style={{fontSize:12,fontWeight:800,color:"var(--grn)"}}>{p2.saveRate.toFixed(1)}%</div><div style={{flex:1}}><div style={{fontSize:13,fontWeight:600}}>{p2.caption?p2.caption.slice(0,65):"Sin caption"}</div><div style={{fontSize:11,color:"var(--td)",marginTop:2}}><Badge type={p2.media_type} pt={p2.media_product_type}/> · ❤ {n(p2.likes)} · 👁 {n(p2.reach)} · 💾 {n(p2.saves)}</div></div></div>)}</div>
           </>}
-        </div>
-      </div>}</>}
-
-      {/* ═══ REPORT ═══ */}
-      {tab==="report"&&acc&&<>{!A?<>{ldP?<Skel h={300}/>:<div className="pnl" style={{textAlign:"center",padding:40}}><p style={{color:"var(--tm)",marginBottom:12}}>Carga datos en Posts primero.</p><button className="bo" onClick={()=>switchTab("posts")}>Ir a Posts →</button></div>}</>:<div>
-        <div className="no-print" style={{marginBottom:16}}><button className="bp" onClick={()=>window.print()}>🖨 Imprimir</button></div>
-        <div className="pnl" style={{padding:30}}>
-          <div style={{marginBottom:22,borderBottom:"1px solid var(--bdr)",paddingBottom:18}}>
-            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:6}}><div className="sb-logo" style={{width:28,height:28,borderRadius:7,fontSize:11}}>M</div><span style={{fontSize:18,fontWeight:800}}>Report mensual</span></div>
-            <div style={{fontSize:13,color:"var(--tm)"}}>@{acc.username} · {new Date().toLocaleDateString("es-ES",{day:"numeric",month:"long",year:"numeric"})}</div>
-          </div>
-          <div className="kg" style={{marginBottom:22}}>
-            <div className="kpi"><div className="kl">Seguidores</div><div className="kv">{n(acc.followers_count||0)}</div></div>
-            <div className="kpi"><div className="kl">Engagement</div><div className="kv">{er}</div></div>
-            <div className="kpi"><div className="kl">Posts analizados</div><div className="kv">{posts.length}</div></div>
-            <div className="kpi"><div className="kl">Virales</div><div className="kv">{A.viralCount}</div></div>
-          </div>
-          <div className="g2" style={{marginBottom:22}}>
-            <div><div className="pt">🏆 Mejores posts</div>{A.top5.map((p,i)=><div key={i} style={{fontSize:12.5,padding:"5px 0"}}>{(p.engRate*100).toFixed(1)}% — {p.caption?.slice(0,45)||"Sin caption"} · ❤ {p.likes}</div>)}</div>
-            <div><div className="pt">📊 Formatos</div>{A.fmStats.filter(f=>f.count>0).map(f=><div key={f.key} style={{fontSize:12.5,padding:"5px 0"}}><strong style={{color:f.color}}>{f.label}</strong>: {f.count} posts · {f.avgEng.toFixed(2)}%</div>)}</div>
-          </div>
-          {A.hashtags.length>0&&<div style={{marginBottom:18}}><div className="pt">🏷️ Top hashtags</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{A.hashtags.slice(0,6).map(h=><span key={h.tag} style={{fontSize:12,padding:"4px 12px",background:"rgba(225,48,108,.06)",borderRadius:8,color:"var(--p1)"}}>{h.tag} ({h.avgEng.toFixed(1)}%)</span>)}</div></div>}
         </div>
       </div>}</>}
 
@@ -394,24 +507,21 @@ function Dash({session,onLogout}){
         <div style={{marginBottom:24}}><h1 style={{fontSize:20,fontWeight:800}}>⚙️ Ajustes</h1></div>
         <div className="pnl">
           <div className="pt">👤 Tu cuenta</div>
-          <div className="sett-row"><span className="sett-label">Email</span><span className="sett-value">{userEmail}</span></div>
-          <div className="sett-row"><span className="sett-label">Plan</span><span className="sett-value">Free</span></div>
-          <div className="sett-row"><span className="sett-label">Sesión</span><button className="bo" style={{fontSize:11,padding:"5px 14px"}} onClick={onLogout}>Cerrar sesión</button></div>
+          <div style={{padding:"14px 0",borderBottom:"1px solid var(--bdr)",display:"flex",justifyContent:"space-between"}}><span style={{color:"var(--tm)"}}>Email</span><span style={{fontWeight:600}}>{userEmail}</span></div>
+          <div style={{padding:"14px 0",display:"flex",justifyContent:"space-between"}}><span style={{color:"var(--tm)"}}>Sesión</span><button className="bo" style={{fontSize:11,padding:"5px 14px"}} onClick={onLogout}>Cerrar sesión</button></div>
         </div>
-        {/* GROQ API KEY */}
         <div className="pnl" style={{background:"linear-gradient(135deg,rgba(225,48,108,.03),rgba(131,58,180,.02))",border:"1px solid rgba(225,48,108,.08)"}}>
-          <div className="pt">🤖 Asistente IA (Groq)</div>
-          <p style={{fontSize:12,color:"var(--tm)",marginBottom:14,lineHeight:1.6}}>Para usar el asistente IA, necesitas una API key gratuita de Groq. Regístrate en <a href="https://console.groq.com" target="_blank" rel="noopener" style={{color:"var(--p1)",textDecoration:"underline"}}>console.groq.com</a>, ve a API Keys y crea una. Es gratis.</p>
+          <div className="pt">🤖 AI Coach (Groq)</div>
+          <p style={{fontSize:12,color:"var(--tm)",marginBottom:14,lineHeight:1.6}}>Regístrate gratis en <a href="https://console.groq.com" target="_blank" rel="noopener" style={{color:"var(--p1)",textDecoration:"underline"}}>console.groq.com</a> → API Keys → Create.</p>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            <input className="ai" type="password" placeholder="gsk_..." value={groqKey} onChange={e=>setGroqKey(e.target.value)} style={{flex:1,fontSize:12.5}}/>
+            <input className="ai" type="password" placeholder="gsk_..." value={groqKey} onChange={e2=>setGroqKey(e2.target.value)} style={{flex:1,fontSize:12.5}}/>
             <button className="bp" style={{padding:"10px 18px",whiteSpace:"nowrap"}} onClick={saveGroqKey}>{groqSaved?"✓ Guardada":"Guardar"}</button>
           </div>
-          {groqSaved&&<p style={{fontSize:11,color:"var(--grn)",marginTop:8}}>✅ API key configurada. El asistente IA está activo en Inteligencia.</p>}
-          <p style={{fontSize:10.5,color:"var(--td)",marginTop:8}}>Tu key se guarda encriptada en tu cuenta. Solo tú la usas.</p>
+          {groqSaved&&<p style={{fontSize:11,color:"var(--grn)",marginTop:8}}>✅ Activo. Ve a AI Coach para usarlo.</p>}
         </div>
         <div className="pnl">
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div className="pt" style={{margin:0}}>📱 Cuentas ({accounts.length})</div><button className="bp" style={{fontSize:11,padding:"7px 16px"}} onClick={connectIG}>+ Conectar</button></div>
-          {accounts.length===0?<p className="empty">No hay cuentas conectadas.</p>:
+          {accounts.length===0?<p style={{color:"var(--td)"}}>No hay cuentas conectadas.</p>:
             <div>{accounts.map((a,i)=><div key={a.id} style={{display:"flex",alignItems:"center",gap:13,padding:"14px 0",borderBottom:i<accounts.length-1?"1px solid var(--bdr)":"none"}}>
               {a.profile_picture_url?<img src={a.profile_picture_url} style={{width:40,height:40,borderRadius:11}}/>:<div style={{width:40,height:40,borderRadius:11,background:"linear-gradient(135deg,var(--p1),var(--p3))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,fontWeight:700}}>@</div>}
               <div style={{flex:1}}><div style={{fontWeight:700,fontSize:13.5}}>@{a.username}</div><div style={{fontSize:11.5,color:"var(--tm)",marginTop:2}}>{n(a.followers_count)} seg · {n(a.media_count)} posts</div></div>
@@ -426,9 +536,9 @@ function Dash({session,onLogout}){
 }
 
 function App(){const[s,setS]=useState(null),[ld,setLd]=useState(true);
-  useEffect(()=>{fetch("/api/config").then(r=>r.json()).then(cfg=>{sb=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);sb.auth.getSession().then(r=>{if(r.data.session)setS(r.data.session);setLd(false)});sb.auth.onAuthStateChange((_,s)=>setS(s))}).catch(()=>setLd(false))},[]);
+  useEffect(()=>{fetch("/api/config").then(r=>r.json()).then(cfg=>{sb=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);sb.auth.getSession().then(r=>{if(r.data.session)setS(r.data.session);setLd(false)});sb.auth.onAuthStateChange((_,s2)=>setS(s2))}).catch(()=>setLd(false))},[]);
   if(ld)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh"}}><div className="spin"/></div>;
-  if(!s)return<Auth onAuth={s=>setS(s)}/>;
+  if(!s)return<Auth onAuth={s2=>setS(s2)}/>;
   return<Dash session={s} onLogout={async()=>{await sb.auth.signOut();setS(null)}}/>;
 }
 ReactDOM.createRoot(document.getElementById("root")).render(<EB><App/></EB>);
