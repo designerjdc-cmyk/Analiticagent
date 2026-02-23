@@ -2,37 +2,12 @@ require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
-const fs = require("fs");
+const { createClient } = require("@supabase/supabase-js");
 const path = require("path");
 
 const app = express();
 app.use(express.json());
 app.use(express.static("public"));
-
-// ============================================================
-// DATA STORAGE (JSON file - swap for a DB in production)
-// ============================================================
-const DATA_FILE = path.join(__dirname, "data", "accounts.json");
-
-function ensureDataDir() {
-  const dir = path.dirname(DATA_FILE);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, "{}");
-}
-
-function loadAccounts() {
-  ensureDataDir();
-  try {
-    return JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
-  } catch {
-    return {};
-  }
-}
-
-function saveAccounts(accounts) {
-  ensureDataDir();
-  fs.writeFileSync(DATA_FILE, JSON.stringify(accounts, null, 2));
-}
 
 // ============================================================
 // CONFIG
@@ -41,53 +16,131 @@ const {
   INSTAGRAM_APP_ID,
   INSTAGRAM_APP_SECRET,
   BASE_URL,
+  SUPABASE_URL,
+  SUPABASE_SERVICE_KEY,
+  SUPABASE_ANON_KEY,
   PORT = 3000,
 } = process.env;
 
 const REDIRECT_URI = `${BASE_URL}/auth/callback`;
-
-// FIX: Always use a versioned API endpoint
 const IG_GRAPH = "https://graph.instagram.com/v21.0";
-
-// Scopes for Instagram Business Login
 const SCOPES = "instagram_business_basic,instagram_business_manage_insights";
 
+// Supabase admin client (bypasses RLS)
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
 // ============================================================
-// AUTH ROUTES
+// OAUTH STATE STORE (in-memory, maps state → userId)
 // ============================================================
+const oauthStates = new Map();
 
-app.get("/auth/login", (req, res) => {
-  const state = uuidv4();
-  const authUrl =
-    `https://www.instagram.com/oauth/authorize` +
-    `?enable_fb_login=0` +
-    `&force_authentication=1` +
-    `&client_id=${INSTAGRAM_APP_ID}` +
-    `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-    `&scope=${encodeURIComponent(SCOPES)}` +
-    `&response_type=code` +
-    `&state=${state}`;
-
-  console.log("Redirecting to:", authUrl);
-  res.redirect(authUrl);
-});
-
-app.get("/auth/callback", async (req, res) => {
-  const { code, error, error_description, error_reason } = req.query;
-
-  if (error) {
-    console.error("OAuth error:", error, error_description, error_reason);
-    return res.redirect(`/?error=${encodeURIComponent(error_description || error)}`);
+function cleanOldStates() {
+  const now = Date.now();
+  for (const [key, val] of oauthStates.entries()) {
+    if (now - val.timestamp > 600000) oauthStates.delete(key); // 10 min
   }
+}
 
-  if (!code) {
-    return res.redirect("/?error=No+authorization+code+received");
-  }
+// ============================================================
+// AUTH MIDDLEWARE — verifies Supabase JWT
+// ============================================================
+async function requireAuth(req, res, next) {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "No autenticado" });
 
   try {
-    console.log("Exchanging code for token...");
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) return res.status(401).json({ error: "Sesión inválida" });
+    req.user = user;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: "Error de autenticación" });
+  }
+}
 
-    // Short-lived token (no version prefix on this endpoint)
+// Helper: get account that belongs to user
+async function getUserAccount(userId, accountId) {
+  const { data, error } = await supabase
+    .from("accounts")
+    .select("*")
+    .eq("id", accountId)
+    .eq("user_id", userId)
+    .single();
+
+  if (error || !data) return null;
+  return data;
+}
+
+// ============================================================
+// PUBLIC ENDPOINTS
+// ============================================================
+
+// Frontend config (public keys only)
+app.get("/api/config", (req, res) => {
+  res.json({
+    supabaseUrl: SUPABASE_URL,
+    supabaseAnonKey: SUPABASE_ANON_KEY,
+  });
+});
+
+// ============================================================
+// INSTAGRAM OAUTH
+// ============================================================
+
+// Step 1: Start Instagram OAuth (user must be logged in)
+app.get("/auth/instagram", async (req, res) => {
+  const token = req.query.token;
+  if (!token) return res.redirect("/?error=No+autenticado");
+
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) return res.redirect("/?error=Sesión+inválida");
+
+    const state = uuidv4();
+    oauthStates.set(state, { userId: user.id, timestamp: Date.now() });
+    cleanOldStates();
+
+    const authUrl =
+      `https://www.instagram.com/oauth/authorize` +
+      `?enable_fb_login=0` +
+      `&force_authentication=1` +
+      `&client_id=${INSTAGRAM_APP_ID}` +
+      `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+      `&scope=${encodeURIComponent(SCOPES)}` +
+      `&response_type=code` +
+      `&state=${state}`;
+
+    console.log("OAuth start for user:", user.id);
+    res.redirect(authUrl);
+  } catch (err) {
+    console.error("OAuth start error:", err.message);
+    res.redirect("/?error=Error+de+autenticación");
+  }
+});
+
+// Step 2: Instagram callback
+app.get("/auth/callback", async (req, res) => {
+  const { code, error, error_description, state } = req.query;
+
+  if (error) {
+    console.error("OAuth error:", error, error_description);
+    return res.redirect(`/?error=${encodeURIComponent(error_description || error)}`);
+  }
+  if (!code) return res.redirect("/?error=No+se+recibió+código");
+
+  // Validate state
+  const oauthData = oauthStates.get(state);
+  if (!oauthData) {
+    console.error("Invalid or expired OAuth state:", state);
+    return res.redirect("/?error=Sesión+OAuth+expirada.+Inténtalo+de+nuevo.");
+  }
+  oauthStates.delete(state);
+  const userId = oauthData.userId;
+
+  try {
+    console.log("Exchanging code for token (user:", userId, ")...");
+
+    // Short-lived token
     const tokenRes = await axios.post(
       `https://api.instagram.com/oauth/access_token`,
       new URLSearchParams({
@@ -100,10 +153,9 @@ app.get("/auth/callback", async (req, res) => {
       { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
     );
 
-    console.log("Short-lived token obtained");
-    const { access_token: shortToken, user_id } = tokenRes.data;
+    const { access_token: shortToken, user_id: igUserId } = tokenRes.data;
 
-    // Long-lived token (60 days)
+    // Long-lived token
     const longTokenRes = await axios.get(`${IG_GRAPH}/access_token`, {
       params: {
         grant_type: "ig_exchange_token",
@@ -111,79 +163,91 @@ app.get("/auth/callback", async (req, res) => {
         access_token: shortToken,
       },
     });
-
     const longToken = longTokenRes.data.access_token;
     const expiresIn = longTokenRes.data.expires_in;
-    console.log("Long-lived token obtained, fetching profile...");
 
-    // Profile
+    // Fetch profile
     const profileRes = await axios.get(`${IG_GRAPH}/me`, {
       params: {
         fields: "user_id,username,name,account_type,profile_picture_url,followers_count,follows_count,media_count",
         access_token: longToken,
       },
     });
-
     const profile = profileRes.data;
-    const accountId = String(profile.user_id || user_id);
+    const igAccountId = String(profile.user_id || igUserId);
 
-    console.log("Profile fetched:", profile.username, "| type:", profile.account_type, "| id:", accountId);
-    console.log("Raw profile response keys:", Object.keys(profile));
+    console.log("IG profile:", profile.username, "| type:", profile.account_type, "| saving for user:", userId);
 
-    // Save account — always store id as string
-    const accounts = loadAccounts();
-    accounts[accountId] = {
-      id: accountId,
-      username: profile.username,
-      name: profile.name || profile.username,
-      account_type: profile.account_type,
-      profile_picture_url: profile.profile_picture_url || null,
-      followers_count: profile.followers_count,
-      follows_count: profile.follows_count,
-      media_count: profile.media_count,
-      access_token: longToken,
-      token_expires_at: Date.now() + expiresIn * 1000,
-      connected_at: new Date().toISOString(),
-    };
-    saveAccounts(accounts);
+    // Upsert in Supabase
+    const { error: dbError } = await supabase.from("accounts").upsert(
+      {
+        user_id: userId,
+        instagram_account_id: igAccountId,
+        username: profile.username,
+        name: profile.name || profile.username,
+        account_type: profile.account_type,
+        profile_picture_url: profile.profile_picture_url || null,
+        followers_count: profile.followers_count || 0,
+        follows_count: profile.follows_count || 0,
+        media_count: profile.media_count || 0,
+        access_token: longToken,
+        token_expires_at: Date.now() + expiresIn * 1000,
+        connected_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,instagram_account_id" }
+    );
 
+    if (dbError) {
+      console.error("DB upsert error:", dbError);
+      throw new Error(dbError.message);
+    }
+
+    console.log("Account saved successfully:", profile.username);
     res.redirect("/?connected=" + encodeURIComponent(profile.username));
   } catch (err) {
-    console.error("OAuth token exchange error:", err.response?.data || err.message);
+    console.error("OAuth callback error:", err.response?.data || err.message);
     const msg = err.response?.data?.error_message || err.response?.data?.error?.message || err.message;
     res.redirect(`/?error=${encodeURIComponent(msg)}`);
   }
 });
 
 // ============================================================
-// API ROUTES
+// API ROUTES (all require auth)
 // ============================================================
 
-// List connected accounts (without tokens)
-app.get("/api/accounts", (req, res) => {
-  const accounts = loadAccounts();
-  const safe = Object.values(accounts).map(
-    ({ access_token, ...rest }) => ({
-      ...rest,
-      token_valid: rest.token_expires_at > Date.now(),
-    })
-  );
+// List user's connected accounts
+app.get("/api/accounts", requireAuth, async (req, res) => {
+  const { data, error } = await supabase
+    .from("accounts")
+    .select("*")
+    .eq("user_id", req.user.id)
+    .order("connected_at", { ascending: true });
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  const safe = (data || []).map(({ access_token, ...rest }) => ({
+    ...rest,
+    token_valid: rest.token_expires_at > Date.now(),
+  }));
   res.json(safe);
 });
 
 // Remove account
-app.delete("/api/accounts/:id", (req, res) => {
-  const accounts = loadAccounts();
-  delete accounts[req.params.id];
-  saveAccounts(accounts);
+app.delete("/api/accounts/:id", requireAuth, async (req, res) => {
+  const { error } = await supabase
+    .from("accounts")
+    .delete()
+    .eq("id", req.params.id)
+    .eq("user_id", req.user.id);
+
+  if (error) return res.status(500).json({ error: error.message });
   res.json({ ok: true });
 });
 
-// Profile (refreshed)
-app.get("/api/accounts/:id/profile", async (req, res) => {
-  const accounts = loadAccounts();
-  const account = accounts[req.params.id];
-  if (!account) return res.status(404).json({ error: "Account not found" });
+// Refresh profile
+app.get("/api/accounts/:id/profile", requireAuth, async (req, res) => {
+  const account = await getUserAccount(req.user.id, req.params.id);
+  if (!account) return res.status(404).json({ error: "Cuenta no encontrada" });
 
   try {
     const r = await axios.get(`${IG_GRAPH}/me`, {
@@ -193,30 +257,27 @@ app.get("/api/accounts/:id/profile", async (req, res) => {
       },
     });
 
-    console.log("Profile refresh raw keys:", Object.keys(r.data), "| user_id:", r.data.user_id, "| id:", r.data.id);
+    // Update DB
+    await supabase.from("accounts").update({
+      username: r.data.username,
+      name: r.data.name || r.data.username,
+      account_type: r.data.account_type,
+      profile_picture_url: r.data.profile_picture_url || null,
+      followers_count: r.data.followers_count || 0,
+      follows_count: r.data.follows_count || 0,
+      media_count: r.data.media_count || 0,
+    }).eq("id", account.id);
 
-    // Merge but ALWAYS keep our stored id
-    accounts[req.params.id] = {
-      ...account,
-      ...r.data,
-      id: account.id,
-    };
-    saveAccounts(accounts);
-
-    // FIX: Send response with our stored id, not whatever Instagram returns
-    // This prevents the frontend from getting a mismatched id
-    const safeResponse = { ...r.data, id: account.id };
-    res.json(safeResponse);
+    res.json({ ...r.data, id: account.id });
   } catch (err) {
     handleApiError(err, res);
   }
 });
 
-// Insights (Creator-safe)
-app.get("/api/accounts/:id/insights", async (req, res) => {
-  const accounts = loadAccounts();
-  const account = accounts[req.params.id];
-  if (!account) return res.status(404).json({ error: "Account not found" });
+// Insights
+app.get("/api/accounts/:id/insights", requireAuth, async (req, res) => {
+  const account = await getUserAccount(req.user.id, req.params.id);
+  if (!account) return res.status(404).json({ error: "Cuenta no encontrada" });
 
   const { period = "day", since, until, metric } = req.query;
   const safeMetrics = metric || "reach,views,accounts_engaged";
@@ -234,40 +295,35 @@ app.get("/api/accounts/:id/insights", async (req, res) => {
     res.json(r.data);
   } catch (err) {
     // Fallback: try each metric individually
-    console.warn("Bulk insights failed, trying individual metrics...");
+    console.warn("Bulk insights failed, trying individually...");
     const metrics = safeMetrics.split(",");
     const data = [];
-
     for (const m of metrics) {
       try {
         const r2 = await axios.get(`${IG_GRAPH}/me/insights`, {
           params: { ...params, metric: m },
         });
-        if (r2.data && r2.data.data) data.push(...r2.data.data);
-      } catch (innerErr) {
-        console.warn(`  metric "${m}" failed:`, innerErr.response?.data?.error?.message || innerErr.message);
+        if (r2.data?.data) data.push(...r2.data.data);
+      } catch (e) {
+        console.warn(`  metric "${m}" failed:`, e.response?.data?.error?.message || e.message);
       }
     }
-
-    if (data.length > 0) {
-      return res.json({ data });
-    }
+    if (data.length > 0) return res.json({ data });
     handleApiError(err, res);
   }
 });
 
-// Media with fallback cascade
-app.get("/api/accounts/:id/media", async (req, res) => {
-  const accounts = loadAccounts();
-  const account = accounts[req.params.id];
-  if (!account) return res.status(404).json({ error: "Account not found" });
+// Media
+app.get("/api/accounts/:id/media", requireAuth, async (req, res) => {
+  const account = await getUserAccount(req.user.id, req.params.id);
+  if (!account) return res.status(404).json({ error: "Cuenta no encontrada" });
 
   const limit = req.query.limit || 25;
   const fullFields = "id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count";
   const safeFields = "id,caption,media_type,thumbnail_url,permalink,timestamp,like_count,comments_count";
 
   const endpoints = [
-    `${IG_GRAPH}/${account.id}/media`,
+    `${IG_GRAPH}/${account.instagram_account_id}/media`,
     `${IG_GRAPH}/me/media`,
   ];
 
@@ -277,23 +333,20 @@ app.get("/api/accounts/:id/media", async (req, res) => {
         const r = await axios.get(endpoint, {
           params: { fields, limit, access_token: account.access_token },
         });
-        console.log(`Media OK via ${endpoint} (${(r.data && r.data.data && r.data.data.length) || 0} items)`);
         return res.json(r.data);
-      } catch (innerErr) {
-        console.warn(`Media failed (${endpoint}):`, innerErr.response?.data?.error?.message || innerErr.message);
+      } catch (e) {
+        console.warn(`Media failed (${endpoint}):`, e.response?.data?.error?.message || e.message);
       }
     }
   }
 
-  console.error("All media fetch attempts failed for account", account.id);
   res.json({ data: [] });
 });
 
 // Media insights
-app.get("/api/accounts/:id/media/:mediaId/insights", async (req, res) => {
-  const accounts = loadAccounts();
-  const account = accounts[req.params.id];
-  if (!account) return res.status(404).json({ error: "Account not found" });
+app.get("/api/accounts/:id/media/:mediaId/insights", requireAuth, async (req, res) => {
+  const account = await getUserAccount(req.user.id, req.params.id);
+  if (!account) return res.status(404).json({ error: "Cuenta no encontrada" });
 
   try {
     const r = await axios.get(`${IG_GRAPH}/${req.params.mediaId}/insights`, {
@@ -309,10 +362,9 @@ app.get("/api/accounts/:id/media/:mediaId/insights", async (req, res) => {
 });
 
 // Demographics
-app.get("/api/accounts/:id/demographics", async (req, res) => {
-  const accounts = loadAccounts();
-  const account = accounts[req.params.id];
-  if (!account) return res.status(404).json({ error: "Account not found" });
+app.get("/api/accounts/:id/demographics", requireAuth, async (req, res) => {
+  const account = await getUserAccount(req.user.id, req.params.id);
+  if (!account) return res.status(404).json({ error: "Cuenta no encontrada" });
 
   try {
     const r = await axios.get(`${IG_GRAPH}/me/insights`, {
@@ -330,11 +382,10 @@ app.get("/api/accounts/:id/demographics", async (req, res) => {
   }
 });
 
-// Refresh token
-app.post("/api/accounts/:id/refresh-token", async (req, res) => {
-  const accounts = loadAccounts();
-  const account = accounts[req.params.id];
-  if (!account) return res.status(404).json({ error: "Account not found" });
+// Refresh IG token
+app.post("/api/accounts/:id/refresh-token", requireAuth, async (req, res) => {
+  const account = await getUserAccount(req.user.id, req.params.id);
+  if (!account) return res.status(404).json({ error: "Cuenta no encontrada" });
 
   try {
     const r = await axios.get(`${IG_GRAPH}/refresh_access_token`, {
@@ -344,9 +395,11 @@ app.post("/api/accounts/:id/refresh-token", async (req, res) => {
       },
     });
 
-    accounts[req.params.id].access_token = r.data.access_token;
-    accounts[req.params.id].token_expires_at = Date.now() + r.data.expires_in * 1000;
-    saveAccounts(accounts);
+    await supabase.from("accounts").update({
+      access_token: r.data.access_token,
+      token_expires_at: Date.now() + r.data.expires_in * 1000,
+    }).eq("id", account.id);
+
     res.json({ ok: true, expires_in: r.data.expires_in });
   } catch (err) {
     handleApiError(err, res);
@@ -354,226 +407,11 @@ app.post("/api/accounts/:id/refresh-token", async (req, res) => {
 });
 
 // ============================================================
-// DEBUG ENDPOINT — hit /api/debug/:id to diagnose all calls
-// ============================================================
-app.get("/api/debug/:id", async (req, res) => {
-  const accounts = loadAccounts();
-  const account = accounts[req.params.id];
-
-  const report = {
-    timestamp: new Date().toISOString(),
-    graph_base: IG_GRAPH,
-    account_found: !!account,
-    stored_id: req.params.id,
-    stored_id_type: typeof req.params.id,
-    tests: {},
-  };
-
-  if (!account) {
-    report.all_stored_ids = Object.keys(accounts);
-    report.all_stored_id_types = Object.keys(accounts).map(k => typeof k);
-    return res.json(report);
-  }
-
-  report.stored_account = {
-    id: account.id,
-    id_type: typeof account.id,
-    username: account.username,
-    account_type: account.account_type,
-    token_prefix: account.access_token ? account.access_token.slice(0, 20) + "..." : "MISSING",
-    token_expires_at: account.token_expires_at,
-    token_valid: account.token_expires_at > Date.now(),
-    days_until_expiry: Math.floor((account.token_expires_at - Date.now()) / 86400000),
-  };
-
-  // Test 1: /me (profile)
-  try {
-    const r = await axios.get(`${IG_GRAPH}/me`, {
-      params: {
-        fields: "user_id,username,name,account_type,profile_picture_url,followers_count,follows_count,media_count",
-        access_token: account.access_token,
-      },
-    });
-    report.tests.profile = {
-      status: "OK",
-      response_keys: Object.keys(r.data),
-      response_id: r.data.id,
-      response_id_type: typeof r.data.id,
-      response_user_id: r.data.user_id,
-      response_user_id_type: typeof r.data.user_id,
-      id_matches_stored: String(r.data.user_id) === String(account.id),
-      username: r.data.username,
-      account_type: r.data.account_type,
-      followers: r.data.followers_count,
-      media_count: r.data.media_count,
-    };
-  } catch (err) {
-    report.tests.profile = {
-      status: "FAILED",
-      error: err.response?.data?.error || err.message,
-      http_status: err.response?.status,
-    };
-  }
-
-  // Test 2: /me/insights (bulk)
-  try {
-    const r = await axios.get(`${IG_GRAPH}/me/insights`, {
-      params: {
-        metric: "reach,views,accounts_engaged",
-        period: "day",
-        access_token: account.access_token,
-      },
-    });
-    report.tests.insights_bulk = {
-      status: "OK",
-      metrics_returned: (r.data.data || []).map(m => m.name),
-      data_points: (r.data.data || []).map(m => ({
-        name: m.name,
-        values_count: m.values ? m.values.length : 0,
-      })),
-    };
-  } catch (err) {
-    report.tests.insights_bulk = {
-      status: "FAILED",
-      error: err.response?.data?.error || err.message,
-      http_status: err.response?.status,
-    };
-  }
-
-  // Test 3: individual metrics
-  for (const metric of ["reach", "views", "accounts_engaged", "follows_and_unfollows", "profile_views"]) {
-    try {
-      const r = await axios.get(`${IG_GRAPH}/me/insights`, {
-        params: { metric, period: "day", access_token: account.access_token },
-      });
-      report.tests["metric_" + metric] = {
-        status: "OK",
-        values_count: r.data.data && r.data.data[0] ? r.data.data[0].values.length : 0,
-      };
-    } catch (err) {
-      report.tests["metric_" + metric] = {
-        status: "FAILED",
-        error: err.response?.data?.error?.message || err.message,
-        error_code: err.response?.data?.error?.code,
-      };
-    }
-  }
-
-  // Test 4: media via /{id}/media
-  try {
-    const r = await axios.get(`${IG_GRAPH}/${account.id}/media`, {
-      params: {
-        fields: "id,caption,media_type,permalink,timestamp,like_count,comments_count",
-        limit: 5,
-        access_token: account.access_token,
-      },
-    });
-    report.tests.media_by_id = {
-      status: "OK",
-      count: r.data.data ? r.data.data.length : 0,
-      endpoint: `${IG_GRAPH}/${account.id}/media`,
-      sample: r.data.data ? r.data.data.slice(0, 2).map(m => ({
-        id: m.id, type: m.media_type, likes: m.like_count,
-      })) : [],
-    };
-  } catch (err) {
-    report.tests.media_by_id = {
-      status: "FAILED",
-      endpoint: `${IG_GRAPH}/${account.id}/media`,
-      error: err.response?.data?.error?.message || err.message,
-      error_code: err.response?.data?.error?.code,
-    };
-  }
-
-  // Test 5: media via /me/media
-  try {
-    const r = await axios.get(`${IG_GRAPH}/me/media`, {
-      params: {
-        fields: "id,caption,media_type,permalink,timestamp,like_count,comments_count",
-        limit: 5,
-        access_token: account.access_token,
-      },
-    });
-    report.tests.media_by_me = {
-      status: "OK",
-      count: r.data.data ? r.data.data.length : 0,
-      endpoint: `${IG_GRAPH}/me/media`,
-      sample: r.data.data ? r.data.data.slice(0, 2).map(m => ({
-        id: m.id, type: m.media_type, likes: m.like_count,
-      })) : [],
-    };
-  } catch (err) {
-    report.tests.media_by_me = {
-      status: "FAILED",
-      endpoint: `${IG_GRAPH}/me/media`,
-      error: err.response?.data?.error?.message || err.message,
-      error_code: err.response?.data?.error?.code,
-    };
-  }
-
-  // Test 6: demographics
-  try {
-    const r = await axios.get(`${IG_GRAPH}/me/insights`, {
-      params: {
-        metric: "follower_demographics",
-        period: "lifetime",
-        metric_type: "total_value",
-        timeframe: "last_30_days",
-        access_token: account.access_token,
-      },
-    });
-    report.tests.demographics = { status: "OK" };
-  } catch (err) {
-    report.tests.demographics = {
-      status: "FAILED",
-      error: err.response?.data?.error?.message || err.message,
-    };
-  }
-
-  // Summary
-  const testResults = Object.values(report.tests);
-  report.summary = {
-    total: testResults.length,
-    passed: testResults.filter(t => t.status === "OK").length,
-    failed: testResults.filter(t => t.status === "FAILED").length,
-  };
-
-  console.log("\n========== DEBUG REPORT ==========");
-  console.log(JSON.stringify(report, null, 2));
-  console.log("==================================\n");
-
-  res.json(report);
-});
-
-// ============================================================
-// DEBUG: List raw stored data (without token)
-// ============================================================
-app.get("/api/debug-accounts", (req, res) => {
-  const accounts = loadAccounts();
-  const report = {};
-  for (const [key, val] of Object.entries(accounts)) {
-    report[key] = {
-      storage_key: key,
-      storage_key_type: typeof key,
-      id: val.id,
-      id_type: typeof val.id,
-      id_matches_key: key === String(val.id),
-      username: val.username,
-      account_type: val.account_type,
-      token_valid: val.token_expires_at > Date.now(),
-      connected_at: val.connected_at,
-    };
-  }
-  res.json(report);
-});
-
-// ============================================================
 // Privacy
 // ============================================================
 app.get("/privacy", (req, res) => {
   res.send(`
-    <!DOCTYPE html>
-    <html lang="es">
+    <!DOCTYPE html><html lang="es">
     <head><meta charset="UTF-8"><title>Política de Privacidad - InstaMetrics</title>
     <style>body{font-family:sans-serif;max-width:700px;margin:40px auto;padding:20px;color:#333;line-height:1.6;}</style></head>
     <body>
@@ -584,9 +422,9 @@ app.get("/privacy", (req, res) => {
       <h2>Cómo usamos los datos</h2>
       <p>Los datos se usan exclusivamente para mostrarte tus métricas. No compartimos ni vendemos datos.</p>
       <h2>Almacenamiento</h2>
-      <p>Los tokens se almacenan de forma segura. Puedes desconectar tu cuenta en cualquier momento.</p>
+      <p>Tus credenciales se almacenan de forma segura. Puedes eliminar tu cuenta en cualquier momento.</p>
       <h2>Contacto</h2>
-      <p>Para consultas sobre privacidad, contacta al administrador de esta instancia.</p>
+      <p>Para consultas sobre privacidad, contacta al administrador.</p>
     </body></html>
   `);
 });
@@ -595,7 +433,7 @@ app.get("/privacy", (req, res) => {
 // HELPERS
 // ============================================================
 function handleApiError(err, res) {
-  console.error("Instagram API error:", err.response?.data || err.message);
+  console.error("IG API error:", err.response?.data || err.message);
   const igError = err.response?.data?.error;
   res.status(err.response?.status || 500).json({
     error: igError?.message || err.message,
@@ -613,14 +451,8 @@ app.get("*", (req, res) => {
 // START
 // ============================================================
 app.listen(PORT, () => {
-  console.log(`\n🚀 InstaMetrics running at ${BASE_URL || `http://localhost:${PORT}`}`);
-  console.log(`📊 Dashboard: ${BASE_URL || `http://localhost:${PORT}`}`);
-  console.log(`🔗 OAuth callback: ${REDIRECT_URI}`);
+  console.log(`\n🚀 InstaMetrics v2 running at ${BASE_URL || `http://localhost:${PORT}`}`);
   console.log(`📡 Graph API: ${IG_GRAPH}`);
-  console.log(`🔑 App ID: ${INSTAGRAM_APP_ID ? INSTAGRAM_APP_ID.slice(0, 6) + "..." : "NOT SET"}`);
-  console.log(`🐛 Debug: ${BASE_URL || `http://localhost:${PORT}`}/api/debug-accounts\n`);
-
-  if (!INSTAGRAM_APP_ID || !INSTAGRAM_APP_SECRET) {
-    console.warn("⚠️  Missing INSTAGRAM_APP_ID or INSTAGRAM_APP_SECRET in .env\n");
-  }
+  console.log(`🗄️  Supabase: ${SUPABASE_URL ? "Connected" : "NOT CONFIGURED"}`);
+  console.log(`🔑 IG App: ${INSTAGRAM_APP_ID ? INSTAGRAM_APP_ID.slice(0, 6) + "..." : "NOT SET"}\n`);
 });
