@@ -384,13 +384,13 @@
       const chartData = (function() {
         if (!insights || !insights.data) return [];
         const reachMetric = insights.data.find(function(m) { return m.name === "reach"; });
-        const impressionsMetric = insights.data.find(function(m) { return m.name === "impressions"; });
+        const viewsMetric = insights.data.find(function(m) { return m.name === "views"; });
         if (!reachMetric || !reachMetric.values) return [];
         return reachMetric.values.map(function(v, i) {
           return {
             date: new Date(v.end_time).toLocaleDateString("es-ES", { day: "2-digit", month: "short" }),
             reach: v.value,
-            impressions: impressionsMetric && impressionsMetric.values && impressionsMetric.values[i] ? impressionsMetric.values[i].value : 0,
+            views: viewsMetric && viewsMetric.values && viewsMetric.values[i] ? viewsMetric.values[i].value : 0,
           };
         });
       })();
@@ -578,7 +578,7 @@
                       <div className="charts-grid">
                         {RechartAvailable && chartData.length > 0 && (
                           <div className="chart-card full-width">
-                            <h3 style={{ marginBottom: 20, fontSize: 16, fontWeight: 700 }}>Alcance e Impresiones (diario)</h3>
+                            <h3 style={{ marginBottom: 20, fontSize: 16, fontWeight: 700 }}>Alcance y Visualizaciones (diario)</h3>
                             <ResponsiveContainer width="100%" height={280}>
                               <AreaChart data={chartData}>
                                 <defs>
@@ -586,7 +586,7 @@
                                     <stop offset="0%" stopColor="#DD2A7B" stopOpacity={0.3} />
                                     <stop offset="100%" stopColor="#DD2A7B" stopOpacity={0} />
                                   </linearGradient>
-                                  <linearGradient id="impG" x1="0" y1="0" x2="0" y2="1">
+                                  <linearGradient id="viewsG" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stopColor="#515BD4" stopOpacity={0.3} />
                                     <stop offset="100%" stopColor="#515BD4" stopOpacity={0} />
                                   </linearGradient>
@@ -598,8 +598,8 @@
                                 <Tooltip content={ChartTooltip} />
                                 <Area type="monotone" dataKey="reach" stroke="#DD2A7B" strokeWidth={2.5}
                                   fill="url(#reachG)" name="Alcance" />
-                                <Area type="monotone" dataKey="impressions" stroke="#515BD4" strokeWidth={2}
-                                  fill="url(#impG)" name="Impresiones" />
+                                <Area type="monotone" dataKey="views" stroke="#515BD4" strokeWidth={2}
+                                  fill="url(#viewsG)" name="Visualizaciones" />
                               </AreaChart>
                             </ResponsiveContainer>
                           </div>
@@ -720,7 +720,7 @@
                         {chartData.length === 0 && (
                           <div className="chart-card full-width" style={{ textAlign: "center", padding: 40 }}>
                             <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 15 }}>
-                              📈 Los insights de alcance e impresiones aparecerán aquí cuando conectes una cuenta.
+                              📈 Los insights de alcance y visualizaciones aparecerán aquí cuando Instagram tenga datos suficientes.
                             </p>
                           </div>
                         )}
