@@ -218,7 +218,7 @@ app.get("/api/accounts/:id/insights", async (req, res) => {
   const { period = "day", since, until } = req.query;
 
   const params = {
-    metric: "reach,views,accounts_engaged,follows_and_unfollows,profile_views",
+    metric: "reach,views,accounts_engaged",
     period,
     access_token: account.access_token,
   };
