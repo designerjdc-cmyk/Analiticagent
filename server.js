@@ -1,10 +1,15 @@
 require("dotenv").config();
-const express=require("express"),axios=require("axios"),{v4:uuidv4}=require("uuid"),{createClient}=require("@supabase/supabase-js"),path=require("path");
+const express=require("express"),axios=require("axios"),{v4:uuidv4}=require("uuid"),{createClient}=require("@supabase/supabase-js"),path=require("path"),crypto=require("crypto");
 const app=express();app.use(express.json());app.use(express.static("public"));
-const{INSTAGRAM_APP_ID,INSTAGRAM_APP_SECRET,BASE_URL,SUPABASE_URL,SUPABASE_SERVICE_KEY,SUPABASE_ANON_KEY,PORT=3000}=process.env;
+const{INSTAGRAM_APP_ID,INSTAGRAM_APP_SECRET,BASE_URL,SUPABASE_URL,SUPABASE_SERVICE_KEY,SUPABASE_ANON_KEY,ENCRYPTION_KEY,PORT=3000}=process.env;
 const REDIRECT_URI=`${BASE_URL}/auth/callback`,IG=`https://graph.instagram.com/v21.0`,SCOPES="instagram_business_basic,instagram_business_manage_insights";
 const supa=createClient(SUPABASE_URL,SUPABASE_SERVICE_KEY);
 const oauthStates=new Map();function cleanS(){const n=Date.now();for(const[k,v]of oauthStates)if(n-v.ts>600000)oauthStates.delete(k)}
+
+// ── Encryption (AES-256-GCM) ──
+const ENC_KEY=ENCRYPTION_KEY?crypto.scryptSync(ENCRYPTION_KEY,"instametrics-salt",32):null;
+function encrypt(text){if(!ENC_KEY||!text)return text;const iv=crypto.randomBytes(12);const c=crypto.createCipheriv("aes-256-gcm",ENC_KEY,iv);let enc=c.update(text,"utf8","hex")+c.final("hex");const tag=c.getAuthTag().toString("hex");return iv.toString("hex")+":"+tag+":"+enc}
+function decrypt(text){if(!ENC_KEY||!text)return text;try{const[ivH,tagH,enc]=text.split(":");if(!ivH||!tagH||!enc)return text;const d=crypto.createDecipheriv("aes-256-gcm",ENC_KEY,Buffer.from(ivH,"hex"));d.setAuthTag(Buffer.from(tagH,"hex"));return d.update(enc,"hex","utf8")+d.final("utf8")}catch(ex){return text}}
 
 // Safe snapshot — NEVER throws, NEVER crashes
 async function saveSnapshot(accountId, data) {
@@ -28,7 +33,7 @@ async function saveSnapshot(accountId, data) {
 }
 
 async function auth(req,res,next){const t=req.headers.authorization?.replace("Bearer ","");if(!t)return res.status(401).json({error:"No auth"});try{const{data:{user},error}=await supa.auth.getUser(t);if(error||!user)return res.status(401).json({error:"Bad session"});req.user=user;next()}catch(ex){res.status(401).json({error:"Auth error"})}}
-async function getAcc(uid,id){const{data}=await supa.from("accounts").select("*").eq("id",id).eq("user_id",uid).single();return data||null}
+async function getAcc(uid,id){const{data}=await supa.from("accounts").select("*").eq("id",id).eq("user_id",uid).single();if(data&&data.access_token)data.access_token=decrypt(data.access_token);return data||null}
 
 async function tryMedia(a,limit,fieldsList){
   const eps=[`${IG}/${a.instagram_account_id}/media`,`${IG}/me/media`],errs=[];
@@ -48,7 +53,7 @@ app.get("/auth/callback",async(req,res)=>{const{code,error,error_description,sta
   const{access_token:st,user_id:uid}=tr.data;const lr=await axios.get(`${IG}/access_token`,{params:{grant_type:"ig_exchange_token",client_secret:INSTAGRAM_APP_SECRET,access_token:st}});const lt=lr.data.access_token,exp=lr.data.expires_in;
   const pr=await axios.get(`${IG}/me`,{params:{fields:"user_id,username,name,account_type,profile_picture_url,followers_count,follows_count,media_count",access_token:lt}});const p=pr.data,aid=String(p.user_id||uid);
   console.log(`✅ @${p.username} | ${p.account_type} | f:${p.followers_count}`);
-  await supa.from("accounts").upsert({user_id:od.userId,instagram_account_id:aid,username:p.username,name:p.name||p.username,account_type:p.account_type,profile_picture_url:p.profile_picture_url||null,followers_count:p.followers_count||0,follows_count:p.follows_count||0,media_count:p.media_count||0,access_token:lt,token_expires_at:Date.now()+exp*1000,connected_at:new Date().toISOString()},{onConflict:"user_id,instagram_account_id"});
+  await supa.from("accounts").upsert({user_id:od.userId,instagram_account_id:aid,username:p.username,name:p.name||p.username,account_type:p.account_type,profile_picture_url:p.profile_picture_url||null,followers_count:p.followers_count||0,follows_count:p.follows_count||0,media_count:p.media_count||0,access_token:encrypt(lt),token_expires_at:Date.now()+exp*1000,connected_at:new Date().toISOString()},{onConflict:"user_id,instagram_account_id"});
   // Safe snapshot after account is saved
   try{const{data:accRow}=await supa.from("accounts").select("id").eq("user_id",od.userId).eq("instagram_account_id",aid).single();if(accRow?.id)saveSnapshot(accRow.id,{followers_count:p.followers_count,follows_count:p.follows_count,media_count:p.media_count})}catch(se){console.warn("Snapshot skip:",se.message)}
   res.redirect("/?connected="+encodeURIComponent(p.username))}catch(e){console.error("OAuth:",e.response?.data||e.message);res.redirect(`/?error=${encodeURIComponent(e.response?.data?.error_message||e.message)}`)}});
@@ -81,7 +86,7 @@ app.get("/api/accounts/:id/media-detailed",auth,async(req,res)=>{try{const a=awa
   console.log(`Enriching ${items.length} posts...`);const B=5,enriched=[];
   for(let i=0;i<items.length;i+=B){const batch=items.slice(i,i+B);const ps=batch.map(async item=>{const post={...item,insights:{}};let m="reach,saved,likes,comments,shares,total_interactions";if(item.media_type==="VIDEO"||item.media_product_type==="REELS")m+=",plays";
     try{const r=await axios.get(`${IG}/${item.id}/insights`,{params:{metric:m,access_token:a.access_token}});if(r.data?.data)for(const x of r.data.data)post.insights[x.name]=x.values?.[0]?.value??x.total_value?.value??0}
-    catch{try{const r2=await axios.get(`${IG}/${item.id}/insights`,{params:{metric:"reach,likes,comments,total_interactions",access_token:a.access_token}});if(r2.data?.data)for(const x of r2.data.data)post.insights[x.name]=x.values?.[0]?.value??x.total_value?.value??0}catch(e){console.warn(`Post ${item.id}:`,e.response?.data?.error?.message||e.message)}}
+    catch(ex2){try{const r2=await axios.get(`${IG}/${item.id}/insights`,{params:{metric:"reach,likes,comments,total_interactions",access_token:a.access_token}});if(r2.data?.data)for(const x of r2.data.data)post.insights[x.name]=x.values?.[0]?.value??x.total_value?.value??0}catch(e){console.warn(`Post ${item.id}:`,e.response?.data?.error?.message||e.message)}}
     return post});const results=await Promise.allSettled(ps);for(const x of results)if(x.status==="fulfilled")enriched.push(x.value)}
   const totalLikes=enriched.reduce((s,p)=>s+(p.like_count||0),0);const totalComments=enriched.reduce((s,p)=>s+(p.comments_count||0),0);
   const avgEng=a.followers_count?((totalLikes+totalComments)/Math.max(enriched.length,1)/a.followers_count*100):0;
@@ -95,26 +100,28 @@ app.get("/api/accounts/:id/demographics",auth,async(req,res)=>{try{const a=await
 
 // Token refresh
 app.post("/api/accounts/:id/refresh-token",auth,async(req,res)=>{try{const a=await getAcc(req.user.id,req.params.id);if(!a)return res.status(404).json({error:"Not found"});
-  const r=await axios.get(`${IG}/refresh_access_token`,{params:{grant_type:"ig_refresh_token",access_token:a.access_token}});await supa.from("accounts").update({access_token:r.data.access_token,token_expires_at:Date.now()+r.data.expires_in*1000}).eq("id",a.id);res.json({ok:true})}catch(e){handleErr(e,res)}});
+  const r=await axios.get(`${IG}/refresh_access_token`,{params:{grant_type:"ig_refresh_token",access_token:a.access_token}});await supa.from("accounts").update({access_token:encrypt(r.data.access_token),token_expires_at:Date.now()+r.data.expires_in*1000}).eq("id",a.id);res.json({ok:true})}catch(e){handleErr(e,res)}});
 
 // Snapshots — returns empty array on any error, never crashes
 app.get("/api/accounts/:id/snapshots",auth,async(req,res)=>{try{const a=await getAcc(req.user.id,req.params.id);if(!a)return res.json([]);
   const limit=parseInt(req.query.limit)||90;const{data,error}=await supa.from("snapshots").select("*").eq("account_id",a.id).order("snapshot_date",{ascending:true}).limit(limit);
   if(error){console.warn("Snapshots err:",error.message);return res.json([])}res.json(data||[])}catch(e){console.warn("Snapshots err:",e.message);res.json([])}});
 
-// User Settings (Groq API key per user)
+// User Settings (Groq API key per user — encrypted)
 app.get("/api/settings",auth,async(req,res)=>{try{
   const{data}=await supa.from("user_settings").select("*").eq("user_id",req.user.id).single();
+  if(data&&data.groq_api_key)data.groq_api_key=decrypt(data.groq_api_key);
   res.json(data||{groq_api_key:null})}catch(ex){res.json({groq_api_key:null})}});
 app.post("/api/settings",auth,async(req,res)=>{try{
   const{groq_api_key}=req.body;
-  await supa.from("user_settings").upsert({user_id:req.user.id,groq_api_key:groq_api_key||null,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+  await supa.from("user_settings").upsert({user_id:req.user.id,groq_api_key:groq_api_key?encrypt(groq_api_key):null,updated_at:new Date().toISOString()},{onConflict:"user_id"});
   res.json({ok:true})}catch(e){handleErr(e,res)}});
 
 // AI Chat proxy (Groq)
 app.post("/api/ai/chat",auth,async(req,res)=>{try{
   const{data:settings}=await supa.from("user_settings").select("groq_api_key").eq("user_id",req.user.id).single();
-  if(!settings?.groq_api_key)return res.status(400).json({error:"Configura tu API key de Groq en Ajustes"});
+  const groqKey=settings?.groq_api_key?decrypt(settings.groq_api_key):null;
+  if(!groqKey)return res.status(400).json({error:"Configura tu API key de Groq en Ajustes"});
   const{messages,context}=req.body;
   const systemPrompt=`Eres un experto en crecimiento de Instagram y marketing digital. Analiza datos reales y da consejos específicos y accionables. Responde siempre en español. Sé directo y concreto — nada de respuestas genéricas. Si te dan datos de una cuenta, úsalos para personalizar tus respuestas.
 
@@ -131,7 +138,7 @@ Reglas:
     model:"llama-3.3-70b-versatile",
     messages:[{role:"system",content:systemPrompt},...messages],
     max_tokens:800,temperature:0.7
-  },{headers:{Authorization:`Bearer ${settings.groq_api_key}`,"Content-Type":"application/json"},timeout:30000});
+  },{headers:{Authorization:`Bearer ${groqKey}`,"Content-Type":"application/json"},timeout:30000});
   res.json({message:r.data.choices?.[0]?.message?.content||"Sin respuesta"});
 }catch(e){
   const msg=e.response?.data?.error?.message||e.message;
