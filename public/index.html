@@ -12,752 +12,342 @@
   <script crossorigin src="https://unpkg.com/recharts@2.5.0/umd/Recharts.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
   <style>
-    :root {
-      --bg: #09090b; --bg-card: rgba(255,255,255,0.03); --bg-card-hover: rgba(255,255,255,0.055);
-      --border: rgba(255,255,255,0.07); --border-hover: rgba(255,255,255,0.13);
-      --text: #fafafa; --text-muted: rgba(255,255,255,0.45); --text-dim: rgba(255,255,255,0.28);
-      --accent: #e1306c; --accent2: #833ab4; --green: #22c55e; --red: #ef4444;
-      --orange: #f59e0b; --blue: #3b82f6; --radius: 12px;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
-    a { color: inherit; text-decoration: none; }
-    button { font-family: inherit; }
+    :root{--bg:#09090b;--card:rgba(255,255,255,0.03);--card-h:rgba(255,255,255,0.055);--bdr:rgba(255,255,255,0.07);--bdr-h:rgba(255,255,255,0.13);--t:#fafafa;--tm:rgba(255,255,255,0.45);--td:rgba(255,255,255,0.28);--acc:#e1306c;--acc2:#833ab4;--grn:#22c55e;--red:#ef4444;--org:#f59e0b;--blu:#3b82f6;--r:12px}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Plus Jakarta Sans',-apple-system,sans-serif;background:var(--bg);color:var(--t);min-height:100vh}
+    ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px}
+    a{color:inherit;text-decoration:none}button{font-family:inherit}
 
-    /* Layout */
-    .shell { display: flex; min-height: 100vh; }
-    .sidebar {
-      width: 220px; border-right: 1px solid var(--border); padding: 24px 16px;
-      display: flex; flex-direction: column; gap: 4px; position: fixed; top: 0; left: 0; bottom: 0;
-      background: var(--bg); z-index: 50;
-    }
-    .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px; margin-bottom: 24px; }
-    .sidebar-logo {
-      width: 32px; height: 32px; border-radius: 9px;
-      background: linear-gradient(135deg, #f9ce34, #ee2a7b, #6228d7);
-      display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px;
-    }
-    .sidebar-title { font-weight: 700; font-size: 15px; letter-spacing: -0.02em; }
+    .shell{display:flex;min-height:100vh}
+    .sidebar{width:220px;border-right:1px solid var(--bdr);padding:24px 16px;display:flex;flex-direction:column;gap:4px;position:fixed;top:0;left:0;bottom:0;background:var(--bg);z-index:50}
+    .sb-brand{display:flex;align-items:center;gap:10px;padding:4px 8px;margin-bottom:24px}
+    .sb-logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#f9ce34,#ee2a7b,#6228d7);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px}
+    .sb-title{font-weight:700;font-size:15px;letter-spacing:-0.02em}
+    .nav{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:500;color:var(--tm);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left}
+    .nav:hover{color:var(--t);background:rgba(255,255,255,0.04)}.nav.on{color:var(--t);background:rgba(255,255,255,0.07);font-weight:600}
+    .content{margin-left:220px;flex:1;padding:28px 32px}
 
-    .nav-item {
-      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
-      border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-muted);
-      cursor: pointer; transition: all 0.15s; border: none; background: none; width: 100%; text-align: left;
-    }
-    .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.04); }
-    .nav-item.active { color: var(--text); background: rgba(255,255,255,0.07); font-weight: 600; }
-    .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+    .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;gap:16px;flex-wrap:wrap}
+    .topbar h1{font-size:22px;font-weight:800;letter-spacing:-0.03em}
+    .topbar p{font-size:13px;color:var(--tm);margin-top:2px}
 
-    .content { margin-left: 220px; flex: 1; padding: 28px 32px; }
+    .bp{background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;border-radius:10px;padding:9px 18px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:opacity .2s}.bp:hover{opacity:0.9}
+    .bo{background:transparent;border:1px solid var(--bdr);border-radius:10px;padding:8px 16px;color:var(--t);font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s}.bo:hover{border-color:var(--bdr-h);background:rgba(255,255,255,0.03)}
+    .bg{background:none;border:none;color:var(--tm);font-size:12px;cursor:pointer;padding:6px 8px;transition:color .15s}.bg:hover{color:var(--t)}
 
-    /* Top bar */
-    .topbar {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 28px; gap: 16px; flex-wrap: wrap;
-    }
-    .topbar-left h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.03em; }
-    .topbar-left p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+    .kpi-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;margin-bottom:24px}
+    .kpi{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:18px 20px;transition:all .2s}.kpi:hover{background:var(--card-h);border-color:var(--bdr-h)}
+    .kpi-l{font-size:11px;color:var(--tm);font-weight:600;text-transform:uppercase;letter-spacing:0.05em}
+    .kpi-v{font-size:28px;font-weight:800;letter-spacing:-0.03em;margin-top:6px}
+    .kpi-s{font-size:11px;color:var(--td);margin-top:4px}
 
-    /* Buttons */
-    .btn-primary {
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      border: none; border-radius: 10px; padding: 9px 18px; color: #fff;
-      font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex;
-      align-items: center; gap: 6px; transition: opacity 0.2s;
-    }
-    .btn-primary:hover { opacity: 0.9; }
-    .btn-outline {
-      background: transparent; border: 1px solid var(--border); border-radius: 10px;
-      padding: 8px 16px; color: var(--text); font-size: 13px; font-weight: 500;
-      cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s;
-    }
-    .btn-outline:hover { border-color: var(--border-hover); background: rgba(255,255,255,0.03); }
-    .btn-ghost {
-      background: none; border: none; color: var(--text-muted); font-size: 12px;
-      cursor: pointer; padding: 6px 8px; transition: color 0.15s;
-    }
-    .btn-ghost:hover { color: var(--text); }
+    .pnl{background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:22px;margin-bottom:16px}
+    .pnl-t{font-size:14px;font-weight:700;margin-bottom:16px;letter-spacing:-0.01em}
+    .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}.gf{grid-column:1/-1}
 
-    /* Cards */
-    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
-    .kpi {
-      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 18px 20px; transition: all 0.2s;
-    }
-    .kpi:hover { background: var(--bg-card-hover); border-color: var(--border-hover); }
-    .kpi-label { font-size: 12px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
-    .kpi-value { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; margin-top: 6px; }
-    .kpi-sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+    .dr{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+    .dr-b{background:transparent;border:1px solid var(--bdr);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:500;color:var(--tm);cursor:pointer;font-family:inherit;transition:all .15s}
+    .dr-b:hover{border-color:var(--bdr-h);color:var(--t)}.dr-b.on{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.15);color:var(--t)}
+    .dr-i{background:rgba(255,255,255,0.05);border:1px solid var(--bdr);border-radius:8px;padding:5px 10px;font-size:12px;color:var(--t);font-family:inherit;outline:none}.dr-i:focus{border-color:var(--acc)}
 
-    .panel {
-      background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 22px; margin-bottom: 16px;
-    }
-    .panel-title { font-size: 14px; font-weight: 700; margin-bottom: 16px; letter-spacing: -0.01em; }
+    .pt{width:100%;border-collapse:collapse;font-size:13px}
+    .pt th{text-align:left;padding:10px 12px;font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--bdr);cursor:pointer;user-select:none;white-space:nowrap}.pt th:hover{color:var(--t)}
+    .pt td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.03);vertical-align:middle}
+    .pt tr:hover td{background:rgba(255,255,255,0.02)}
+    .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+    .cap{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tm)}
 
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .grid-full { grid-column: 1 / -1; }
+    .bdg{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600}
+    .bdg-r{background:rgba(139,92,246,0.15);color:#a78bfa}.bdg-p{background:rgba(59,130,246,0.15);color:#93c5fd}.bdg-c{background:rgba(245,158,11,0.15);color:#fcd34d}
 
-    /* Posts table */
-    .posts-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .posts-table th {
-      text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 600;
-      color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;
-      border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; white-space: nowrap;
-    }
-    .posts-table th:hover { color: var(--text); }
-    .posts-table td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: middle; }
-    .posts-table tr:hover td { background: rgba(255,255,255,0.02); }
-    .posts-table .num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
-    .posts-table .caption-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted); }
+    .fc{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
+    .fch{background:transparent;border:1px solid var(--bdr);border-radius:8px;padding:6px 14px;font-size:12px;font-weight:500;color:var(--tm);cursor:pointer;transition:all .15s;font-family:inherit}.fch:hover{border-color:var(--bdr-h);color:var(--t)}.fch.on{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.15);color:var(--t)}
 
-    /* Post type badges */
-    .badge {
-      display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px;
-      border-radius: 6px; font-size: 11px; font-weight: 600;
-    }
-    .badge-reel { background: rgba(139,92,246,0.15); color: #a78bfa; }
-    .badge-photo { background: rgba(59,130,246,0.15); color: #93c5fd; }
-    .badge-carousel { background: rgba(245,158,11,0.15); color: #fcd34d; }
+    .fmr{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+    .fml{width:90px;font-size:12px;font-weight:600;flex-shrink:0}
+    .fmbg{flex:1;height:28px;background:rgba(255,255,255,0.04);border-radius:6px;overflow:hidden}
+    .fmb{height:100%;border-radius:6px;transition:width .5s;min-width:40px}
+    .fmv{font-size:13px;font-weight:700;width:60px;text-align:right;flex-shrink:0}
 
-    /* Filter tabs */
-    .filter-bar { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
-    .filter-chip {
-      background: transparent; border: 1px solid var(--border); border-radius: 8px;
-      padding: 6px 14px; font-size: 12px; font-weight: 500; color: var(--text-muted);
-      cursor: pointer; transition: all 0.15s; font-family: inherit;
-    }
-    .filter-chip:hover { border-color: var(--border-hover); color: var(--text); }
-    .filter-chip.active { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); color: var(--text); }
+    .auth-w{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+    .auth-b{background:var(--card);border:1px solid var(--bdr);border-radius:20px;padding:40px 36px;width:100%;max-width:380px;text-align:center}
+    .ai{width:100%;padding:12px 16px;background:rgba(255,255,255,0.05);border:1px solid var(--bdr);border-radius:10px;color:var(--t);font-size:14px;font-family:inherit;outline:none;transition:border-color .2s}.ai:focus{border-color:var(--acc)}.ai::placeholder{color:var(--td)}
+    .ae{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--red);text-align:left}
 
-    /* Format comparison bars */
-    .format-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-    .format-label { width: 90px; font-size: 12px; font-weight: 600; flex-shrink: 0; }
-    .format-bar-bg { flex: 1; height: 28px; background: rgba(255,255,255,0.04); border-radius: 6px; overflow: hidden; position: relative; }
-    .format-bar { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 10px; font-size: 11px; font-weight: 700; transition: width 0.5s ease; min-width: 40px; }
-    .format-val { font-size: 13px; font-weight: 700; width: 60px; text-align: right; flex-shrink: 0; }
+    .dd{position:absolute;bottom:calc(100% + 4px);left:0;background:#141416;border:1px solid var(--bdr);border-radius:12px;min-width:220px;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:200;overflow:hidden}
+    .ddi{padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;transition:background .1s}.ddi:hover{background:rgba(255,255,255,0.06)}
 
-    /* Auth */
-    .auth-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
-    .auth-box {
-      background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px;
-      padding: 40px 36px; width: 100%; max-width: 380px; text-align: center;
-    }
-    .auth-input {
-      width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.05);
-      border: 1px solid var(--border); border-radius: 10px; color: var(--text);
-      font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.2s;
-    }
-    .auth-input:focus { border-color: var(--accent); }
-    .auth-input::placeholder { color: var(--text-dim); }
-    .auth-error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--red); text-align: left; }
+    .toast{position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:1000;animation:su .3s ease}
+    .toast.ok{background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.25);color:var(--grn)}
+    .toast.err{background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);color:var(--red)}
+    .spin{width:22px;height:22px;border:2.5px solid rgba(255,255,255,0.08);border-top-color:var(--acc);border-radius:50%;animation:sp .7s linear infinite}
+    .empty{color:var(--td);font-size:14px;text-align:center;padding:40px 20px}
 
-    /* Dropdown */
-    .dropdown { position: absolute; top: calc(100% + 4px); right: 0; background: #141416; border: 1px solid var(--border); border-radius: 12px; min-width: 220px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); z-index: 200; overflow: hidden; }
-    .dropdown-item { padding: 10px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; transition: background 0.1s; }
-    .dropdown-item:hover { background: rgba(255,255,255,0.06); }
-
-    /* Toast */
-    .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 600; z-index: 1000; animation: slideUp 0.3s ease; }
-    .toast.success { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.25); color: var(--green); }
-    .toast.error { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.25); color: var(--red); }
-
-    .spinner { width: 22px; height: 22px; border: 2.5px solid rgba(255,255,255,0.08); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
-    .empty-msg { color: var(--text-dim); font-size: 14px; text-align: center; padding: 40px 20px; }
-
-    @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    @media (max-width: 900px) {
-      .sidebar { display: none; }
-      .content { margin-left: 0; padding: 16px; }
-      .grid-2 { grid-template-columns: 1fr; }
-      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-    }
+    @keyframes su{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes sp{to{transform:rotate(360deg)}}
+    @media(max-width:900px){.sidebar{display:none}.content{margin-left:0;padding:16px}.g2{grid-template-columns:1fr}.kpi-g{grid-template-columns:repeat(2,1fr)}}
   </style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="text/babel" data-type="module">
-    const { useState, useEffect, useRef, Component } = React;
+<div id="root"></div>
+<script type="text/babel" data-type="module">
+const{useState,useEffect,Component}=React;
+class EB extends Component{constructor(p){super(p);this.state={err:null}}static getDerivedStateFromError(e){return{err:e}}render(){if(this.state.err)return<div style={{padding:40,textAlign:"center",color:"var(--red)"}}><h2>Error</h2><p style={{color:"var(--tm)",margin:"8px 0 16px"}}>{String(this.state.err.message)}</p><button className="bp" onClick={()=>{this.setState({err:null});location.reload()}}>Recargar</button></div>;return this.props.children}}
 
-    class ErrorBoundary extends Component {
-      constructor(p) { super(p); this.state = { err: null }; }
-      static getDerivedStateFromError(e) { return { err: e }; }
-      render() {
-        if (this.state.err) return <div style={{ padding: 40, textAlign: "center", color: "var(--red)" }}>
-          <h2>Error de renderizado</h2>
-          <p style={{ color: "var(--text-muted)", margin: "8px 0 16px" }}>{String(this.state.err.message)}</p>
-          <button className="btn-primary" onClick={() => { this.setState({ err: null }); location.reload(); }}>Recargar</button>
-        </div>;
-        return this.props.children;
-      }
-    }
+const RC=typeof Recharts!=="undefined";
+const{AreaChart,Area,XAxis,YAxis,CartesianGrid,Tooltip,ResponsiveContainer,PieChart,Pie,Cell}=RC?Recharts:{};
+const COLS=["#e1306c","#833ab4","#f59e0b","#3b82f6","#22c55e","#ef4444","#8b5cf6","#06b6d4"];
+let sb=null;
 
-    // Recharts
-    const RC = typeof Recharts !== "undefined";
-    const { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } = RC ? Recharts : {};
+async function api(path,opts){
+  const s=sb?(await sb.auth.getSession()).data.session:null;
+  const h={...(opts?.headers||{})};if(s)h["Authorization"]="Bearer "+s.access_token;
+  const res=await fetch(path,{...opts,headers:h});const txt=await res.text();
+  let j;try{j=JSON.parse(txt)}catch{throw new Error("Bad response")}
+  if(!res.ok)throw new Error(j.error||"Error "+res.status);return j;
+}
+function n(v){return typeof v==="number"?v.toLocaleString("es-ES"):(v||"—")}
 
-    const COLORS = ["#e1306c", "#833ab4", "#f59e0b", "#3b82f6", "#22c55e", "#ef4444", "#8b5cf6", "#06b6d4"];
-    let sb = null;
+function Tip({active,payload,label}){
+  if(!active||!payload?.length)return null;
+  return<div style={{background:"#1a1a1e",border:"1px solid rgba(255,255,255,0.1)",borderRadius:10,padding:"10px 14px",fontSize:12}}>
+    <div style={{color:"var(--tm)",marginBottom:4}}>{label}</div>
+    {payload.map((p,i)=><div key={i} style={{color:p.color,fontWeight:600}}>{p.name}: {n(p.value)}</div>)}
+  </div>;
+}
 
-    async function api(path, opts) {
-      const session = sb ? (await sb.auth.getSession()).data.session : null;
-      const headers = { ...(opts?.headers || {}) };
-      if (session) headers["Authorization"] = "Bearer " + session.access_token;
-      const res = await fetch(path, { ...opts, headers });
-      const text = await res.text();
-      let json; try { json = JSON.parse(text); } catch { throw new Error("Respuesta inválida del servidor"); }
-      if (!res.ok) throw new Error(json.error || "Error " + res.status);
-      return json;
-    }
+function Auth({onAuth}){
+  const[mode,setMode]=useState("login"),[email,setE]=useState(""),[pw,setPw]=useState(""),[err,setErr]=useState(null),[ld,setLd]=useState(false);
+  const go=async()=>{setErr(null);if(!email||!pw)return setErr("Rellena todos los campos");if(pw.length<6)return setErr("Mín. 6 caracteres");setLd(true);
+    try{const r=mode==="register"?await sb.auth.signUp({email,password:pw}):await sb.auth.signInWithPassword({email,password:pw});if(r.error)throw r.error;if(r.data.user&&!r.data.session){setLd(false);return alert("Revisa tu email")}if(r.data.session)onAuth(r.data.session)}
+    catch(e){let m=e.message||"Error";if(m.includes("Invalid login"))m="Email o contraseña incorrectos";if(m.includes("already"))m="Email ya registrado";setErr(m)}setLd(false)};
+  return<div className="auth-w"><div className="auth-b">
+    <div className="sb-logo" style={{width:48,height:48,borderRadius:14,fontSize:18,margin:"0 auto 14px"}}>IG</div>
+    <h1 style={{fontSize:22,fontWeight:800,marginBottom:2,letterSpacing:"-0.03em"}}>InstaMetrics</h1>
+    <p style={{color:"var(--tm)",fontSize:13,marginBottom:24}}>{mode==="login"?"Inicia sesión":"Crea tu cuenta"}</p>
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      <input className="ai" type="email" placeholder="Email" value={email} onChange={e=>setE(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()}/>
+      <input className="ai" type="password" placeholder="Contraseña" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()}/>
+      {err&&<div className="ae">{err}</div>}
+      <button className="bp" style={{width:"100%",justifyContent:"center",padding:12,marginTop:4}} onClick={go} disabled={ld}>{ld?"...":mode==="login"?"Entrar":"Crear cuenta"}</button>
+      <button className="bg" onClick={()=>{setMode(mode==="login"?"register":"login");setErr(null)}}>{mode==="login"?"¿Sin cuenta? Regístrate":"¿Ya tienes cuenta? Login"}</button>
+    </div>
+  </div></div>;
+}
 
-    function n(v) { return typeof v === "number" ? v.toLocaleString("es-ES") : (v || "—"); }
+function getDateRange(r){const now=Math.floor(Date.now()/1000);if(r==="7d")return{since:now-7*86400,until:now};if(r==="14d")return{since:now-14*86400,until:now};if(r==="30d")return{since:now-30*86400,until:now};if(r==="90d")return{since:now-90*86400,until:now};return{}}
 
-    // ── Custom Tooltip ──
-    function Tip({ active, payload, label }) {
-      if (!active || !payload?.length) return null;
-      return <div style={{ background: "#1a1a1e", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 14px", fontSize: 12 }}>
-        <div style={{ color: "var(--text-muted)", marginBottom: 4 }}>{label}</div>
-        {payload.map((p, i) => <div key={i} style={{ color: p.color, fontWeight: 600 }}>{p.name}: {n(p.value)}</div>)}
-      </div>;
-    }
+function Badge({type,pt}){if(type==="VIDEO"||pt==="REELS")return<span className="bdg bdg-r">🎬 Reel</span>;if(type==="CAROUSEL_ALBUM")return<span className="bdg bdg-c">📑 Carrusel</span>;return<span className="bdg bdg-p">📷 Foto</span>}
 
-    // ── Auth Screen ──
-    function AuthScreen({ onAuth }) {
-      const [mode, setMode] = useState("login");
-      const [email, setEmail] = useState(""); const [pw, setPw] = useState("");
-      const [error, setError] = useState(null); const [loading, setLoading] = useState(false);
-      const submit = async () => {
-        setError(null);
-        if (!email || !pw) return setError("Rellena todos los campos");
-        if (pw.length < 6) return setError("Mínimo 6 caracteres");
-        setLoading(true);
-        try {
-          const r = mode === "register" ? await sb.auth.signUp({ email, password: pw }) : await sb.auth.signInWithPassword({ email, password: pw });
-          if (r.error) throw r.error;
-          if (r.data.user && !r.data.session) { setLoading(false); return alert("Revisa tu email para confirmar."); }
-          if (r.data.session) onAuth(r.data.session);
-        } catch (e) {
-          let m = e.message || "Error";
-          if (m.includes("Invalid login")) m = "Email o contraseña incorrectos";
-          if (m.includes("already registered")) m = "Email ya registrado — inicia sesión";
-          setError(m);
-        }
-        setLoading(false);
-      };
-      const kd = (e) => { if (e.key === "Enter") submit(); };
-      return <div className="auth-wrap"><div className="auth-box">
-        <div className="sidebar-logo" style={{ width: 48, height: 48, borderRadius: 14, fontSize: 18, margin: "0 auto 14px" }}>IG</div>
-        <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 2, letterSpacing: "-0.03em" }}>InstaMetrics</h1>
-        <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 24 }}>{mode === "login" ? "Inicia sesión" : "Crea tu cuenta"}</p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <input className="auth-input" type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={kd} />
-          <input className="auth-input" type="password" placeholder="Contraseña" value={pw} onChange={e => setPw(e.target.value)} onKeyDown={kd} />
-          {error && <div className="auth-error">{error}</div>}
-          <button className="btn-primary" style={{ width: "100%", justifyContent: "center", padding: "12px", marginTop: 4 }} onClick={submit} disabled={loading}>
-            {loading ? "..." : mode === "login" ? "Entrar" : "Crear cuenta"}
+function Dash({session,onLogout}){
+  const[accounts,setAcc]=useState([]),[selId,setSel]=useState(null),[tab,setTab]=useState("overview");
+  const[ld,setLd]=useState(true),[toast,setToast]=useState(null);
+  const[insights,setIns]=useState(null),[media,setMedia]=useState([]);
+  const[detailed,setDetailed]=useState(null),[demo,setDemo]=useState(null);
+  const[ldData,setLdData]=useState(false),[ldPosts,setLdPosts]=useState(false);
+  const[ddOpen,setDd]=useState(false),[dateRange,setDR]=useState("30d");
+  const[customFrom,setCF]=useState(""),[customTo,setCT]=useState("");
+  const[sortCol,setSC]=useState("timestamp"),[sortDir,setSD]=useState("desc"),[typeF,setTF]=useState("all");
+
+  const sToast=(m,t)=>{setToast({m,t:t||"ok"});setTimeout(()=>setToast(null),4000)};
+
+  useEffect(()=>{
+    const p=new URLSearchParams(location.search);
+    if(p.get("connected")){sToast("@"+p.get("connected")+" conectada ✓");history.replaceState({},"","/")}
+    if(p.get("error")){sToast(decodeURIComponent(p.get("error")),"err");history.replaceState({},"","/")}
+    loadAcc();
+  },[]);
+
+  const loadAcc=async()=>{try{const d=await api("/api/accounts");const a=Array.isArray(d)?d:[];setAcc(a);if(a.length>0&&!selId)setSel(a[0].id)}catch(e){console.error(e)}setLd(false)};
+
+  useEffect(()=>{if(selId)fetchData()},[selId,dateRange]);
+  useEffect(()=>{setDetailed(null)},[selId]);
+  useEffect(()=>{if(tab==="posts"&&selId&&!detailed&&!ldPosts){setLdPosts(true);api("/api/accounts/"+selId+"/media-detailed?limit=50").then(d=>{setDetailed(d);setLdPosts(false)}).catch(()=>setLdPosts(false))}},[tab,selId]);
+
+  const fetchData=async()=>{
+    setLdData(true);
+    const dr=dateRange==="custom"?(customFrom&&customTo?{since:Math.floor(new Date(customFrom).getTime()/1000),until:Math.floor(new Date(customTo).getTime()/1000)}:{}):getDateRange(dateRange);
+    const iq="/api/accounts/"+selId+"/insights?period=day"+(dr.since?"&since="+dr.since+"&until="+dr.until:"");
+    const r=await Promise.allSettled([api("/api/accounts/"+selId+"/profile"),api(iq),api("/api/accounts/"+selId+"/media?limit=50")]);
+    if(r[1].status==="fulfilled")setIns(r[1].value);else setIns(null);
+    if(r[2].status==="fulfilled"){const a=r[2].value?.data||[];setMedia(Array.isArray(a)?a:[])}else setMedia([]);
+    if(r[0].status==="fulfilled"&&r[0].value)setAcc(prev=>prev.map(a=>a.id===selId?{...a,...r[0].value,id:a.id}:a));
+    try{setDemo(await api("/api/accounts/"+selId+"/demographics"))}catch{setDemo(null)}
+    setLdData(false);
+  };
+
+  const connectIG=async()=>{const s=(await sb.auth.getSession()).data.session;if(!s)return sToast("Sesión expirada","err");location.href="/auth/instagram?token="+s.access_token};
+  const removeAcc=async id=>{await api("/api/accounts/"+id,{method:"DELETE"});const u=accounts.filter(a=>a.id!==id);setAcc(u);if(selId===id)setSel(u[0]?.id||null);sToast("Eliminada")};
+
+  const acc=accounts.find(a=>a.id===selId)||null;
+
+  const chartData=(()=>{if(!insights?.data||!Array.isArray(insights.data))return[];const reach=insights.data.find(m=>m?.name==="reach"),views=insights.data.find(m=>m?.name==="views");if(!reach?.values)return[];return reach.values.map((v,i)=>({date:v?.end_time?new Date(v.end_time).toLocaleDateString("es-ES",{day:"2-digit",month:"short"}):"",reach:v?.value||0,views:views?.values?.[i]?.value||0}))})();
+
+  const mStats=(()=>{if(!Array.isArray(media)||!media.length)return{likes:0,comments:0,byType:{}};let l=0,c=0,bt={};media.forEach(m=>{if(!m)return;l+=m.like_count||0;c+=m.comments_count||0;bt[m.media_type||"?"]=(bt[m.media_type||"?"]||0)+1});return{likes:l,comments:c,byType:bt}})();
+  const engRate=acc?.followers_count&&media.length?((mStats.likes+mStats.comments)/Math.max(media.length,1)/acc.followers_count*100).toFixed(2)+"%":"—";
+
+  const posts=detailed?.data||[];const fc=detailed?.followers_count||acc?.followers_count||1;
+  const filtered=posts.filter(p=>{if(typeF==="all")return true;if(typeF==="reel")return p.media_type==="VIDEO"||p.media_product_type==="REELS";if(typeF==="photo")return p.media_type==="IMAGE";if(typeF==="carousel")return p.media_type==="CAROUSEL_ALBUM";return true});
+  const sorted=[...filtered].sort((a,b)=>{let va,vb;if(sortCol==="timestamp"){va=new Date(a.timestamp||0);vb=new Date(b.timestamp||0)}else if(sortCol==="engagement"){va=((a.insights?.total_interactions||(a.like_count||0)+(a.comments_count||0))/fc);vb=((b.insights?.total_interactions||(b.like_count||0)+(b.comments_count||0))/fc)}else if(sortCol==="likes"){va=a.like_count||0;vb=b.like_count||0}else if(sortCol==="comments"){va=a.comments_count||0;vb=b.comments_count||0}else if(sortCol==="reach"){va=a.insights?.reach||0;vb=b.insights?.reach||0}else if(sortCol==="saves"){va=a.insights?.saved||0;vb=b.insights?.saved||0}else if(sortCol==="shares"){va=a.insights?.shares||0;vb=b.insights?.shares||0}else{va=0;vb=0}return sortDir==="desc"?(vb>va?1:-1):(va>vb?1:-1)});
+  const togSort=c=>{if(sortCol===c)setSD(sortDir==="desc"?"asc":"desc");else{setSC(c);setSD("desc")}};
+  const sIco=c=>sortCol===c?(sortDir==="desc"?" ↓":" ↑"):"";
+
+  const fmtStats=(()=>{const t={reel:{l:"Reels",p:[],c:"#8b5cf6"},photo:{l:"Fotos",p:[],c:"#3b82f6"},carousel:{l:"Carruseles",p:[],c:"#f59e0b"}};posts.forEach(p=>{const e=((p.insights?.total_interactions||(p.like_count||0)+(p.comments_count||0))/fc*100);if(p.media_type==="VIDEO"||p.media_product_type==="REELS")t.reel.p.push({e,r:p.insights?.reach||0});else if(p.media_type==="IMAGE")t.photo.p.push({e,r:p.insights?.reach||0});else if(p.media_type==="CAROUSEL_ALBUM")t.carousel.p.push({e,r:p.insights?.reach||0})});return Object.entries(t).map(([k,v])=>({k,l:v.l,c:v.c,n:v.p.length,aE:v.p.length?(v.p.reduce((s,x)=>s+x.e,0)/v.p.length):0,aR:v.p.length?(v.p.reduce((s,x)=>s+x.r,0)/v.p.length):0}))})();
+  const maxE=Math.max(...fmtStats.map(f=>f.aE),0.01),maxR=Math.max(...fmtStats.map(f=>f.aR),1);
+
+  if(ld)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh"}}><div className="spin"/></div>;
+
+  // ── Date Range Picker component ──
+  const DatePicker=()=><div className="dr">
+    {[["7d","7 días"],["14d","14 días"],["30d","30 días"],["90d","90 días"],["custom","Personalizado"]].map(([v,l])=>
+      <button key={v} className={"dr-b"+(dateRange===v?" on":"")} onClick={()=>setDR(v)}>{l}</button>
+    )}
+    {dateRange==="custom"&&<>
+      <input type="date" className="dr-i" value={customFrom} onChange={e=>setCF(e.target.value)}/>
+      <span style={{color:"var(--tm)",fontSize:12}}>→</span>
+      <input type="date" className="dr-i" value={customTo} onChange={e=>setCT(e.target.value)}/>
+      <button className="bo" style={{padding:"5px 12px",fontSize:11}} onClick={fetchData}>Aplicar</button>
+    </>}
+  </div>;
+
+  return<div className="shell">
+    {/* Sidebar */}
+    <div className="sidebar">
+      <div className="sb-brand"><div className="sb-logo">IG</div><span className="sb-title">InstaMetrics</span></div>
+      {[{id:"overview",i:"📊",l:"Overview"},{id:"posts",i:"📋",l:"Análisis de Posts"},{id:"audience",i:"👥",l:"Audiencia"}].map(t=>
+        <button key={t.id} className={"nav"+(tab===t.id?" on":"")} onClick={()=>setTab(t.id)}><span style={{fontSize:16,width:20,textAlign:"center"}}>{t.i}</span>{t.l}</button>
+      )}
+      <div style={{flex:1}}/>
+      {acc&&<div style={{borderTop:"1px solid var(--bdr)",paddingTop:12,marginTop:8}}>
+        <div style={{position:"relative"}}>
+          <button className="nav" onClick={()=>setDd(!ddOpen)} style={{width:"100%"}}>
+            {acc.profile_picture_url&&<img src={acc.profile_picture_url} style={{width:20,height:20,borderRadius:"50%"}}/>}
+            <span style={{fontSize:12,flex:1,textAlign:"left"}}>@{acc.username}</span><span style={{fontSize:10,opacity:0.4}}>▼</span>
           </button>
-          <button className="btn-ghost" onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(null); }}>
-            {mode === "login" ? "¿Sin cuenta? Regístrate" : "¿Ya tienes cuenta? Login"}
-          </button>
+          {ddOpen&&<div className="dd">{accounts.map(a=><div key={a.id} className="ddi" onClick={()=>{setSel(a.id);setDd(false)}}>
+            {a.profile_picture_url?<img src={a.profile_picture_url} style={{width:20,height:20,borderRadius:"50%"}}/>:<span style={{width:20}}/>}
+            <span style={{flex:1}}>@{a.username}</span>
+            <button className="bg" onClick={e=>{e.stopPropagation();removeAcc(a.id)}} style={{fontSize:14}}>✕</button>
+          </div>)}</div>}
         </div>
-      </div></div>;
-    }
+      </div>}
+      <button className="bp" style={{width:"100%",justifyContent:"center",marginTop:8,fontSize:12}} onClick={connectIG}>+ Conectar cuenta</button>
+      <button className="bg" onClick={onLogout} style={{textAlign:"center",marginTop:4,fontSize:11}}>Cerrar sesión</button>
+    </div>
 
-    // ── Dashboard ──
-    function Dashboard({ session, onLogout }) {
-      const [accounts, setAccounts] = useState([]);
-      const [selectedId, setSelectedId] = useState(null);
-      const [tab, setTab] = useState("overview");
-      const [loading, setLoading] = useState(true);
-      const [toast, setToast] = useState(null);
-      const [insights, setInsights] = useState(null);
-      const [media, setMedia] = useState([]);
-      const [detailedMedia, setDetailedMedia] = useState(null);
-      const [demographics, setDemographics] = useState(null);
-      const [loadingData, setLoadingData] = useState(false);
-      const [loadingPosts, setLoadingPosts] = useState(false);
-      const [ddOpen, setDdOpen] = useState(false);
+    {/* Content */}
+    <div className="content">
+      {!acc?<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"60vh",gap:16}}>
+        <div className="sb-logo" style={{width:64,height:64,borderRadius:18,fontSize:28}}>IG</div>
+        <h2 style={{fontSize:20,fontWeight:700}}>Conecta tu primera cuenta</h2>
+        <p style={{color:"var(--tm)",fontSize:14}}>Necesitas una cuenta Business o Creator.</p>
+        <button className="bp" style={{padding:"12px 24px",marginTop:8}} onClick={connectIG}>+ Conectar Instagram</button>
+      </div>:<div>
+        <div className="topbar">
+          <div><div style={{display:"flex",alignItems:"center",gap:12}}>
+            {acc.profile_picture_url&&<img src={acc.profile_picture_url} style={{width:40,height:40,borderRadius:12,border:"1px solid var(--bdr)"}}/>}
+            <div><h1>@{acc.username}</h1><p>{acc.account_type||""}{acc.name&&acc.name!==acc.username?" · "+acc.name:""}</p></div>
+          </div></div>
+          <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}><DatePicker/><button className="bo" onClick={()=>{fetchData();setDetailed(null)}}>🔄 Actualizar</button></div>
+        </div>
 
-      // Posts tab state
-      const [sortCol, setSortCol] = useState("timestamp");
-      const [sortDir, setSortDir] = useState("desc");
-      const [typeFilter, setTypeFilter] = useState("all");
+        {ldData?<div style={{display:"flex",justifyContent:"center",padding:60}}><div className="spin"/></div>:<div>
 
-      const showToast = (msg, type) => { setToast({ msg, type: type || "success" }); setTimeout(() => setToast(null), 4000); };
-
-      useEffect(() => {
-        const p = new URLSearchParams(location.search);
-        if (p.get("connected")) { showToast("@" + p.get("connected") + " conectada ✓"); history.replaceState({}, "", "/"); }
-        if (p.get("error")) { showToast(decodeURIComponent(p.get("error")), "error"); history.replaceState({}, "", "/"); }
-        loadAccounts();
-      }, []);
-
-      const loadAccounts = async () => {
-        try {
-          const d = await api("/api/accounts");
-          const arr = Array.isArray(d) ? d : [];
-          setAccounts(arr);
-          if (arr.length > 0 && !selectedId) setSelectedId(arr[0].id);
-        } catch (e) { console.error(e); }
-        setLoading(false);
-      };
-
-      useEffect(() => { if (selectedId) fetchData(); }, [selectedId]);
-
-      const fetchData = async () => {
-        setLoadingData(true);
-        const r = await Promise.allSettled([
-          api("/api/accounts/" + selectedId + "/profile"),
-          api("/api/accounts/" + selectedId + "/insights?period=day"),
-          api("/api/accounts/" + selectedId + "/media?limit=50"),
-        ]);
-        if (r[1].status === "fulfilled") setInsights(r[1].value); else setInsights(null);
-        if (r[2].status === "fulfilled") { const a = r[2].value?.data || []; setMedia(Array.isArray(a) ? a : []); } else setMedia([]);
-        if (r[0].status === "fulfilled" && r[0].value) {
-          setAccounts(prev => prev.map(a => a.id === selectedId ? { ...a, ...r[0].value, id: a.id } : a));
-        }
-        try { setDemographics(await api("/api/accounts/" + selectedId + "/demographics")); } catch { setDemographics(null); }
-        setLoadingData(false);
-      };
-
-      // Fetch detailed media (with insights per post) — only when Posts tab is opened
-      useEffect(() => {
-        if (tab === "posts" && selectedId && !detailedMedia && !loadingPosts) {
-          setLoadingPosts(true);
-          api("/api/accounts/" + selectedId + "/media-detailed?limit=50")
-            .then(d => { setDetailedMedia(d); setLoadingPosts(false); })
-            .catch(e => { console.error(e); setLoadingPosts(false); });
-        }
-      }, [tab, selectedId]);
-
-      // Reset detailed media when account changes
-      useEffect(() => { setDetailedMedia(null); }, [selectedId]);
-
-      const connectIG = async () => {
-        const s = (await sb.auth.getSession()).data.session;
-        if (!s) return showToast("Sesión expirada", "error");
-        location.href = "/auth/instagram?token=" + s.access_token;
-      };
-
-      const removeAccount = async (id) => {
-        await api("/api/accounts/" + id, { method: "DELETE" });
-        const u = accounts.filter(a => a.id !== id);
-        setAccounts(u); if (selectedId === id) setSelectedId(u[0]?.id || null);
-        showToast("Eliminada");
-      };
-
-      const acc = accounts.find(a => a.id === selectedId) || null;
-
-      // Chart data
-      const chartData = (() => {
-        if (!insights?.data || !Array.isArray(insights.data)) return [];
-        const reach = insights.data.find(m => m?.name === "reach");
-        const views = insights.data.find(m => m?.name === "views");
-        if (!reach?.values) return [];
-        return reach.values.map((v, i) => ({
-          date: v?.end_time ? new Date(v.end_time).toLocaleDateString("es-ES", { day: "2-digit", month: "short" }) : "",
-          reach: v?.value || 0,
-          views: views?.values?.[i]?.value || 0,
-        }));
-      })();
-
-      // Media stats
-      const mStats = (() => {
-        if (!Array.isArray(media) || !media.length) return { likes: 0, comments: 0, byType: {} };
-        let l = 0, c = 0, bt = {};
-        media.forEach(m => { if (!m) return; l += m.like_count || 0; c += m.comments_count || 0; const t = m.media_type || "?"; bt[t] = (bt[t] || 0) + 1; });
-        return { likes: l, comments: c, byType: bt };
-      })();
-
-      const engRate = acc?.followers_count && media.length
-        ? ((mStats.likes + mStats.comments) / Math.max(media.length, 1) / acc.followers_count * 100).toFixed(2) + "%"
-        : "—";
-
-      // ── POSTS TAB DATA ──
-      const posts = detailedMedia?.data || [];
-      const followersCount = detailedMedia?.followers_count || acc?.followers_count || 1;
-
-      const filteredPosts = posts.filter(p => {
-        if (typeFilter === "all") return true;
-        if (typeFilter === "reel") return p.media_type === "VIDEO" || p.media_product_type === "REELS";
-        if (typeFilter === "photo") return p.media_type === "IMAGE";
-        if (typeFilter === "carousel") return p.media_type === "CAROUSEL_ALBUM";
-        return true;
-      });
-
-      const sortedPosts = [...filteredPosts].sort((a, b) => {
-        let va, vb;
-        if (sortCol === "timestamp") { va = new Date(a.timestamp || 0); vb = new Date(b.timestamp || 0); }
-        else if (sortCol === "engagement") {
-          va = ((a.insights?.total_interactions || (a.like_count || 0) + (a.comments_count || 0)) / followersCount);
-          vb = ((b.insights?.total_interactions || (b.like_count || 0) + (b.comments_count || 0)) / followersCount);
-        }
-        else if (sortCol === "likes") { va = a.like_count || 0; vb = b.like_count || 0; }
-        else if (sortCol === "comments") { va = a.comments_count || 0; vb = b.comments_count || 0; }
-        else if (sortCol === "reach") { va = a.insights?.reach || 0; vb = b.insights?.reach || 0; }
-        else if (sortCol === "saves") { va = a.insights?.saved || 0; vb = b.insights?.saved || 0; }
-        else if (sortCol === "shares") { va = a.insights?.shares || 0; vb = b.insights?.shares || 0; }
-        else { va = 0; vb = 0; }
-        return sortDir === "desc" ? (vb > va ? 1 : -1) : (va > vb ? 1 : -1);
-      });
-
-      const toggleSort = (col) => {
-        if (sortCol === col) setSortDir(sortDir === "desc" ? "asc" : "desc");
-        else { setSortCol(col); setSortDir("desc"); }
-      };
-      const sortIcon = (col) => sortCol === col ? (sortDir === "desc" ? " ↓" : " ↑") : "";
-
-      // Format comparison
-      const formatStats = (() => {
-        const types = { reel: { label: "Reels", posts: [], color: "#8b5cf6" }, photo: { label: "Fotos", posts: [], color: "#3b82f6" }, carousel: { label: "Carruseles", posts: [], color: "#f59e0b" } };
-        posts.forEach(p => {
-          const eng = (p.insights?.total_interactions || (p.like_count || 0) + (p.comments_count || 0)) / followersCount * 100;
-          if (p.media_type === "VIDEO" || p.media_product_type === "REELS") types.reel.posts.push({ eng, reach: p.insights?.reach || 0, saves: p.insights?.saved || 0 });
-          else if (p.media_type === "IMAGE") types.photo.posts.push({ eng, reach: p.insights?.reach || 0, saves: p.insights?.saved || 0 });
-          else if (p.media_type === "CAROUSEL_ALBUM") types.carousel.posts.push({ eng, reach: p.insights?.reach || 0, saves: p.insights?.saved || 0 });
-        });
-        return Object.entries(types).map(([k, v]) => ({
-          key: k, label: v.label, color: v.color, count: v.posts.length,
-          avgEng: v.posts.length ? (v.posts.reduce((s, p) => s + p.eng, 0) / v.posts.length) : 0,
-          avgReach: v.posts.length ? (v.posts.reduce((s, p) => s + p.reach, 0) / v.posts.length) : 0,
-          avgSaves: v.posts.length ? (v.posts.reduce((s, p) => s + p.saves, 0) / v.posts.length) : 0,
-        }));
-      })();
-      const maxEng = Math.max(...formatStats.map(f => f.avgEng), 0.01);
-      const maxReach = Math.max(...formatStats.map(f => f.avgReach), 1);
-
-      function TypeBadge({ type, productType }) {
-        if (type === "VIDEO" || productType === "REELS") return <span className="badge badge-reel">🎬 Reel</span>;
-        if (type === "CAROUSEL_ALBUM") return <span className="badge badge-carousel">📑 Carrusel</span>;
-        return <span className="badge badge-photo">📷 Foto</span>;
-      }
-
-      if (loading) return <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}><div className="spinner"></div></div>;
-
-      return (
-        <div className="shell">
-          {/* Sidebar */}
-          <div className="sidebar">
-            <div className="sidebar-brand">
-              <div className="sidebar-logo">IG</div>
-              <span className="sidebar-title">InstaMetrics</span>
+          {/* ═══ OVERVIEW ═══ */}
+          {tab==="overview"&&<>
+            <div className="kpi-g">
+              <div className="kpi"><div className="kpi-l">Seguidores</div><div className="kpi-v">{n(acc.followers_count||0)}</div></div>
+              <div className="kpi"><div className="kpi-l">Siguiendo</div><div className="kpi-v">{n(acc.follows_count||0)}</div></div>
+              <div className="kpi"><div className="kpi-l">Publicaciones</div><div className="kpi-v">{n(acc.media_count||0)}</div></div>
+              <div className="kpi"><div className="kpi-l">Likes (últ. posts)</div><div className="kpi-v">{n(mStats.likes)}</div></div>
+              <div className="kpi"><div className="kpi-l">Comentarios</div><div className="kpi-v">{n(mStats.comments)}</div></div>
+              <div className="kpi"><div className="kpi-l">Eng. Rate</div><div className="kpi-v">{engRate}</div><div className="kpi-s">media interacciones / seguidores</div></div>
             </div>
-
-            {[
-              { id: "overview", icon: "📊", label: "Overview" },
-              { id: "posts", icon: "📋", label: "Análisis de Posts" },
-              { id: "audience", icon: "👥", label: "Audiencia" },
-            ].map(t => (
-              <button key={t.id} className={"nav-item" + (tab === t.id ? " active" : "")} onClick={() => setTab(t.id)}>
-                <span className="nav-icon">{t.icon}</span>{t.label}
-              </button>
-            ))}
-
-            <div style={{ flex: 1 }} />
-
-            {/* Account selector in sidebar */}
-            {acc && (
-              <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, marginTop: 8 }}>
-                <div style={{ position: "relative" }}>
-                  <button className="nav-item" onClick={() => setDdOpen(!ddOpen)} style={{ width: "100%" }}>
-                    {acc.profile_picture_url && <img src={acc.profile_picture_url} style={{ width: 20, height: 20, borderRadius: "50%" }} />}
-                    <span style={{ fontSize: 12, flex: 1, textAlign: "left" }}>@{acc.username}</span>
-                    <span style={{ fontSize: 10, opacity: 0.4 }}>▼</span>
-                  </button>
-                  {ddOpen && <div className="dropdown" style={{ bottom: "calc(100% + 4px)", top: "auto", left: 0 }}>
-                    {accounts.map(a => (
-                      <div key={a.id} className="dropdown-item" onClick={() => { setSelectedId(a.id); setDdOpen(false); }}>
-                        {a.profile_picture_url ? <img src={a.profile_picture_url} style={{ width: 20, height: 20, borderRadius: "50%" }} /> : <span style={{ width: 20 }} />}
-                        <span style={{ flex: 1 }}>@{a.username}</span>
-                        <button className="btn-ghost" onClick={e => { e.stopPropagation(); removeAccount(a.id); }} style={{ fontSize: 14 }}>✕</button>
-                      </div>
-                    ))}
-                  </div>}
-                </div>
+            <div className="g2">
+              {RC&&chartData.length>0&&<div className="pnl gf"><div className="pnl-t">Alcance y Visualizaciones</div>
+                <ResponsiveContainer width="100%" height={260}><AreaChart data={chartData}>
+                  <defs><linearGradient id="gR" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e1306c" stopOpacity={0.2}/><stop offset="100%" stopColor="#e1306c" stopOpacity={0}/></linearGradient><linearGradient id="gV" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#3b82f6" stopOpacity={0.2}/><stop offset="100%" stopColor="#3b82f6" stopOpacity={0}/></linearGradient></defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)"/><XAxis dataKey="date" stroke="rgba(255,255,255,0.15)" fontSize={11} tickLine={false}/><YAxis stroke="rgba(255,255,255,0.15)" fontSize={11} tickLine={false} tickFormatter={v=>v>=1000?(v/1000).toFixed(1)+"k":v}/>
+                  <Tooltip content={<Tip/>}/><Area type="monotone" dataKey="reach" stroke="#e1306c" strokeWidth={2} fill="url(#gR)" name="Alcance"/><Area type="monotone" dataKey="views" stroke="#3b82f6" strokeWidth={2} fill="url(#gV)" name="Visualizaciones"/>
+                </AreaChart></ResponsiveContainer></div>}
+              <div className="pnl"><div className="pnl-t">🏆 Top Posts</div><div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {media.slice().sort((a,b)=>(b.like_count||0)-(a.like_count||0)).slice(0,5).map((m,i)=>
+                  <a key={m.id||i} href={m.permalink||"#"} target="_blank" rel="noopener" style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,background:"rgba(255,255,255,0.02)"}}>
+                    {(m.thumbnail_url||m.media_url)&&<img src={m.thumbnail_url||m.media_url} style={{width:38,height:38,borderRadius:6,objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>}
+                    <div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.caption?m.caption.slice(0,40):"Sin caption"}</div><div style={{fontSize:11,color:"var(--td)"}}>{m.timestamp?new Date(m.timestamp).toLocaleDateString("es-ES"):""}</div></div>
+                    <div style={{fontSize:13,fontWeight:700,color:"var(--acc)"}}>❤ {n(m.like_count||0)}</div>
+                  </a>
+                )}{media.length===0&&<p className="empty">No hay publicaciones</p>}
+              </div></div>
+              <div className="pnl"><div className="pnl-t">Distribución de contenido</div>
+                {Object.entries(mStats.byType).length>0?<div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  {Object.entries(mStats.byType).map(([type,count],i)=>{const labels={IMAGE:"Fotos",VIDEO:"Reels/Video",CAROUSEL_ALBUM:"Carruseles"};const pct=count/Math.max(media.length,1)*100;return<div key={type}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}}><span style={{fontWeight:600}}>{labels[type]||type}</span><span style={{color:"var(--tm)"}}>{count} ({pct.toFixed(0)}%)</span></div><div style={{height:6,borderRadius:3,background:"rgba(255,255,255,0.04)",overflow:"hidden"}}><div style={{height:"100%",borderRadius:3,width:pct+"%",background:COLS[i%COLS.length]}}/></div></div>})}
+                </div>:<p className="empty">Sin datos</p>}
               </div>
-            )}
+              {chartData.length===0&&<div className="pnl gf"><p className="empty">📈 Los insights aparecerán cuando Instagram tenga datos.</p></div>}
+            </div>
+          </>}
 
-            <button className="btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: 8, fontSize: 12 }} onClick={connectIG}>
-              + Conectar cuenta
-            </button>
-            <button className="btn-ghost" onClick={onLogout} style={{ textAlign: "center", marginTop: 4, fontSize: 11 }}>
-              Cerrar sesión ({session.user.email?.split("@")[0]})
-            </button>
-          </div>
+          {/* ═══ POSTS ═══ */}
+          {tab==="posts"&&<>{ldPosts?<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:12,padding:60}}><div className="spin"/><p style={{fontSize:13,color:"var(--tm)"}}>Cargando insights de cada post...</p></div>
+          :posts.length===0?<p className="empty">No hay posts con insights disponibles</p>:<>
+            <div className="g2" style={{marginBottom:16}}>
+              <div className="pnl"><div className="pnl-t">Engagement medio por formato</div>{fmtStats.map(f=>f.n>0&&<div className="fmr" key={f.k}><div className="fml" style={{color:f.c}}>{f.l} <span style={{color:"var(--td)",fontWeight:400}}>({f.n})</span></div><div className="fmbg"><div className="fmb" style={{width:(f.aE/maxE*100)+"%",background:f.c+"30"}}/></div><div className="fmv">{f.aE.toFixed(2)}%</div></div>)}</div>
+              <div className="pnl"><div className="pnl-t">Alcance medio por formato</div>{fmtStats.map(f=>f.n>0&&<div className="fmr" key={f.k}><div className="fml" style={{color:f.c}}>{f.l}</div><div className="fmbg"><div className="fmb" style={{width:(f.aR/maxR*100)+"%",background:f.c+"30"}}/></div><div className="fmv">{n(Math.round(f.aR))}</div></div>)}</div>
+            </div>
+            <div className="pnl">
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><div className="pnl-t" style={{margin:0}}>Todos los posts ({filtered.length})</div></div>
+              <div className="fc">{[["all","Todos"],["reel","🎬 Reels"],["photo","📷 Fotos"],["carousel","📑 Carruseles"]].map(([id,l])=><button key={id} className={"fch"+(typeF===id?" on":"")} onClick={()=>setTF(id)}>{l}</button>)}</div>
+              <div style={{overflowX:"auto"}}><table className="pt"><thead><tr>
+                <th style={{width:40}}>#</th><th>Tipo</th><th onClick={()=>togSort("timestamp")}>Fecha{sIco("timestamp")}</th><th>Caption</th>
+                <th className="num" onClick={()=>togSort("likes")}>❤ Likes{sIco("likes")}</th><th className="num" onClick={()=>togSort("comments")}>💬 Com.{sIco("comments")}</th>
+                <th className="num" onClick={()=>togSort("reach")}>👁 Reach{sIco("reach")}</th><th className="num" onClick={()=>togSort("saves")}>🔖 Saves{sIco("saves")}</th>
+                <th className="num" onClick={()=>togSort("shares")}>↗ Shares{sIco("shares")}</th><th className="num" onClick={()=>togSort("engagement")}>📊 Eng%{sIco("engagement")}</th>
+              </tr></thead><tbody>
+                {sorted.map((p,i)=>{const eng=((p.insights?.total_interactions||(p.like_count||0)+(p.comments_count||0))/fc*100);return<tr key={p.id||i}>
+                  <td style={{color:"var(--td)",fontSize:11}}>{i+1}</td>
+                  <td><Badge type={p.media_type} pt={p.media_product_type}/></td>
+                  <td style={{fontSize:12,whiteSpace:"nowrap"}}>{p.timestamp?new Date(p.timestamp).toLocaleDateString("es-ES"):"—"}</td>
+                  <td className="cap"><a href={p.permalink||"#"} target="_blank" rel="noopener" style={{color:"var(--tm)"}}>{p.caption?p.caption.slice(0,50)+(p.caption.length>50?"...":""):"—"}</a></td>
+                  <td className="num">{n(p.like_count||0)}</td><td className="num">{n(p.comments_count||0)}</td>
+                  <td className="num">{n(p.insights?.reach||0)}</td><td className="num">{n(p.insights?.saved||0)}</td><td className="num">{n(p.insights?.shares||0)}</td>
+                  <td className="num" style={{color:eng>5?"var(--grn)":eng>2?"var(--org)":"var(--tm)",fontWeight:700}}>{eng.toFixed(2)}%</td>
+                </tr>})}
+              </tbody></table></div>
+            </div>
+          </>}</>}
 
-          {/* Content */}
-          <div className="content">
-            {!acc ? (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", gap: 16 }}>
-                <div className="sidebar-logo" style={{ width: 64, height: 64, borderRadius: 18, fontSize: 28 }}>IG</div>
-                <h2 style={{ fontSize: 20, fontWeight: 700 }}>Conecta tu primera cuenta</h2>
-                <p style={{ color: "var(--text-muted)", fontSize: 14 }}>Necesitas una cuenta Business o Creator.</p>
-                <button className="btn-primary" style={{ padding: "12px 24px", marginTop: 8 }} onClick={connectIG}>+ Conectar Instagram</button>
-              </div>
-            ) : (
-              <div>
-                <div className="topbar">
-                  <div className="topbar-left">
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      {acc.profile_picture_url && <img src={acc.profile_picture_url} style={{ width: 40, height: 40, borderRadius: 12, border: "1px solid var(--border)" }} />}
-                      <div>
-                        <h1>@{acc.username}</h1>
-                        <p>{acc.account_type || ""}{acc.name && acc.name !== acc.username ? " · " + acc.name : ""}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <button className="btn-outline" onClick={() => { fetchData(); setDetailedMedia(null); }}>🔄 Actualizar</button>
-                </div>
+          {/* ═══ AUDIENCE ═══ */}
+          {tab==="audience"&&<div className="g2">
+            {demo?.data&&Array.isArray(demo.data)?demo.data.map((m,idx)=>{
+              const labels={"engaged_audience_demographics":"👥 Audiencia comprometida","reached_audience_demographics":"📡 Audiencia alcanzada","follower_demographics":"🎯 Seguidores"};
+              const label=labels[m?.name]||m?.name||"Métrica";
+              const br=m?.total_value?.breakdowns?.[0]?.results;
+              if(!br)return<div key={idx} className="pnl"><div className="pnl-t">{label}</div><p className="empty">Sin datos</p></div>;
+              const s=[...br].sort((a,b)=>(b.value||0)-(a.value||0));const mx=s[0]?.value||1;
+              return<div key={idx} className="pnl"><div className="pnl-t">{label}</div><div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {s.slice(0,12).map((item,i)=><div key={i}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:3}}><span style={{fontWeight:500}}>{Object.values(item.dimension_values||{}).join(" · ")||"—"}</span><span style={{fontWeight:600,color:COLS[i%COLS.length]}}>{n(item.value||0)}</span></div><div style={{height:5,borderRadius:3,background:"rgba(255,255,255,0.04)",overflow:"hidden"}}><div style={{height:"100%",borderRadius:3,width:((item.value||0)/mx*100)+"%",background:COLS[i%COLS.length]}}/></div></div>)}
+              </div></div>
+            }):<div className="pnl gf"><p className="empty">👥 Los datos demográficos requieren al menos 100 seguidores.</p></div>}
+          </div>}
 
-                {loadingData ? <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><div className="spinner"></div></div> : (
-                  <div>
-                    {/* ═══════ OVERVIEW ═══════ */}
-                    {tab === "overview" && <>
-                      <div className="kpi-grid">
-                        <div className="kpi"><div className="kpi-label">Seguidores</div><div className="kpi-value">{n(acc.followers_count || 0)}</div></div>
-                        <div className="kpi"><div className="kpi-label">Siguiendo</div><div className="kpi-value">{n(acc.follows_count || 0)}</div></div>
-                        <div className="kpi"><div className="kpi-label">Publicaciones</div><div className="kpi-value">{n(acc.media_count || 0)}</div></div>
-                        <div className="kpi"><div className="kpi-label">Likes (últ. posts)</div><div className="kpi-value">{n(mStats.likes)}</div></div>
-                        <div className="kpi"><div className="kpi-label">Comentarios</div><div className="kpi-value">{n(mStats.comments)}</div></div>
-                        <div className="kpi"><div className="kpi-label">Eng. Rate</div><div className="kpi-value">{engRate}</div><div className="kpi-sub">media interacciones / seguidores</div></div>
-                      </div>
+        </div>}
+      </div>}
+    </div>
+    {toast&&<div className={"toast "+toast.t}>{toast.m}</div>}
+    {ddOpen&&<div style={{position:"fixed",inset:0,zIndex:49}} onClick={()=>setDd(false)}/>}
+  </div>;
+}
 
-                      <div className="grid-2">
-                        {RC && chartData.length > 0 && (
-                          <div className="panel grid-full">
-                            <div className="panel-title">Alcance y Visualizaciones (diario)</div>
-                            <ResponsiveContainer width="100%" height={260}>
-                              <AreaChart data={chartData}>
-                                <defs>
-                                  <linearGradient id="gR" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e1306c" stopOpacity={0.2} /><stop offset="100%" stopColor="#e1306c" stopOpacity={0} /></linearGradient>
-                                  <linearGradient id="gV" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#3b82f6" stopOpacity={0.2} /><stop offset="100%" stopColor="#3b82f6" stopOpacity={0} /></linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                                <XAxis dataKey="date" stroke="rgba(255,255,255,0.15)" fontSize={11} tickLine={false} />
-                                <YAxis stroke="rgba(255,255,255,0.15)" fontSize={11} tickLine={false} tickFormatter={v => v >= 1000 ? (v/1000).toFixed(1)+"k" : v} />
-                                <Tooltip content={<Tip />} />
-                                <Area type="monotone" dataKey="reach" stroke="#e1306c" strokeWidth={2} fill="url(#gR)" name="Alcance" />
-                                <Area type="monotone" dataKey="views" stroke="#3b82f6" strokeWidth={2} fill="url(#gV)" name="Visualizaciones" />
-                              </AreaChart>
-                            </ResponsiveContainer>
-                          </div>
-                        )}
+function App(){
+  const[session,setS]=useState(null),[ld,setLd]=useState(true);
+  useEffect(()=>{fetch("/api/config").then(r=>r.json()).then(cfg=>{sb=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);sb.auth.getSession().then(r=>{if(r.data.session)setS(r.data.session);setLd(false)});sb.auth.onAuthStateChange((_,s)=>setS(s))}).catch(()=>setLd(false))},[]);
+  if(ld)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh"}}><div className="spin"/></div>;
+  if(!session)return<Auth onAuth={s=>setS(s)}/>;
+  return<Dash session={session} onLogout={async()=>{await sb.auth.signOut();setS(null)}}/>;
+}
 
-                        {/* Top 5 posts quick view */}
-                        <div className="panel">
-                          <div className="panel-title">🏆 Top Posts (por likes)</div>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                            {media.slice().sort((a, b) => (b.like_count || 0) - (a.like_count || 0)).slice(0, 5).map((m, i) => (
-                              <a key={m.id || i} href={m.permalink || "#"} target="_blank" rel="noopener"
-                                style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, background: "rgba(255,255,255,0.02)", transition: "background 0.15s" }}>
-                                {(m.thumbnail_url || m.media_url) && <img src={m.thumbnail_url || m.media_url} style={{ width: 38, height: 38, borderRadius: 6, objectFit: "cover" }} onError={e => e.target.style.display="none"} />}
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                    {m.caption ? m.caption.slice(0, 40) : "Sin caption"}
-                                  </div>
-                                  <div style={{ fontSize: 11, color: "var(--text-dim)" }}>{m.timestamp ? new Date(m.timestamp).toLocaleDateString("es-ES") : ""}</div>
-                                </div>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--accent)" }}>❤ {n(m.like_count || 0)}</div>
-                              </a>
-                            ))}
-                            {media.length === 0 && <p className="empty-msg">No hay publicaciones</p>}
-                          </div>
-                        </div>
-
-                        {/* Content distribution */}
-                        <div className="panel">
-                          <div className="panel-title">Distribución de contenido</div>
-                          {Object.entries(mStats.byType).length > 0 ? (
-                            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                              {Object.entries(mStats.byType).map(([type, count], i) => {
-                                const labels = { IMAGE: "Fotos", VIDEO: "Reels/Video", CAROUSEL_ALBUM: "Carruseles" };
-                                const pct = (count / Math.max(media.length, 1) * 100);
-                                return <div key={type}>
-                                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
-                                    <span style={{ fontWeight: 600 }}>{labels[type] || type}</span>
-                                    <span style={{ color: "var(--text-muted)" }}>{count} ({pct.toFixed(0)}%)</span>
-                                  </div>
-                                  <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.04)", overflow: "hidden" }}>
-                                    <div style={{ height: "100%", borderRadius: 3, width: pct + "%", background: COLORS[i % COLORS.length] }} />
-                                  </div>
-                                </div>;
-                              })}
-                            </div>
-                          ) : <p className="empty-msg">Sin datos</p>}
-                        </div>
-
-                        {chartData.length === 0 && <div className="panel grid-full"><p className="empty-msg">📈 Los insights aparecerán cuando Instagram tenga datos suficientes.</p></div>}
-                      </div>
-                    </>}
-
-                    {/* ═══════ POSTS ANALYSIS ═══════ */}
-                    {tab === "posts" && <>
-                      {loadingPosts ? (
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: 60 }}>
-                          <div className="spinner"></div>
-                          <p style={{ fontSize: 13, color: "var(--text-muted)" }}>Cargando insights de cada post... (puede tardar unos segundos)</p>
-                        </div>
-                      ) : posts.length === 0 ? (
-                        <p className="empty-msg">No hay posts con insights disponibles</p>
-                      ) : <>
-                        {/* Format Comparison */}
-                        <div className="grid-2" style={{ marginBottom: 16 }}>
-                          <div className="panel">
-                            <div className="panel-title">Engagement medio por formato</div>
-                            {formatStats.map(f => f.count > 0 && (
-                              <div className="format-row" key={f.key}>
-                                <div className="format-label" style={{ color: f.color }}>{f.label} <span style={{ color: "var(--text-dim)", fontWeight: 400 }}>({f.count})</span></div>
-                                <div className="format-bar-bg">
-                                  <div className="format-bar" style={{ width: (f.avgEng / maxEng * 100) + "%", background: f.color + "30" }}></div>
-                                </div>
-                                <div className="format-val">{f.avgEng.toFixed(2)}%</div>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="panel">
-                            <div className="panel-title">Alcance medio por formato</div>
-                            {formatStats.map(f => f.count > 0 && (
-                              <div className="format-row" key={f.key}>
-                                <div className="format-label" style={{ color: f.color }}>{f.label}</div>
-                                <div className="format-bar-bg">
-                                  <div className="format-bar" style={{ width: (f.avgReach / maxReach * 100) + "%", background: f.color + "30" }}></div>
-                                </div>
-                                <div className="format-val">{n(Math.round(f.avgReach))}</div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Filter + Table */}
-                        <div className="panel">
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                            <div className="panel-title" style={{ margin: 0 }}>Todos los posts ({filteredPosts.length})</div>
-                          </div>
-                          <div className="filter-bar">
-                            {[
-                              { id: "all", label: "Todos" },
-                              { id: "reel", label: "🎬 Reels" },
-                              { id: "photo", label: "📷 Fotos" },
-                              { id: "carousel", label: "📑 Carruseles" },
-                            ].map(f => (
-                              <button key={f.id} className={"filter-chip" + (typeFilter === f.id ? " active" : "")} onClick={() => setTypeFilter(f.id)}>
-                                {f.label}
-                              </button>
-                            ))}
-                          </div>
-
-                          <div style={{ overflowX: "auto" }}>
-                            <table className="posts-table">
-                              <thead>
-                                <tr>
-                                  <th style={{ width: 40 }}>#</th>
-                                  <th>Tipo</th>
-                                  <th onClick={() => toggleSort("timestamp")}>Fecha{sortIcon("timestamp")}</th>
-                                  <th style={{ maxWidth: 200 }}>Caption</th>
-                                  <th className="num" onClick={() => toggleSort("likes")}>❤ Likes{sortIcon("likes")}</th>
-                                  <th className="num" onClick={() => toggleSort("comments")}>💬 Com.{sortIcon("comments")}</th>
-                                  <th className="num" onClick={() => toggleSort("reach")}>👁 Reach{sortIcon("reach")}</th>
-                                  <th className="num" onClick={() => toggleSort("saves")}>🔖 Saves{sortIcon("saves")}</th>
-                                  <th className="num" onClick={() => toggleSort("shares")}>↗ Shares{sortIcon("shares")}</th>
-                                  <th className="num" onClick={() => toggleSort("engagement")}>📊 Eng%{sortIcon("engagement")}</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {sortedPosts.map((p, i) => {
-                                  const eng = ((p.insights?.total_interactions || (p.like_count || 0) + (p.comments_count || 0)) / followersCount * 100);
-                                  return (
-                                    <tr key={p.id || i}>
-                                      <td style={{ color: "var(--text-dim)", fontSize: 11 }}>{i + 1}</td>
-                                      <td><TypeBadge type={p.media_type} productType={p.media_product_type} /></td>
-                                      <td style={{ fontSize: 12, whiteSpace: "nowrap" }}>{p.timestamp ? new Date(p.timestamp).toLocaleDateString("es-ES") : "—"}</td>
-                                      <td className="caption-cell">
-                                        <a href={p.permalink || "#"} target="_blank" rel="noopener" style={{ color: "var(--text-muted)" }}>
-                                          {p.caption ? p.caption.slice(0, 50) + (p.caption.length > 50 ? "..." : "") : "—"}
-                                        </a>
-                                      </td>
-                                      <td className="num">{n(p.like_count || 0)}</td>
-                                      <td className="num">{n(p.comments_count || 0)}</td>
-                                      <td className="num">{n(p.insights?.reach || 0)}</td>
-                                      <td className="num">{n(p.insights?.saved || 0)}</td>
-                                      <td className="num">{n(p.insights?.shares || 0)}</td>
-                                      <td className="num" style={{ color: eng > 5 ? "var(--green)" : eng > 2 ? "var(--orange)" : "var(--text-muted)", fontWeight: 700 }}>
-                                        {eng.toFixed(2)}%
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </>}
-                    </>}
-
-                    {/* ═══════ AUDIENCE ═══════ */}
-                    {tab === "audience" && (
-                      <div className="grid-2">
-                        {demographics?.data && Array.isArray(demographics.data) ? demographics.data.map((metric, idx) => {
-                          const br = metric?.total_value?.breakdowns?.[0]?.results;
-                          if (!br) return <div key={idx} className="panel"><div className="panel-title">{metric?.title || metric?.name}</div><p className="empty-msg">Sin datos</p></div>;
-                          const sorted = [...br].sort((a, b) => (b.value || 0) - (a.value || 0));
-                          const max = sorted[0]?.value || 1;
-                          return (
-                            <div key={idx} className="panel">
-                              <div className="panel-title">{metric.title || metric.name}</div>
-                              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                {sorted.slice(0, 12).map((item, i) => (
-                                  <div key={i}>
-                                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
-                                      <span style={{ fontWeight: 500 }}>{Object.values(item.dimension_values || {}).join(" · ") || "—"}</span>
-                                      <span style={{ fontWeight: 600, color: COLORS[i % COLORS.length] }}>{n(item.value || 0)}</span>
-                                    </div>
-                                    <div style={{ height: 5, borderRadius: 3, background: "rgba(255,255,255,0.04)", overflow: "hidden" }}>
-                                      <div style={{ height: "100%", borderRadius: 3, width: ((item.value || 0) / max * 100) + "%", background: COLORS[i % COLORS.length] }} />
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        }) : (
-                          <div className="panel grid-full">
-                            <p className="empty-msg">👥 Los datos demográficos requieren al menos 100 seguidores.</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {toast && <div className={"toast " + toast.type}>{toast.msg}</div>}
-          {ddOpen && <div style={{ position: "fixed", inset: 0, zIndex: 49 }} onClick={() => setDdOpen(false)} />}
-        </div>
-      );
-    }
-
-    // ── Root ──
-    function App() {
-      const [session, setSession] = useState(null);
-      const [loading, setLoading] = useState(true);
-      useEffect(() => {
-        fetch("/api/config").then(r => r.json()).then(cfg => {
-          sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
-          sb.auth.getSession().then(r => { if (r.data.session) setSession(r.data.session); setLoading(false); });
-          sb.auth.onAuthStateChange((_, s) => setSession(s));
-        }).catch(() => setLoading(false));
-      }, []);
-      if (loading) return <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}><div className="spinner"></div></div>;
-      if (!session) return <AuthScreen onAuth={s => setSession(s)} />;
-      return <Dashboard session={session} onLogout={async () => { await sb.auth.signOut(); setSession(null); }} />;
-    }
-
-    ReactDOM.createRoot(document.getElementById("root")).render(<ErrorBoundary><App /></ErrorBoundary>);
-  </script>
+ReactDOM.createRoot(document.getElementById("root")).render(<EB><App/></EB>);
+</script>
 </body>
 </html>
