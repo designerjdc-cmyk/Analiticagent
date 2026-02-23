@@ -109,7 +109,7 @@ a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer}
 .ae{background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.15);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--red);text-align:left}
 
 /* DROPDOWNS */
-.dd{position:absolute;bottom:calc(100% + 6px);left:0;right:0;background:#151419;border:1px solid rgba(255,255,255,.06);border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,.5);z-index:200;overflow:hidden}
+.dd{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#151419;border:1px solid rgba(255,255,255,.06);border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,.5);z-index:200;overflow:hidden;max-height:240px;overflow-y:auto}
 .ddi{padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:12.5px;transition:background .15s;cursor:pointer}.ddi:hover{background:rgba(225,48,108,.06)}
 
 /* TOAST */
@@ -178,6 +178,70 @@ function useAnalytics(posts,fc){return useMemo(()=>{if(!posts?.length)return nul
 
 function exportCSV(posts,fn){const h=["Fecha","Tipo","Score","Clasif","Likes","Comments","Reach","Saves","Shares","Eng%","Caption"];const rows=posts.map(p=>[p.timestamp?new Date(p.timestamp).toLocaleDateString("es-ES"):"",p.media_type,p.score,p.label,p.likes,p.comments,p.reach,p.saves,p.shares,(p.engRate*100).toFixed(2),'"'+(p.caption||"").replace(/"/g,'""').replace(/\n/g," ").slice(0,200)+'"']);const csv="\uFEFF"+[h,...rows].map(r=>r.join(";")).join("\n");const b=new Blob([csv],{type:"text/csv;charset=utf-8"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=fn||"posts.csv";a.click();URL.revokeObjectURL(u)}
 
+// ── SMART INSIGHTS ENGINE (zero cost, rule-based) ──
+function analyzePost(post,A){
+  if(!A||!post)return[];const reasons=[];const avgEng=A.oaE;const avgReach=A.aR;
+  // Format
+  const fmt=post.media_type==="VIDEO"||post.media_product_type==="REELS"?"reel":post.media_type==="CAROUSEL_ALBUM"?"carousel":"photo";
+  const fmtS=A.fmStats.find(f=>f.key===fmt);const bestFmt=A.bestFmt;
+  if(fmtS&&bestFmt&&fmtS.key===bestFmt.key)reasons.push({icon:"🎬",text:`Publicado como ${fmtS.label} — tu formato con mejor engagement (${fmtS.avgEng.toFixed(2)}%)`});
+  else if(fmtS)reasons.push({icon:"📝",text:`Formato ${fmtS.label} (${fmtS.avgEng.toFixed(2)}% eng medio). Tu mejor formato es ${bestFmt?.label||"?"}`});
+  // Time
+  if(post.timestamp){const d=new Date(post.timestamp),hr=d.getHours(),day=d.getDay();const slot=A.hmD.find(h=>h.day===day&&h.hour===hr);
+    if(slot&&slot.avg>avgEng)reasons.push({icon:"🕐",text:`Publicado a las ${hr}:00 (${A.dn[day]}) — una de tus mejores horas (${slot.avg.toFixed(2)}% eng medio)`});
+    else if(slot&&slot.count>0)reasons.push({icon:"⏰",text:`Publicado a las ${hr}:00 (${A.dn[day]}) — hora con ${slot.avg.toFixed(2)}% eng (media: ${avgEng.toFixed(2)}%)`})}
+  // Caption length
+  const capLen=(post.caption||"").length;const capCat=capLen===0?"Sin caption":capLen<50?"Corto":capLen<150?"Medio":capLen<300?"Largo":"Muy largo";
+  const bestCap=A.capStats.length?[...A.capStats].sort((a,b)=>b.avgEng-a.avgEng)[0]:null;
+  if(bestCap&&capCat===bestCap.label)reasons.push({icon:"✍️",text:`Caption ${capCat.toLowerCase()} (${capLen} chars) — tu longitud con mejor rendimiento`});
+  else reasons.push({icon:"✍️",text:`Caption ${capCat.toLowerCase()} (${capLen} chars). Mejor rendimiento: "${bestCap?.label||"?"}" (${bestCap?.avgEng.toFixed(2)||0}%)`});
+  // Hashtags
+  const tags=(post.caption||"").match(/#[\wáéíóúñü]+/gi)||[];const topTags=A.hashtags.slice(0,5).map(h=>h.tag);
+  const matching=tags.filter(t=>topTags.includes(t.toLowerCase()));
+  if(matching.length>0)reasons.push({icon:"#️⃣",text:`Usa ${matching.length} de tus top hashtags: ${matching.join(", ")}`});
+  else if(tags.length>0)reasons.push({icon:"#️⃣",text:`${tags.length} hashtags, pero ninguno de tus top 5. Prueba: ${topTags.slice(0,3).join(", ")}`});
+  // Engagement vs average
+  const engPct=post.engRate*100;
+  if(engPct>avgEng*2)reasons.push({icon:"🔥",text:`Engagement ${engPct.toFixed(2)}% — ${(engPct/avgEng).toFixed(1)}× tu media. Contenido excepcional`});
+  else if(engPct>avgEng*1.3)reasons.push({icon:"📈",text:`Engagement ${engPct.toFixed(2)}% — por encima de tu media (${avgEng.toFixed(2)}%)`});
+  else if(engPct<avgEng*0.5)reasons.push({icon:"📉",text:`Engagement ${engPct.toFixed(2)}% — muy por debajo de tu media (${avgEng.toFixed(2)}%)`});
+  // Saves ratio (quality signal)
+  if(post.saves>0&&post.likes>0){const saveRatio=post.saves/post.likes*100;
+    if(saveRatio>10)reasons.push({icon:"💾",text:`Ratio saves/likes de ${saveRatio.toFixed(1)}% — contenido de alto valor (la gente lo guarda)`});
+    else if(saveRatio>5)reasons.push({icon:"💾",text:`Ratio saves/likes: ${saveRatio.toFixed(1)}%. Buen indicador de contenido útil`})}
+  // Shares
+  if(post.shares>0&&post.reach>0){const shareRate=post.shares/post.reach*100;
+    if(shareRate>2)reasons.push({icon:"🔄",text:`${shareRate.toFixed(1)}% de personas lo compartieron — alta viralidad orgánica`})}
+  return reasons;
+}
+
+function generateCalendar(A){
+  if(!A)return[];const dn=["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+  const fmts=A.fmStats.filter(f=>f.count>0).sort((a,b)=>b.avgEng-a.avgEng);
+  const days=[];
+  for(let d=0;d<7;d++){const dayHours=A.hmD.filter(h=>h.day===d&&h.count>0).sort((a,b)=>b.avg-a.avg);
+    if(dayHours.length===0)continue;const bestHr=dayHours[0];
+    const fmt=fmts[d%fmts.length]||fmts[0];
+    const topTags=A.hashtags.slice(0,3).map(h=>h.tag).join(" ");
+    days.push({day:dn[d],dayNum:d,hour:bestHr.hour,eng:bestHr.avg,format:fmt?.label||"Post",color:fmt?.color||C[0],tags:topTags})}
+  return days.sort((a,b)=>b.eng-a.eng).slice(0,5);
+}
+
+function generateIdeas(A){
+  if(!A)return[];const ideas=[];
+  const bestFmt=A.bestFmt;const topTags=A.hashtags.slice(0,5);const bestCap=A.capStats.length?[...A.capStats].sort((a,b)=>b.avgEng-a.avgEng)[0]:null;
+  if(bestFmt){
+    if(bestFmt.key==="reel")ideas.push({icon:"🎬",title:"Reel con hook fuerte",desc:`Los Reels son tu formato estrella (${bestFmt.avgEng.toFixed(2)}%). Empieza con una pregunta o dato impactante en los primeros 2 segundos.`});
+    else if(bestFmt.key==="carousel")ideas.push({icon:"📑",title:"Carrusel educativo",desc:`Tus carruseles funcionan bien (${bestFmt.avgEng.toFixed(2)}%). Haz uno tipo "5 cosas que..." o "Guía rápida de..." — generan muchos saves.`});
+    else ideas.push({icon:"📷",title:"Foto con storytelling",desc:`Tus fotos funcionan a ${bestFmt.avgEng.toFixed(2)}% eng. Combina buena imagen con caption largo que cuente una historia.`});}
+  if(topTags.length>2)ideas.push({icon:"#️⃣",title:"Contenido sobre tu nicho",desc:`Tus hashtags con mejor rendimiento son ${topTags.slice(0,3).map(t=>t.tag).join(", ")}. Crea contenido específico sobre estas temáticas.`});
+  if(bestCap)ideas.push({icon:"✍️",title:`Caption ${bestCap.label.toLowerCase()}`,desc:`Tus captions "${bestCap.label}" tienen ${bestCap.avgEng.toFixed(2)}% de engagement. ${bestCap.label.includes("Largo")?"Cuenta historias personales.":bestCap.label.includes("Corto")?"Ve al grano con CTAs directos.":"Equilibra información y personalidad."}`});
+  if(A.viralCount>0){const viral=A.posts.filter(p=>p.label.includes("Viral"))[0];if(viral)ideas.push({icon:"🔥",title:"Replica tu viral",desc:`Tu post viral tenía ${viral.reach} reach. Analiza qué lo hizo especial y crea contenido similar con un ángulo nuevo.`})}
+  ideas.push({icon:"💾",title:"Contenido guardable",desc:"Posts tipo checklists, tutoriales paso a paso, o datos útiles generan más saves — la métrica que más valora Instagram para distribución."});
+  ideas.push({icon:"🤝",title:"Post de comunidad",desc:"Haz una pregunta abierta o encuesta en Stories. Los posts que generan comentarios largos reciben más alcance orgánico."});
+  return ideas;
+}
+
 function Auth({onAuth}){const[m,setM]=useState("login"),[e,setE]=useState(""),[p,setP]=useState(""),[err,setErr]=useState(null),[ld,setLd]=useState(false);
   const go=async()=>{setErr(null);if(!e||!p)return setErr("Rellena todos los campos");if(p.length<6)return setErr("Mínimo 6 caracteres");setLd(true);try{const r=m==="register"?await sb.auth.signUp({email:e,password:p}):await sb.auth.signInWithPassword({email:e,password:p});if(r.error)throw r.error;if(r.data.user&&!r.data.session){setLd(false);return alert("Revisa tu email para confirmar")}if(r.data.session)onAuth(r.data.session)}catch(x){let msg=x.message;if(msg.includes("Invalid"))msg="Email o contraseña incorrectos";if(msg.includes("already"))msg="Este email ya está registrado";setErr(msg)}setLd(false)};
   return<div className="auth-w"><div className="auth-b">
@@ -205,6 +269,7 @@ function Dash({session,onLogout}){
   const[ddO,setDd]=useState(false),[dr,setDR]=useState("30d"),[cf,setCF]=useState(""),[ct,setCT]=useState("");
   const[sc,setSC]=useState("score"),[sd,setSD]=useState("desc"),[tf,setTF]=useState("all"),[page,setPage]=useState(1);
   const[mobMenu,setMob]=useState(false);
+  const[analyzeId,setAnalyzeId]=useState(null);
   const sT=(m,t)=>{setToast({m,t:t||"ok"});setTimeout(()=>setToast(null),3500)};
   const userEmail=session?.user?.email||"";
   const switchTab=t=>{setTab(t);sessionStorage.setItem("im_tab",t);setMob(false)};
@@ -343,6 +408,42 @@ function Dash({session,onLogout}){
           <div className="pnl"><div className="pt">✍️ Longitud de caption</div>{A.capStats.map((b,i)=><div key={i} style={{marginBottom:11}}><div style={{display:"flex",justifyContent:"space-between",fontSize:11.5,marginBottom:3}}><span style={{fontWeight:600}}>{b.label} ({b.count})</span><span style={{fontWeight:700,color:C[i%C.length]}}>{b.avgEng.toFixed(2)}%</span></div><div style={{height:4,borderRadius:2,background:"rgba(255,255,255,.03)",overflow:"hidden"}}><div style={{height:"100%",borderRadius:2,width:Math.max(b.avgEng/Math.max(...A.capStats.map(x=>x.avgEng),.01)*100,3)+"%",background:C[i%C.length]}}/></div></div>)}</div>
           {RC&&A.freqData.length>2&&<div className="pnl gf"><div className="pt">📅 Frecuencia vs engagement</div><ResponsiveContainer width="100%" height={190}><BarChart data={A.freqData}><CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.03)"/><XAxis dataKey="week" stroke="rgba(255,255,255,.1)" fontSize={10} tickLine={false}/><YAxis yAxisId="l" stroke="rgba(255,255,255,.1)" fontSize={10} tickLine={false}/><YAxis yAxisId="r" orientation="right" stroke="rgba(255,255,255,.1)" fontSize={10} tickLine={false} tickFormatter={v=>v.toFixed(1)+"%"}/><Tooltip content={<Tip/>}/><Bar yAxisId="l" dataKey="posts" fill="rgba(96,165,250,.2)" radius={[4,4,0,0]} name="Posts/semana"/><Bar yAxisId="r" dataKey="avgEng" fill="rgba(225,48,108,.35)" radius={[4,4,0,0]} name="Eng%"/></BarChart></ResponsiveContainer></div>}
           {RC&&A.engTrend.length>3&&<div className="pnl gf"><div className="pt">📉 Evolución del engagement</div><ResponsiveContainer width="100%" height={170}><AreaChart data={A.engTrend}><CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.03)"/><XAxis dataKey="date" stroke="rgba(255,255,255,.1)" fontSize={10} tickLine={false}/><YAxis stroke="rgba(255,255,255,.1)" fontSize={10} tickLine={false} tickFormatter={v=>v.toFixed(1)+"%"}/><Tooltip content={<Tip/>}/><Area type="monotone" dataKey="rolling" stroke="#e1306c" strokeWidth={2} fill="rgba(225,48,108,.06)" name="Eng% (media 5)"/></AreaChart></ResponsiveContainer></div>}
+
+          {/* ── SMART: Why did it work? ── */}
+          <div className="pnl gf" style={{background:"linear-gradient(135deg,rgba(225,48,108,.03),rgba(131,58,180,.02))",border:"1px solid rgba(225,48,108,.08)"}}>
+            <div className="pt">🔍 ¿Por qué funcionó? — Análisis de tus mejores posts</div>
+            <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>{A.top5.map((p,i)=><button key={p.id||i} className={analyzeId===(p.id||i)?"fch on":"fch"} onClick={()=>setAnalyzeId(analyzeId===(p.id||i)?null:(p.id||i))} style={{fontSize:11}}>#{i+1} Score {p.score}</button>)}</div>
+            {analyzeId!=null&&(()=>{const post=A.top5.find(p=>(p.id||A.top5.indexOf(p))===analyzeId)||A.top5[0];const reasons=analyzePost(post,A);
+              return<div style={{background:"rgba(255,255,255,.02)",borderRadius:12,padding:16}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14,borderBottom:"1px solid rgba(255,255,255,.04)",paddingBottom:12}}>
+                  <ScoreRing score={post.score}/><div style={{flex:1}}><div style={{fontSize:13,fontWeight:700}}>{post.caption?post.caption.slice(0,50)+"...":"Sin caption"}</div><div style={{fontSize:11,color:"var(--td)",marginTop:2}}><Badge type={post.media_type} pt={post.media_product_type}/> · ❤ {n(post.likes)} · 👁 {n(post.reach)} · 💾 {n(post.saves)} · 🔄 {n(post.shares)}</div></div></div>
+                {reasons.map((r,i)=><div key={i} style={{display:"flex",gap:10,padding:"8px 0",borderBottom:i<reasons.length-1?"1px solid rgba(255,255,255,.025)":"none"}}><span style={{fontSize:16,flexShrink:0}}>{r.icon}</span><span style={{fontSize:12.5,color:"var(--tm)",lineHeight:1.55}}>{r.text}</span></div>)}
+              </div>})()}
+            {analyzeId==null&&<p style={{fontSize:12,color:"var(--td)"}}>Selecciona un post para ver el análisis detallado de por qué funcionó.</p>}
+          </div>
+
+          {/* ── SMART: Content Ideas ── */}
+          <div className="pnl gf"><div className="pt">💡 Ideas de contenido para ti</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:10}}>
+              {generateIdeas(A).map((idea,i)=><div key={i} style={{background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.04)",borderRadius:12,padding:16,transition:"all .2s"}}>
+                <div style={{fontSize:15,marginBottom:6}}>{idea.icon}</div>
+                <div style={{fontSize:13,fontWeight:700,marginBottom:5}}>{idea.title}</div>
+                <p style={{fontSize:11.5,color:"var(--tm)",lineHeight:1.6}}>{idea.desc}</p>
+              </div>)}
+            </div>
+          </div>
+
+          {/* ── SMART: Weekly Calendar ── */}
+          <div className="pnl gf"><div className="pt">📅 Tu plan semanal óptimo</div>
+            {(()=>{const cal=generateCalendar(A);return cal.length>0?<div style={{display:"grid",gap:8}}>
+              {cal.map((d,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:14,padding:"12px 16px",background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.04)",borderRadius:11,borderLeft:"3px solid "+d.color}}>
+                <div style={{minWidth:80}}><div style={{fontSize:13,fontWeight:700}}>{d.day}</div><div style={{fontSize:11,color:"var(--td)"}}>{d.hour}:00</div></div>
+                <div style={{flex:1}}><div style={{fontSize:12.5,fontWeight:600,color:d.color}}>{d.format}</div><div style={{fontSize:10.5,color:"var(--td)",marginTop:2}}>{d.tags}</div></div>
+                <div style={{textAlign:"right"}}><div style={{fontSize:12,fontWeight:700}}>{d.eng.toFixed(2)}%</div><div style={{fontSize:10,color:"var(--td)"}}>eng histórico</div></div>
+              </div>)}
+              <p style={{fontSize:10.5,color:"var(--td)",marginTop:4}}>Basado en tu mejor hora por día de la semana, formato más efectivo, y hashtags con mejor rendimiento.</p>
+            </div>:<p style={{color:"var(--td)",fontSize:12}}>Necesitas más datos para generar un calendario.</p>})()}
+          </div>
         </div>
       </>}</>}
 
