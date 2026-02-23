@@ -104,9 +104,7 @@
     }
     .charts-grid .full-width { grid-column: 1 / -1; }
 
-    .account-selector {
-      position: relative; display: inline-block;
-    }
+    .account-selector { position: relative; display: inline-block; }
     .dropdown {
       position: absolute; top: calc(100% + 6px); right: 0;
       background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1);
@@ -165,15 +163,27 @@
       font-size: 13px; color: #FFB74D; display: flex; align-items: center; gap: 10px;
     }
 
-    .error-boundary-box {
-      padding: 40px; text-align: center; color: #FF6B6B;
-      font-family: 'DM Sans', sans-serif;
-    }
-
     #error-display {
       display: none; color: #FF6B6B; padding: 40px; text-align: center;
       font-family: 'DM Sans', sans-serif; font-size: 15px;
     }
+
+    .debug-panel {
+      position: fixed; bottom: 0; left: 0; right: 0; max-height: 50vh;
+      background: #111122; border-top: 2px solid #DD2A7B;
+      overflow-y: auto; z-index: 9999; font-family: 'Courier New', monospace;
+      font-size: 12px; padding: 12px 16px;
+    }
+    .debug-panel .debug-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 8px; position: sticky; top: 0; background: #111122;
+      padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .debug-panel .log-line { padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+    .debug-panel .log-ok { color: #38EF7D; }
+    .debug-panel .log-err { color: #FF6B6B; }
+    .debug-panel .log-warn { color: #FFB74D; }
+    .debug-panel .log-info { color: #8888ff; }
 
     @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -192,22 +202,36 @@
     <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
     <h2 style="margin-bottom: 8px;">Error cargando la aplicación</h2>
     <p id="error-msg" style="color: rgba(255,255,255,0.5);"></p>
-    <p style="margin-top: 16px; color: rgba(255,255,255,0.3); font-size: 13px;">Abre la consola del navegador (F12) para más detalles.</p>
+    <p style="margin-top: 16px; color: rgba(255,255,255,0.3); font-size: 13px;">Abre la consola (F12) para más detalles.</p>
   </div>
 
   <script type="text/babel" data-type="module">
-    // Check dependencies loaded
     if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
       throw new Error('React no pudo cargar. Revisa tu conexión a internet.');
     }
 
-    const { useState, useEffect, useCallback, Component } = React;
+    const { useState, useEffect, useCallback, useRef, Component } = React;
 
     // ================================================================
-    // FIX 4: ErrorBoundary — React 18 unmounts the entire tree on any
-    // unhandled render error. Without a boundary the user sees a blank
-    // page. This class component catches render errors in the subtree
-    // and shows a recoverable error panel instead.
+    // DEBUG LOG — collects logs in memory, shown via Ctrl+D panel
+    // ================================================================
+    const _debugLogs = [];
+    function dlog(level, msg, data) {
+      var entry = {
+        ts: new Date().toISOString().slice(11, 23),
+        level: level,
+        msg: msg,
+        data: data !== undefined ? data : null,
+      };
+      _debugLogs.push(entry);
+      if (_debugLogs.length > 200) _debugLogs.shift();
+      // Also log to real console
+      var fn = level === "error" ? console.error : level === "warn" ? console.warn : console.log;
+      fn("[IM:" + level + "]", msg, data !== undefined ? data : "");
+    }
+
+    // ================================================================
+    // ErrorBoundary
     // ================================================================
     class ErrorBoundary extends Component {
       constructor(props) {
@@ -218,20 +242,22 @@
         return { hasError: true, error };
       }
       componentDidCatch(error, info) {
-        console.error("ErrorBoundary caught:", error, info);
+        dlog("error", "REACT RENDER CRASH: " + error.message, info.componentStack);
       }
       render() {
         if (this.state.hasError) {
           return (
-            <div className="error-boundary-box">
-              <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
-              <h2 style={{ marginBottom: 8 }}>Algo salió mal al renderizar el dashboard</h2>
-              <p style={{ color: "rgba(255,255,255,0.5)", marginBottom: 16 }}>
-                {this.state.error ? String(this.state.error.message || this.state.error) : "Error desconocido"}
+            <div style={{ padding: 40, textAlign: "center", color: "#FF6B6B" }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>💥</div>
+              <h2 style={{ marginBottom: 8 }}>Error de renderizado</h2>
+              <p style={{ color: "rgba(255,255,255,0.5)", marginBottom: 8 }}>
+                {this.state.error ? String(this.state.error.message) : "Error desconocido"}
               </p>
-              <button className="btn-connect"
-                style={{ margin: "0 auto" }}
-                onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}>
+              <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 13, marginBottom: 16 }}>
+                Pulsa Ctrl+D para ver el panel de debug
+              </p>
+              <button className="btn-connect" style={{ margin: "0 auto" }}
+                onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}>
                 Recargar
               </button>
             </div>
@@ -242,9 +268,11 @@
     }
 
     // ================================================================
-    // Recharts components (with fallback)
+    // Recharts (with fallback)
     // ================================================================
     const RechartAvailable = typeof Recharts !== 'undefined';
+    dlog("info", "Recharts available: " + RechartAvailable);
+
     const LineChart = RechartAvailable ? Recharts.LineChart : function() { return null; };
     const Line = RechartAvailable ? Recharts.Line : function() { return null; };
     const AreaChart = RechartAvailable ? Recharts.AreaChart : function() { return null; };
@@ -255,7 +283,7 @@
     const YAxis = RechartAvailable ? Recharts.YAxis : function() { return null; };
     const CartesianGrid = RechartAvailable ? Recharts.CartesianGrid : function() { return null; };
     const Tooltip = RechartAvailable ? Recharts.Tooltip : function() { return null; };
-    const ResponsiveContainer = RechartAvailable ? Recharts.ResponsiveContainer : function(props) { return React.createElement('div', null, props.children); };
+    const ResponsiveContainer = RechartAvailable ? Recharts.ResponsiveContainer : function(p) { return React.createElement('div', null, p.children); };
     const PieChart = RechartAvailable ? Recharts.PieChart : function() { return null; };
     const Pie = RechartAvailable ? Recharts.Pie : function() { return null; };
     const Cell = RechartAvailable ? Recharts.Cell : function() { return null; };
@@ -263,21 +291,27 @@
     const COLORS = ["#DD2A7B", "#8134AF", "#F58529", "#515BD4", "#1DA1F2", "#38EF7D", "#FC466B", "#FFD200"];
     const PIE_COLORS = ["#DD2A7B", "#8134AF", "#F58529", "#515BD4"];
 
-    // API Helper
-    async function api(path, opts = {}) {
-      const res = await fetch(path, opts);
-      if (!res.ok) {
-        const err = await res.json().catch(function() { return { error: res.statusText }; });
-        throw new Error(err.error || "API Error");
+    // API Helper with debug logging
+    async function api(path, opts) {
+      dlog("info", "API call: " + path);
+      try {
+        var res = await fetch(path, opts || {});
+        var body = await res.text();
+        var json;
+        try { json = JSON.parse(body); } catch(e) {
+          dlog("error", "API non-JSON response from " + path, body.slice(0, 200));
+          throw new Error("Non-JSON response from " + path);
+        }
+        if (!res.ok) {
+          dlog("error", "API " + res.status + " from " + path, json);
+          throw new Error(json.error || "API Error " + res.status);
+        }
+        dlog("ok", "API OK: " + path, { keys: Object.keys(json), dataLen: json.data ? json.data.length : "n/a" });
+        return json;
+      } catch(e) {
+        dlog("error", "API exception: " + path + " — " + e.message);
+        throw e;
       }
-      return res.json();
-    }
-
-    // Safe number formatter — never throws
-    function fmt(val) {
-      if (val == null || val === undefined) return "0";
-      if (typeof val === "number") return val.toLocaleString("es-ES");
-      return String(val);
     }
 
     // Chart Tooltip
@@ -291,10 +325,11 @@
       },
         React.createElement('div', { style: { fontSize: 12, color: "rgba(255,255,255,0.5)", marginBottom: 6 } }, label || ""),
         ...(Array.isArray(payload) ? payload : []).map(function(p, i) {
+          var v = typeof p.value === "number" ? p.value.toLocaleString("es-ES") : String(p.value || "");
           return React.createElement('div', {
             key: i,
             style: { fontSize: 13, color: p.color, fontWeight: 600, marginBottom: 2 }
-          }, (p.name || "") + ": " + fmt(p.value));
+          }, (p.name || "") + ": " + v);
         })
       );
     }
@@ -330,6 +365,103 @@
     }
 
     // ================================================================
+    // Debug Panel (toggle with Ctrl+D)
+    // ================================================================
+    function DebugPanel({ visible, onClose, accounts, selectedId, insights, media, demographics }) {
+      var [debugReport, setDebugReport] = useState(null);
+      var [loadingDebug, setLoadingDebug] = useState(false);
+
+      var runFullDebug = async function() {
+        if (!selectedId) return;
+        setLoadingDebug(true);
+        try {
+          var r = await fetch("/api/debug/" + selectedId);
+          var data = await r.json();
+          setDebugReport(data);
+          dlog("ok", "Debug report loaded", data.summary);
+        } catch(e) {
+          dlog("error", "Debug report failed: " + e.message);
+        }
+        setLoadingDebug(false);
+      };
+
+      if (!visible) return null;
+      return (
+        <div className="debug-panel">
+          <div className="debug-header">
+            <span style={{ color: "#DD2A7B", fontWeight: "bold", fontSize: 14 }}>
+              🐛 DEBUG PANEL — Ctrl+D para cerrar
+            </span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={runFullDebug}
+                style={{ background: "#DD2A7B", border: "none", color: "#fff", borderRadius: 6, padding: "4px 12px", cursor: "pointer", fontSize: 12 }}>
+                {loadingDebug ? "Testing..." : "🧪 Run API Tests"}
+              </button>
+              <button onClick={onClose}
+                style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "#fff", borderRadius: 6, padding: "4px 12px", cursor: "pointer", fontSize: 12 }}>
+                ✕ Cerrar
+              </button>
+            </div>
+          </div>
+
+          {/* State snapshot */}
+          <div style={{ marginBottom: 8 }}>
+            <div className="log-line log-info"><strong>STATE SNAPSHOT:</strong></div>
+            <div className="log-line">accounts.length = {accounts ? accounts.length : "null"}</div>
+            <div className="log-line">selectedId = {JSON.stringify(selectedId)} (type: {typeof selectedId})</div>
+            <div className="log-line">
+              acc found = {accounts && accounts.find(function(a) { return a.id === selectedId; }) ? "YES ✓" : "NO ✗ — THIS IS THE CRASH"}
+            </div>
+            {accounts && accounts.length > 0 && (
+              <div className="log-line">
+                account IDs: {accounts.map(function(a) { return JSON.stringify(a.id) + " (" + typeof a.id + ")"; }).join(", ")}
+              </div>
+            )}
+            <div className="log-line">insights = {insights ? "loaded (" + (insights.data ? insights.data.length + " metrics" : "no .data") + ")" : "null"}</div>
+            <div className="log-line">media = {Array.isArray(media) ? media.length + " items" : "not array"}</div>
+            <div className="log-line">demographics = {demographics ? "loaded" : "null"}</div>
+          </div>
+
+          {/* API Test results */}
+          {debugReport && (
+            <div style={{ marginBottom: 8, padding: 8, background: "rgba(255,255,255,0.03)", borderRadius: 8 }}>
+              <div className="log-line log-info"><strong>API TEST RESULTS ({debugReport.summary.passed}/{debugReport.summary.total} passed):</strong></div>
+              <div className="log-line">Graph base: {debugReport.graph_base}</div>
+              <div className="log-line">Stored ID: {debugReport.stored_id} (type: {debugReport.stored_id_type})</div>
+              {debugReport.stored_account && (
+                <div className="log-line">Token valid: {debugReport.stored_account.token_valid ? "YES" : "NO"} | Expires in: {debugReport.stored_account.days_until_expiry} days</div>
+              )}
+              {Object.entries(debugReport.tests).map(function(entry) {
+                var name = entry[0], test = entry[1];
+                var cls = test.status === "OK" ? "log-ok" : "log-err";
+                return (
+                  <div key={name} className={"log-line " + cls}>
+                    {test.status === "OK" ? "✓" : "✗"} {name}: {test.status}
+                    {test.error ? " — " + (typeof test.error === "string" ? test.error : JSON.stringify(test.error)) : ""}
+                    {test.count !== undefined ? " (" + test.count + " items)" : ""}
+                    {test.response_id !== undefined ? " | resp.id=" + JSON.stringify(test.response_id) + " resp.user_id=" + JSON.stringify(test.response_user_id) : ""}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Log entries */}
+          <div className="log-line log-info" style={{ marginTop: 4 }}><strong>EVENT LOG ({_debugLogs.length} entries):</strong></div>
+          {_debugLogs.slice(-50).map(function(entry, i) {
+            var cls = entry.level === "error" ? "log-err" : entry.level === "warn" ? "log-warn" : entry.level === "ok" ? "log-ok" : "log-info";
+            return (
+              <div key={i} className={"log-line " + cls}>
+                [{entry.ts}] {entry.msg}
+                {entry.data ? " → " + (typeof entry.data === "string" ? entry.data.slice(0, 120) : JSON.stringify(entry.data).slice(0, 120)) : ""}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // ================================================================
     // Main App
     // ================================================================
     function App() {
@@ -343,6 +475,19 @@
       var [media, setMedia] = useState([]);
       var [demographics, setDemographics] = useState(null);
       var [loadingData, setLoadingData] = useState(false);
+      var [showDebug, setShowDebug] = useState(false);
+
+      // Ctrl+D toggles debug panel
+      useEffect(function() {
+        var handler = function(e) {
+          if (e.ctrlKey && e.key === "d") {
+            e.preventDefault();
+            setShowDebug(function(v) { return !v; });
+          }
+        };
+        window.addEventListener("keydown", handler);
+        return function() { window.removeEventListener("keydown", handler); };
+      }, []);
 
       var showToast = function(msg, type) {
         setToast({ msg: msg, type: type || "success" });
@@ -359,16 +504,26 @@
           showToast(params.get("error"), "error");
           window.history.replaceState({}, "", "/");
         }
+        // Auto-show debug on ?debug param
+        if (params.get("debug") !== null) {
+          setShowDebug(true);
+        }
         loadAccountsList();
       }, []);
 
       var loadAccountsList = async function() {
+        dlog("info", "Loading accounts list...");
         try {
           var data = await api("/api/accounts");
-          setAccounts(Array.isArray(data) ? data : []);
-          if (Array.isArray(data) && data.length > 0 && !selectedId) setSelectedId(data[0].id);
+          var arr = Array.isArray(data) ? data : [];
+          dlog("ok", "Accounts loaded: " + arr.length, arr.map(function(a) { return { id: a.id, idType: typeof a.id, user: a.username }; }));
+          setAccounts(arr);
+          if (arr.length > 0 && !selectedId) {
+            dlog("info", "Auto-selecting first account: " + JSON.stringify(arr[0].id) + " (type: " + typeof arr[0].id + ")");
+            setSelectedId(arr[0].id);
+          }
         } catch (e) {
-          console.log("No accounts yet or API error:", e.message);
+          dlog("error", "loadAccountsList failed: " + e.message);
           setAccounts([]);
         }
         setLoading(false);
@@ -376,11 +531,14 @@
 
       useEffect(function() {
         if (!selectedId) return;
+        dlog("info", "selectedId changed → fetching data for " + JSON.stringify(selectedId));
         fetchAccountData();
       }, [selectedId]);
 
       var fetchAccountData = async function() {
         setLoadingData(true);
+        dlog("info", "fetchAccountData START for id=" + JSON.stringify(selectedId));
+
         try {
           var results = await Promise.allSettled([
             api("/api/accounts/" + selectedId + "/profile"),
@@ -392,36 +550,68 @@
           var insightsData = results[1];
           var mediaData = results[2];
 
+          dlog("info", "allSettled results", {
+            profile: profileData.status,
+            insights: insightsData.status,
+            media: mediaData.status,
+          });
+
+          // INSIGHTS
           if (insightsData.status === "fulfilled" && insightsData.value) {
             setInsights(insightsData.value);
+            dlog("ok", "Insights set", { metrics: insightsData.value.data ? insightsData.value.data.length : 0 });
           } else {
-            console.warn("Insights fetch failed:", insightsData.reason);
+            dlog("warn", "Insights failed", insightsData.reason ? String(insightsData.reason) : "unknown");
             setInsights(null);
           }
 
+          // MEDIA
           if (mediaData.status === "fulfilled" && mediaData.value) {
             var mediaArr = (mediaData.value && mediaData.value.data) || [];
             setMedia(Array.isArray(mediaArr) ? mediaArr : []);
+            dlog("ok", "Media set: " + (Array.isArray(mediaArr) ? mediaArr.length : 0) + " items");
           } else {
-            console.warn("Media fetch failed:", mediaData.reason);
+            dlog("warn", "Media failed", mediaData.reason ? String(mediaData.reason) : "unknown");
             setMedia([]);
           }
 
+          // PROFILE — FIX: preserve the original account id!
           if (profileData.status === "fulfilled" && profileData.value) {
+            var profileVal = profileData.value;
+            dlog("info", "Profile response keys: " + Object.keys(profileVal).join(","),
+              { resp_id: profileVal.id, resp_id_type: typeof profileVal.id, resp_user_id: profileVal.user_id });
+
             setAccounts(function(prev) {
               return prev.map(function(a) {
-                return a.id === selectedId ? Object.assign({}, a, profileData.value) : a;
+                if (a.id === selectedId) {
+                  // ★★★ CRITICAL FIX: Always preserve a.id — the Instagram API
+                  // response may include an `id` field (sometimes numeric) that
+                  // would overwrite our stored string id, breaking the find() lookup.
+                  var merged = Object.assign({}, a, profileVal, { id: a.id });
+                  dlog("ok", "Profile merged for " + a.username + " — id preserved as " + JSON.stringify(merged.id));
+                  return merged;
+                }
+                return a;
               });
             });
+          } else {
+            dlog("warn", "Profile failed", profileData.reason ? String(profileData.reason) : "unknown");
           }
 
+          // DEMOGRAPHICS
           try {
             var demo = await api("/api/accounts/" + selectedId + "/demographics");
             setDemographics(demo);
-          } catch(e) { setDemographics(null); }
+          } catch(e) {
+            dlog("warn", "Demographics failed: " + e.message);
+            setDemographics(null);
+          }
         } catch (e) {
-          showToast("Error fetching data: " + e.message, "error");
+          dlog("error", "fetchAccountData EXCEPTION: " + e.message);
+          showToast("Error: " + e.message, "error");
         }
+
+        dlog("info", "fetchAccountData DONE");
         setLoadingData(false);
       };
 
@@ -464,7 +654,7 @@
         });
       })();
 
-      // Media stats — fully defensive
+      // Media stats
       var mediaStats = (function() {
         if (!Array.isArray(media) || !media.length) return { totalLikes: 0, totalComments: 0, byType: {} };
         var totalLikes = 0, totalComments = 0, byType = {};
@@ -487,7 +677,6 @@
         ? Math.floor((acc.token_expires_at - Date.now()) / (1000 * 60 * 60 * 24))
         : null;
 
-      // Engagement rate — safe division
       var engRate = (function() {
         if (!acc || !acc.followers_count || !media.length) return "—";
         var avg = (mediaStats.totalLikes + mediaStats.totalComments) / Math.max(media.length, 1);
@@ -496,8 +685,11 @@
 
       if (loading) {
         return (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", flexDirection: "column", gap: 16 }}>
             <div className="loading-spinner"></div>
+            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 13 }}>Ctrl+D = debug panel</p>
+            <DebugPanel visible={showDebug} onClose={function() { setShowDebug(false); }}
+              accounts={accounts} selectedId={selectedId} insights={insights} media={media} demographics={demographics} />
           </div>
         );
       }
@@ -524,7 +716,6 @@
                     {"@" + (acc.username || "Seleccionar")}
                     <span style={{ opacity: 0.4, fontSize: 12 }}>▼</span>
                   </button>
-
                   {dropdownOpen && (
                     <div className="dropdown">
                       {accounts.map(function(a, i) {
@@ -549,7 +740,6 @@
                   )}
                 </div>
               )}
-
               <button className="btn-connect" onClick={function() { window.location.href = "/auth/login"; }}>
                 + Conectar cuenta
               </button>
@@ -575,11 +765,27 @@
                 <div style={{ marginTop: 32, padding: 24, background: "rgba(255,255,255,0.03)", borderRadius: 16, maxWidth: 500, textAlign: "left" }}>
                   <h4 style={{ marginBottom: 12, color: "rgba(255,255,255,0.7)" }}>⚡ Antes de conectar:</h4>
                   <ol style={{ paddingLeft: 20, color: "rgba(255,255,255,0.5)", lineHeight: 2, fontSize: 14 }}>
-                    <li>Tu cuenta debe ser <strong style={{ color: "#fff" }}>Business</strong> o <strong style={{ color: "#fff" }}>Creator</strong> (se cambia gratis en Ajustes → Cuenta)</li>
-                    <li>El administrador debe configurar la app en <a href="https://developers.facebook.com" target="_blank" style={{ color: "#DD2A7B" }}>Meta for Developers</a></li>
+                    <li>Tu cuenta debe ser <strong style={{ color: "#fff" }}>Business</strong> o <strong style={{ color: "#fff" }}>Creator</strong></li>
+                    <li>Configura la app en <a href="https://developers.facebook.com" target="_blank" style={{ color: "#DD2A7B" }}>Meta for Developers</a></li>
                     <li>Pulsa "Conectar cuenta" y autoriza el acceso</li>
                   </ol>
                 </div>
+                {/* Debug hint when on welcome screen with accounts */}
+                {accounts.length > 0 && (
+                  <div style={{ marginTop: 24, padding: 16, background: "rgba(255,100,100,0.08)", border: "1px solid rgba(255,100,100,0.2)", borderRadius: 12, maxWidth: 500 }}>
+                    <p style={{ color: "#FF6B6B", fontSize: 13, fontWeight: 600 }}>
+                      ⚠️ Hay {accounts.length} cuenta(s) conectada(s) pero no se puede seleccionar.
+                      <br />
+                      <span style={{ color: "rgba(255,255,255,0.5)", fontWeight: 400 }}>
+                        selectedId = {JSON.stringify(selectedId)} | account IDs = [{accounts.map(function(a) { return JSON.stringify(a.id); }).join(", ")}]
+                      </span>
+                      <br />
+                      <span style={{ color: "rgba(255,255,255,0.4)", fontWeight: 400 }}>
+                        Pulsa Ctrl+D para abrir el debug panel, o ve a <a href="/?debug" style={{ color: "#DD2A7B" }}>/?debug</a>
+                      </span>
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <div>
@@ -610,7 +816,6 @@
                       </p>
                     </div>
                   </div>
-
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <button className="btn-secondary" onClick={fetchAccountData}
                       style={{ fontSize: 13, padding: "8px 14px" }}>
@@ -747,7 +952,7 @@
                           </div>
                         </div>
 
-                        {/* Multi-account comparison */}
+                        {/* Multi-account */}
                         {accounts.length > 1 && (
                           <div className="chart-card full-width">
                             <h3 style={{ marginBottom: 16, fontSize: 16, fontWeight: 700 }}>Comparación entre cuentas</h3>
@@ -756,20 +961,14 @@
                                 <thead>
                                   <tr>
                                     {["Cuenta", "Seguidores", "Siguiendo", "Posts", "Tipo"].map(function(h) {
-                                      return (
-                                        <th key={h} style={{
-                                          textAlign: "left", padding: "10px 16px", fontSize: 12, fontWeight: 600,
-                                          color: "rgba(255,255,255,0.4)", borderBottom: "1px solid rgba(255,255,255,0.06)",
-                                        }}>{h}</th>
-                                      );
+                                      return <th key={h} style={{ textAlign: "left", padding: "10px 16px", fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.4)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>{h}</th>;
                                     })}
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {accounts.map(function(a, i) {
                                     return (
-                                      <tr key={a.id}
-                                        style={{ background: acc && a.id === acc.id ? "rgba(255,255,255,0.04)" : "transparent", cursor: "pointer" }}
+                                      <tr key={a.id} style={{ background: acc && a.id === acc.id ? "rgba(255,255,255,0.04)" : "transparent", cursor: "pointer" }}
                                         onClick={function() { setSelectedId(a.id); }}>
                                         <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 600 }}>
                                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -795,7 +994,7 @@
                         {chartData.length === 0 && (
                           <div className="chart-card full-width" style={{ textAlign: "center", padding: 40 }}>
                             <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 15 }}>
-                              📈 Los insights de alcance y visualizaciones aparecerán aquí cuando Instagram tenga datos suficientes.
+                              📈 Los insights aparecerán aquí cuando Instagram tenga datos suficientes.
                             </p>
                           </div>
                         )}
@@ -850,47 +1049,26 @@
                         {demographics && demographics.data && Array.isArray(demographics.data) ? (
                           demographics.data.map(function(metric, idx) {
                             if (!metric) return null;
-                            var breakdownResults = (metric.total_value &&
-                              metric.total_value.breakdowns &&
-                              Array.isArray(metric.total_value.breakdowns) &&
-                              metric.total_value.breakdowns[0] &&
-                              Array.isArray(metric.total_value.breakdowns[0].results))
-                              ? metric.total_value.breakdowns[0].results
-                              : null;
-
+                            var br = (metric.total_value && metric.total_value.breakdowns && Array.isArray(metric.total_value.breakdowns) && metric.total_value.breakdowns[0] && Array.isArray(metric.total_value.breakdowns[0].results)) ? metric.total_value.breakdowns[0].results : null;
                             return (
                               <div key={idx} className="chart-card">
-                                <h3 style={{ marginBottom: 16, fontSize: 16, fontWeight: 700 }}>
-                                  {metric.title || metric.name || "Métrica"}
-                                </h3>
-                                {breakdownResults ? (
+                                <h3 style={{ marginBottom: 16, fontSize: 16, fontWeight: 700 }}>{metric.title || metric.name || "Métrica"}</h3>
+                                {br ? (
                                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                    {breakdownResults
-                                      .slice()
-                                      .sort(function(a, b) { return (b.value || 0) - (a.value || 0); })
-                                      .slice(0, 10)
-                                      .map(function(item, i) {
-                                        var maxVal = breakdownResults[0] ? (breakdownResults[0].value || 1) : 1;
-                                        return (
-                                          <div key={i}>
-                                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                                              <span style={{ fontSize: 13, fontWeight: 500 }}>
-                                                {Object.values(item.dimension_values || {}).join(" · ") || "—"}
-                                              </span>
-                                              <span style={{ fontSize: 13, fontWeight: 600, color: COLORS[i % COLORS.length] }}>
-                                                {(item.value || 0).toLocaleString("es-ES")}
-                                              </span>
-                                            </div>
-                                            <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
-                                              <div style={{
-                                                height: "100%", borderRadius: 3,
-                                                width: ((item.value || 0) / maxVal * 100) + "%",
-                                                background: COLORS[i % COLORS.length],
-                                              }}></div>
-                                            </div>
+                                    {br.slice().sort(function(a, b) { return (b.value || 0) - (a.value || 0); }).slice(0, 10).map(function(item, i) {
+                                      var maxVal = br[0] ? (br[0].value || 1) : 1;
+                                      return (
+                                        <div key={i}>
+                                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                                            <span style={{ fontSize: 13, fontWeight: 500 }}>{Object.values(item.dimension_values || {}).join(" · ") || "—"}</span>
+                                            <span style={{ fontSize: 13, fontWeight: 600, color: COLORS[i % COLORS.length] }}>{(item.value || 0).toLocaleString("es-ES")}</span>
                                           </div>
-                                        );
-                                      })}
+                                          <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+                                            <div style={{ height: "100%", borderRadius: 3, width: ((item.value || 0) / maxVal * 100) + "%", background: COLORS[i % COLORS.length] }}></div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 ) : (
                                   <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>Sin datos disponibles</p>
@@ -902,8 +1080,7 @@
                           <div className="chart-card full-width" style={{ textAlign: "center", padding: 50 }}>
                             <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 15, lineHeight: 1.7 }}>
                               👥 Los datos demográficos requieren al menos <strong style={{ color: "#fff" }}>100 seguidores</strong>.
-                              <br />
-                              <span style={{ fontSize: 13 }}>Instagram restringe estos datos en cuentas pequeñas por privacidad.</span>
+                              <br /><span style={{ fontSize: 13 }}>Instagram restringe estos datos en cuentas pequeñas por privacidad.</span>
                             </p>
                           </div>
                         )}
@@ -923,40 +1100,38 @@
             <div style={{ position: "fixed", inset: 0, zIndex: 150 }}
               onClick={function() { setDropdownOpen(false); }}></div>
           )}
+
+          {/* Debug Panel */}
+          <DebugPanel visible={showDebug} onClose={function() { setShowDebug(false); }}
+            accounts={accounts} selectedId={selectedId} insights={insights} media={media} demographics={demographics} />
         </div>
       );
     }
 
-    // FIX 5: Wrap entire app in ErrorBoundary
+    // Mount with ErrorBoundary
     ReactDOM.createRoot(document.getElementById("root")).render(
       React.createElement(ErrorBoundary, null, React.createElement(App))
     );
 
-    // Signal that React mounted successfully — hide the static error div
-    // (it might have been shown by a transient CDN script error).
+    // Hide static error div since React mounted
     var errDiv = document.getElementById("error-display");
     if (errDiv) errDiv.style.display = "none";
+    dlog("ok", "React mounted successfully");
   </script>
 
   <script>
-    // Error handler - show errors ONLY if React failed to boot entirely.
-    // We set a flag once React mounts; if it did, React's own ErrorBoundary
-    // handles render errors and this handler stays silent.
     window.__reactMounted = false;
     window.addEventListener('error', function(e) {
-      // Give React a moment to mount
       setTimeout(function() {
-        if (window.__reactMounted) return; // React is running — let ErrorBoundary handle it
+        if (window.__reactMounted) return;
         var errorDiv = document.getElementById('error-display');
         var errorMsg = document.getElementById('error-msg');
         if (errorDiv && errorMsg) {
           errorDiv.style.display = 'block';
-          errorMsg.textContent = e.message || 'Error desconocido al cargar scripts';
+          errorMsg.textContent = e.message || 'Error desconocido';
         }
       }, 500);
     });
-
-    // React will set this once it mounts
     var checkMount = setInterval(function() {
       if (document.getElementById('root') && document.getElementById('root').childNodes.length > 0) {
         window.__reactMounted = true;
@@ -965,7 +1140,6 @@
         if (errDiv) errDiv.style.display = 'none';
       }
     }, 200);
-    // Stop checking after 10 seconds
     setTimeout(function() { clearInterval(checkMount); }, 10000);
   </script>
 </body>
