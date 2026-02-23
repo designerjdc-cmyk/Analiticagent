@@ -165,6 +165,11 @@
       font-size: 13px; color: #FFB74D; display: flex; align-items: center; gap: 10px;
     }
 
+    .error-boundary-box {
+      padding: 40px; text-align: center; color: #FF6B6B;
+      font-family: 'DM Sans', sans-serif;
+    }
+
     #error-display {
       display: none; color: #FF6B6B; padding: 40px; text-align: center;
       font-family: 'DM Sans', sans-serif; font-size: 15px;
@@ -196,24 +201,64 @@
       throw new Error('React no pudo cargar. Revisa tu conexión a internet.');
     }
 
-    const { useState, useEffect, useCallback } = React;
+    const { useState, useEffect, useCallback, Component } = React;
 
+    // ================================================================
+    // FIX 4: ErrorBoundary — React 18 unmounts the entire tree on any
+    // unhandled render error. Without a boundary the user sees a blank
+    // page. This class component catches render errors in the subtree
+    // and shows a recoverable error panel instead.
+    // ================================================================
+    class ErrorBoundary extends Component {
+      constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+      }
+      static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+      }
+      componentDidCatch(error, info) {
+        console.error("ErrorBoundary caught:", error, info);
+      }
+      render() {
+        if (this.state.hasError) {
+          return (
+            <div className="error-boundary-box">
+              <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+              <h2 style={{ marginBottom: 8 }}>Algo salió mal al renderizar el dashboard</h2>
+              <p style={{ color: "rgba(255,255,255,0.5)", marginBottom: 16 }}>
+                {this.state.error ? String(this.state.error.message || this.state.error) : "Error desconocido"}
+              </p>
+              <button className="btn-connect"
+                style={{ margin: "0 auto" }}
+                onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}>
+                Recargar
+              </button>
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
+
+    // ================================================================
     // Recharts components (with fallback)
+    // ================================================================
     const RechartAvailable = typeof Recharts !== 'undefined';
-    const LineChart = RechartAvailable ? Recharts.LineChart : () => null;
-    const Line = RechartAvailable ? Recharts.Line : () => null;
-    const AreaChart = RechartAvailable ? Recharts.AreaChart : () => null;
-    const Area = RechartAvailable ? Recharts.Area : () => null;
-    const BarChart = RechartAvailable ? Recharts.BarChart : () => null;
-    const Bar = RechartAvailable ? Recharts.Bar : () => null;
-    const XAxis = RechartAvailable ? Recharts.XAxis : () => null;
-    const YAxis = RechartAvailable ? Recharts.YAxis : () => null;
-    const CartesianGrid = RechartAvailable ? Recharts.CartesianGrid : () => null;
-    const Tooltip = RechartAvailable ? Recharts.Tooltip : () => null;
-    const ResponsiveContainer = RechartAvailable ? Recharts.ResponsiveContainer : ({children}) => React.createElement('div', null, children);
-    const PieChart = RechartAvailable ? Recharts.PieChart : () => null;
-    const Pie = RechartAvailable ? Recharts.Pie : () => null;
-    const Cell = RechartAvailable ? Recharts.Cell : () => null;
+    const LineChart = RechartAvailable ? Recharts.LineChart : function() { return null; };
+    const Line = RechartAvailable ? Recharts.Line : function() { return null; };
+    const AreaChart = RechartAvailable ? Recharts.AreaChart : function() { return null; };
+    const Area = RechartAvailable ? Recharts.Area : function() { return null; };
+    const BarChart = RechartAvailable ? Recharts.BarChart : function() { return null; };
+    const Bar = RechartAvailable ? Recharts.Bar : function() { return null; };
+    const XAxis = RechartAvailable ? Recharts.XAxis : function() { return null; };
+    const YAxis = RechartAvailable ? Recharts.YAxis : function() { return null; };
+    const CartesianGrid = RechartAvailable ? Recharts.CartesianGrid : function() { return null; };
+    const Tooltip = RechartAvailable ? Recharts.Tooltip : function() { return null; };
+    const ResponsiveContainer = RechartAvailable ? Recharts.ResponsiveContainer : function(props) { return React.createElement('div', null, props.children); };
+    const PieChart = RechartAvailable ? Recharts.PieChart : function() { return null; };
+    const Pie = RechartAvailable ? Recharts.Pie : function() { return null; };
+    const Cell = RechartAvailable ? Recharts.Cell : function() { return null; };
 
     const COLORS = ["#DD2A7B", "#8134AF", "#F58529", "#515BD4", "#1DA1F2", "#38EF7D", "#FC466B", "#FFD200"];
     const PIE_COLORS = ["#DD2A7B", "#8134AF", "#F58529", "#515BD4"];
@@ -222,43 +267,50 @@
     async function api(path, opts = {}) {
       const res = await fetch(path, opts);
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: res.statusText }));
+        const err = await res.json().catch(function() { return { error: res.statusText }; });
         throw new Error(err.error || "API Error");
       }
       return res.json();
     }
 
+    // Safe number formatter — never throws
+    function fmt(val) {
+      if (val == null || val === undefined) return "0";
+      if (typeof val === "number") return val.toLocaleString("es-ES");
+      return String(val);
+    }
+
     // Chart Tooltip
     function ChartTooltip({ active, payload, label }) {
-      if (!active || !payload?.length) return null;
+      if (!active || !payload || !payload.length) return null;
       return React.createElement('div', {
         style: {
           background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.12)",
           borderRadius: 12, padding: "12px 16px", boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
         }
       },
-        React.createElement('div', { style: { fontSize: 12, color: "rgba(255,255,255,0.5)", marginBottom: 6 } }, label),
-        ...payload.map((p, i) =>
-          React.createElement('div', {
+        React.createElement('div', { style: { fontSize: 12, color: "rgba(255,255,255,0.5)", marginBottom: 6 } }, label || ""),
+        ...(Array.isArray(payload) ? payload : []).map(function(p, i) {
+          return React.createElement('div', {
             key: i,
             style: { fontSize: 13, color: p.color, fontWeight: 600, marginBottom: 2 }
-          }, `${p.name}: ${typeof p.value === "number" ? p.value.toLocaleString("es-ES") : p.value}`)
-        )
+          }, (p.name || "") + ": " + fmt(p.value));
+        })
       );
     }
 
     // Metric Card
     function MetricCard({ icon, label, value, change, color }) {
-      const isPositive = change >= 0;
+      var isPositive = change >= 0;
       return (
         <div className="card" style={{ display: "flex", flexDirection: "column", gap: 10, cursor: "default" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{
               width: 36, height: 36, borderRadius: 10,
-              background: `${color}20`, display: "flex", alignItems: "center", justifyContent: "center",
+              background: (color || "#888") + "20", display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 18,
             }}>{icon}</div>
-            {change !== undefined && (
+            {change !== undefined && change !== null && (
               <div style={{
                 display: "flex", alignItems: "center", gap: 3, fontSize: 13, fontWeight: 600,
                 color: isPositive ? "#38EF7D" : "#FF6B6B",
@@ -269,7 +321,7 @@
           </div>
           <div>
             <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: "-0.02em" }}>
-              {typeof value === "number" ? value.toLocaleString("es-ES") : value}
+              {typeof value === "number" ? value.toLocaleString("es-ES") : (value || "—")}
             </div>
             <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", marginTop: 2, fontWeight: 500 }}>{label}</div>
           </div>
@@ -277,26 +329,28 @@
       );
     }
 
+    // ================================================================
     // Main App
+    // ================================================================
     function App() {
-      const [accounts, setAccounts] = useState([]);
-      const [selectedId, setSelectedId] = useState(null);
-      const [dropdownOpen, setDropdownOpen] = useState(false);
-      const [tab, setTab] = useState("overview");
-      const [loading, setLoading] = useState(true);
-      const [toast, setToast] = useState(null);
-      const [insights, setInsights] = useState(null);
-      const [media, setMedia] = useState([]);
-      const [demographics, setDemographics] = useState(null);
-      const [loadingData, setLoadingData] = useState(false);
+      var [accounts, setAccounts] = useState([]);
+      var [selectedId, setSelectedId] = useState(null);
+      var [dropdownOpen, setDropdownOpen] = useState(false);
+      var [tab, setTab] = useState("overview");
+      var [loading, setLoading] = useState(true);
+      var [toast, setToast] = useState(null);
+      var [insights, setInsights] = useState(null);
+      var [media, setMedia] = useState([]);
+      var [demographics, setDemographics] = useState(null);
+      var [loadingData, setLoadingData] = useState(false);
 
-      const showToast = (msg, type = "success") => {
-        setToast({ msg, type });
-        setTimeout(() => setToast(null), 4000);
+      var showToast = function(msg, type) {
+        setToast({ msg: msg, type: type || "success" });
+        setTimeout(function() { setToast(null); }, 4000);
       };
 
-      useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
+      useEffect(function() {
+        var params = new URLSearchParams(window.location.search);
         if (params.get("connected")) {
           showToast("@" + params.get("connected") + " conectada correctamente ✓");
           window.history.replaceState({}, "", "/");
@@ -308,38 +362,52 @@
         loadAccountsList();
       }, []);
 
-      const loadAccountsList = async () => {
+      var loadAccountsList = async function() {
         try {
-          const data = await api("/api/accounts");
-          setAccounts(data);
-          if (data.length > 0 && !selectedId) setSelectedId(data[0].id);
+          var data = await api("/api/accounts");
+          setAccounts(Array.isArray(data) ? data : []);
+          if (Array.isArray(data) && data.length > 0 && !selectedId) setSelectedId(data[0].id);
         } catch (e) {
           console.log("No accounts yet or API error:", e.message);
+          setAccounts([]);
         }
         setLoading(false);
       };
 
-      useEffect(() => {
+      useEffect(function() {
         if (!selectedId) return;
         fetchAccountData();
       }, [selectedId]);
 
-      const fetchAccountData = async () => {
+      var fetchAccountData = async function() {
         setLoadingData(true);
         try {
-          const [profileData, insightsData, mediaData] = await Promise.allSettled([
+          var results = await Promise.allSettled([
             api("/api/accounts/" + selectedId + "/profile"),
             api("/api/accounts/" + selectedId + "/insights?period=day"),
             api("/api/accounts/" + selectedId + "/media?limit=25"),
           ]);
 
-          if (insightsData.status === "fulfilled") setInsights(insightsData.value);
-          else setInsights(null);
+          var profileData = results[0];
+          var insightsData = results[1];
+          var mediaData = results[2];
 
-          if (mediaData.status === "fulfilled") setMedia(mediaData.value.data || []);
-          else setMedia([]);
+          if (insightsData.status === "fulfilled" && insightsData.value) {
+            setInsights(insightsData.value);
+          } else {
+            console.warn("Insights fetch failed:", insightsData.reason);
+            setInsights(null);
+          }
 
-          if (profileData.status === "fulfilled") {
+          if (mediaData.status === "fulfilled" && mediaData.value) {
+            var mediaArr = (mediaData.value && mediaData.value.data) || [];
+            setMedia(Array.isArray(mediaArr) ? mediaArr : []);
+          } else {
+            console.warn("Media fetch failed:", mediaData.reason);
+            setMedia([]);
+          }
+
+          if (profileData.status === "fulfilled" && profileData.value) {
             setAccounts(function(prev) {
               return prev.map(function(a) {
                 return a.id === selectedId ? Object.assign({}, a, profileData.value) : a;
@@ -348,7 +416,7 @@
           }
 
           try {
-            const demo = await api("/api/accounts/" + selectedId + "/demographics");
+            var demo = await api("/api/accounts/" + selectedId + "/demographics");
             setDemographics(demo);
           } catch(e) { setDemographics(null); }
         } catch (e) {
@@ -357,10 +425,10 @@
         setLoadingData(false);
       };
 
-      const removeAccount = async (id) => {
+      var removeAccount = async function(id) {
         try {
           await api("/api/accounts/" + id, { method: "DELETE" });
-          const updated = accounts.filter(function(a) { return a.id !== id; });
+          var updated = accounts.filter(function(a) { return a.id !== id; });
           setAccounts(updated);
           if (selectedId === id) setSelectedId(updated[0] ? updated[0].id : null);
           showToast("Cuenta eliminada");
@@ -369,7 +437,7 @@
         }
       };
 
-      const refreshToken = async (id) => {
+      var refreshToken = async function(id) {
         try {
           await api("/api/accounts/" + id + "/refresh-token", { method: "POST" });
           showToast("Token renovado ✓");
@@ -379,28 +447,29 @@
         }
       };
 
-      const acc = accounts.find(function(a) { return a.id === selectedId; });
+      var acc = accounts.find(function(a) { return a.id === selectedId; }) || null;
 
-      // Parse insights
-      const chartData = (function() {
-        if (!insights || !insights.data) return [];
-        const reachMetric = insights.data.find(function(m) { return m.name === "reach"; });
-        const viewsMetric = insights.data.find(function(m) { return m.name === "views"; });
-        if (!reachMetric || !reachMetric.values) return [];
+      // Parse insights — fully defensive
+      var chartData = (function() {
+        if (!insights || !insights.data || !Array.isArray(insights.data)) return [];
+        var reachMetric = insights.data.find(function(m) { return m && m.name === "reach"; });
+        var viewsMetric = insights.data.find(function(m) { return m && m.name === "views"; });
+        if (!reachMetric || !reachMetric.values || !Array.isArray(reachMetric.values)) return [];
         return reachMetric.values.map(function(v, i) {
           return {
-            date: new Date(v.end_time).toLocaleDateString("es-ES", { day: "2-digit", month: "short" }),
-            reach: v.value,
-            views: viewsMetric && viewsMetric.values && viewsMetric.values[i] ? viewsMetric.values[i].value : 0,
+            date: v && v.end_time ? new Date(v.end_time).toLocaleDateString("es-ES", { day: "2-digit", month: "short" }) : "",
+            reach: (v && v.value) || 0,
+            views: viewsMetric && viewsMetric.values && viewsMetric.values[i] ? (viewsMetric.values[i].value || 0) : 0,
           };
         });
       })();
 
-      // Media stats
-      const mediaStats = (function() {
-        if (!media.length) return { totalLikes: 0, totalComments: 0, byType: {} };
+      // Media stats — fully defensive
+      var mediaStats = (function() {
+        if (!Array.isArray(media) || !media.length) return { totalLikes: 0, totalComments: 0, byType: {} };
         var totalLikes = 0, totalComments = 0, byType = {};
         media.forEach(function(m) {
+          if (!m) return;
           totalLikes += m.like_count || 0;
           totalComments += m.comments_count || 0;
           var type = m.media_type || "UNKNOWN";
@@ -409,14 +478,21 @@
         return { totalLikes: totalLikes, totalComments: totalComments, byType: byType };
       })();
 
-      const contentDistribution = Object.entries(mediaStats.byType).map(function(entry) {
+      var contentDistribution = Object.entries(mediaStats.byType).map(function(entry) {
         var labels = { IMAGE: "Fotos", VIDEO: "Reels/Video", CAROUSEL_ALBUM: "Carruseles" };
         return { name: labels[entry[0]] || entry[0], value: entry[1] };
       });
 
-      const daysUntilExpiry = acc && acc.token_expires_at
+      var daysUntilExpiry = acc && acc.token_expires_at
         ? Math.floor((acc.token_expires_at - Date.now()) / (1000 * 60 * 60 * 24))
         : null;
+
+      // Engagement rate — safe division
+      var engRate = (function() {
+        if (!acc || !acc.followers_count || !media.length) return "—";
+        var avg = (mediaStats.totalLikes + mediaStats.totalComments) / Math.max(media.length, 1);
+        return (avg / acc.followers_count * 100).toFixed(2) + "%";
+      })();
 
       if (loading) {
         return (
@@ -439,13 +515,13 @@
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              {accounts.length > 0 && (
+              {accounts.length > 0 && acc && (
                 <div className="account-selector">
                   <button className="btn-secondary" onClick={function() { setDropdownOpen(!dropdownOpen); }}>
-                    {acc && acc.profile_picture_url && (
+                    {acc.profile_picture_url && (
                       <img src={acc.profile_picture_url} style={{ width: 22, height: 22, borderRadius: "50%" }} />
                     )}
-                    {"@" + (acc ? acc.username : "Seleccionar")}
+                    {"@" + (acc.username || "Seleccionar")}
                     <span style={{ opacity: 0.4, fontSize: 12 }}>▼</span>
                   </button>
 
@@ -530,7 +606,7 @@
                     <div>
                       <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em" }}>{"@" + acc.username}</h1>
                       <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, fontWeight: 500 }}>
-                        {acc.account_type + (acc.name && acc.name !== acc.username ? " · " + acc.name : "")}
+                        {(acc.account_type || "") + (acc.name && acc.name !== acc.username ? " · " + acc.name : "")}
                       </p>
                     </div>
                   </div>
@@ -567,11 +643,7 @@
                       <MetricCard icon="📸" label="Publicaciones" value={acc.media_count || 0} color="#F58529" />
                       <MetricCard icon="❤️" label="Likes (últ. posts)" value={mediaStats.totalLikes} color="#FC466B" />
                       <MetricCard icon="💬" label="Comentarios" value={mediaStats.totalComments} color="#515BD4" />
-                      <MetricCard icon="📊" label="Eng. Rate"
-                        value={acc.followers_count
-                          ? ((mediaStats.totalLikes + mediaStats.totalComments) / Math.max(media.length, 1) / acc.followers_count * 100).toFixed(2) + "%"
-                          : "—"}
-                        color="#38EF7D" />
+                      <MetricCard icon="📊" label="Eng. Rate" value={engRate} color="#38EF7D" />
                     </div>
 
                     {/* OVERVIEW */}
@@ -637,9 +709,10 @@
                         <div className={"chart-card" + (contentDistribution.length === 0 ? " full-width" : "")}>
                           <h3 style={{ marginBottom: 16, fontSize: 16, fontWeight: 700 }}>Top publicaciones</h3>
                           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                            {media.slice().sort(function(a, b) { return (b.like_count || 0) - (a.like_count || 0); }).slice(0, 6).map(function(m, i) {
+                            {Array.isArray(media) && media.length > 0 && media.slice().sort(function(a, b) { return (b.like_count || 0) - (a.like_count || 0); }).slice(0, 6).map(function(m, i) {
+                              if (!m) return null;
                               return (
-                                <a key={m.id} href={m.permalink} target="_blank" rel="noopener"
+                                <a key={m.id || i} href={m.permalink || "#"} target="_blank" rel="noopener"
                                   style={{
                                     display: "flex", alignItems: "center", gap: 12,
                                     padding: "10px 12px", background: "rgba(255,255,255,0.03)",
@@ -647,7 +720,8 @@
                                   }}>
                                   {(m.media_url || m.thumbnail_url) && (
                                     <img src={m.thumbnail_url || m.media_url}
-                                      style={{ width: 44, height: 44, borderRadius: 8, objectFit: "cover" }} />
+                                      style={{ width: 44, height: 44, borderRadius: 8, objectFit: "cover" }}
+                                      onError={function(e) { e.target.style.display = "none"; }} />
                                   )}
                                   <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{ fontSize: 13, fontWeight: 600 }}>
@@ -655,7 +729,7 @@
                                         (m.caption ? m.caption.slice(0, 35) + (m.caption.length > 35 ? "..." : "") : "Sin caption")}
                                     </div>
                                     <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
-                                      {new Date(m.timestamp).toLocaleDateString("es-ES")}
+                                      {m.timestamp ? new Date(m.timestamp).toLocaleDateString("es-ES") : ""}
                                     </div>
                                   </div>
                                   <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -665,7 +739,7 @@
                                 </a>
                               );
                             })}
-                            {media.length === 0 && (
+                            {(!Array.isArray(media) || media.length === 0) && (
                               <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, textAlign: "center", padding: 20 }}>
                                 No hay publicaciones todavía
                               </p>
@@ -695,7 +769,7 @@
                                   {accounts.map(function(a, i) {
                                     return (
                                       <tr key={a.id}
-                                        style={{ background: a.id === acc.id ? "rgba(255,255,255,0.04)" : "transparent", cursor: "pointer" }}
+                                        style={{ background: acc && a.id === acc.id ? "rgba(255,255,255,0.04)" : "transparent", cursor: "pointer" }}
                                         onClick={function() { setSelectedId(a.id); }}>
                                         <td style={{ padding: "12px 16px", fontSize: 14, fontWeight: 600 }}>
                                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -708,7 +782,7 @@
                                         <td style={{ padding: "12px 16px", fontSize: 14 }}>{(a.followers_count || 0).toLocaleString("es-ES")}</td>
                                         <td style={{ padding: "12px 16px", fontSize: 14 }}>{(a.follows_count || 0).toLocaleString("es-ES")}</td>
                                         <td style={{ padding: "12px 16px", fontSize: 14 }}>{a.media_count || 0}</td>
-                                        <td style={{ padding: "12px 16px", fontSize: 13, color: "rgba(255,255,255,0.5)" }}>{a.account_type}</td>
+                                        <td style={{ padding: "12px 16px", fontSize: 13, color: "rgba(255,255,255,0.5)" }}>{a.account_type || ""}</td>
                                       </tr>
                                     );
                                   })}
@@ -731,19 +805,22 @@
                     {/* MEDIA TAB */}
                     {tab === "media" && (
                       <div className="media-grid">
-                        {media.map(function(m) {
+                        {Array.isArray(media) && media.map(function(m) {
+                          if (!m) return null;
                           return (
-                            <a key={m.id} href={m.permalink} target="_blank" rel="noopener" className="media-item">
-                              <img src={m.thumbnail_url || m.media_url} alt=""
-                                style={{ width: "100%", aspectRatio: "1", objectFit: "cover" }}
-                                onError={function(e) { e.target.style.display = "none"; }} />
+                            <a key={m.id} href={m.permalink || "#"} target="_blank" rel="noopener" className="media-item">
+                              {(m.thumbnail_url || m.media_url) && (
+                                <img src={m.thumbnail_url || m.media_url} alt=""
+                                  style={{ width: "100%", aspectRatio: "1", objectFit: "cover" }}
+                                  onError={function(e) { e.target.style.display = "none"; }} />
+                              )}
                               <div className="media-info">
                                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                                   <span style={{ fontSize: 13, fontWeight: 600 }}>
                                     {m.media_type === "VIDEO" ? "🎬 Reel" : m.media_type === "CAROUSEL_ALBUM" ? "📑 Carrusel" : "📷 Foto"}
                                   </span>
                                   <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
-                                    {new Date(m.timestamp).toLocaleDateString("es-ES")}
+                                    {m.timestamp ? new Date(m.timestamp).toLocaleDateString("es-ES") : ""}
                                   </span>
                                 </div>
                                 <div style={{ display: "flex", gap: 14, fontSize: 13 }}>
@@ -759,7 +836,7 @@
                             </a>
                           );
                         })}
-                        {media.length === 0 && (
+                        {(!Array.isArray(media) || media.length === 0) && (
                           <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: 60, color: "rgba(255,255,255,0.4)" }}>
                             No se encontraron publicaciones
                           </div>
@@ -770,34 +847,44 @@
                     {/* AUDIENCE TAB */}
                     {tab === "audiencia" && (
                       <div className="charts-grid">
-                        {demographics && demographics.data ? (
+                        {demographics && demographics.data && Array.isArray(demographics.data) ? (
                           demographics.data.map(function(metric, idx) {
+                            if (!metric) return null;
+                            var breakdownResults = (metric.total_value &&
+                              metric.total_value.breakdowns &&
+                              Array.isArray(metric.total_value.breakdowns) &&
+                              metric.total_value.breakdowns[0] &&
+                              Array.isArray(metric.total_value.breakdowns[0].results))
+                              ? metric.total_value.breakdowns[0].results
+                              : null;
+
                             return (
                               <div key={idx} className="chart-card">
                                 <h3 style={{ marginBottom: 16, fontSize: 16, fontWeight: 700 }}>
-                                  {metric.title || metric.name}
+                                  {metric.title || metric.name || "Métrica"}
                                 </h3>
-                                {metric.total_value && metric.total_value.breakdowns && metric.total_value.breakdowns[0] && metric.total_value.breakdowns[0].results ? (
+                                {breakdownResults ? (
                                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                    {metric.total_value.breakdowns[0].results
-                                      .sort(function(a, b) { return b.value - a.value; })
+                                    {breakdownResults
+                                      .slice()
+                                      .sort(function(a, b) { return (b.value || 0) - (a.value || 0); })
                                       .slice(0, 10)
                                       .map(function(item, i) {
-                                        var maxVal = metric.total_value.breakdowns[0].results[0].value || 1;
+                                        var maxVal = breakdownResults[0] ? (breakdownResults[0].value || 1) : 1;
                                         return (
                                           <div key={i}>
                                             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                                               <span style={{ fontSize: 13, fontWeight: 500 }}>
-                                                {Object.values(item.dimension_values || {}).join(" · ")}
+                                                {Object.values(item.dimension_values || {}).join(" · ") || "—"}
                                               </span>
                                               <span style={{ fontSize: 13, fontWeight: 600, color: COLORS[i % COLORS.length] }}>
-                                                {item.value.toLocaleString("es-ES")}
+                                                {(item.value || 0).toLocaleString("es-ES")}
                                               </span>
                                             </div>
                                             <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
                                               <div style={{
                                                 height: "100%", borderRadius: 3,
-                                                width: (item.value / maxVal * 100) + "%",
+                                                width: ((item.value || 0) / maxVal * 100) + "%",
                                                 background: COLORS[i % COLORS.length],
                                               }}></div>
                                             </div>
@@ -840,19 +927,46 @@
       );
     }
 
-    ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+    // FIX 5: Wrap entire app in ErrorBoundary
+    ReactDOM.createRoot(document.getElementById("root")).render(
+      React.createElement(ErrorBoundary, null, React.createElement(App))
+    );
+
+    // Signal that React mounted successfully — hide the static error div
+    // (it might have been shown by a transient CDN script error).
+    var errDiv = document.getElementById("error-display");
+    if (errDiv) errDiv.style.display = "none";
   </script>
 
   <script>
-    // Error handler - show errors if React fails to load
+    // Error handler - show errors ONLY if React failed to boot entirely.
+    // We set a flag once React mounts; if it did, React's own ErrorBoundary
+    // handles render errors and this handler stays silent.
+    window.__reactMounted = false;
     window.addEventListener('error', function(e) {
-      var errorDiv = document.getElementById('error-display');
-      var errorMsg = document.getElementById('error-msg');
-      if (errorDiv && errorMsg) {
-        errorDiv.style.display = 'block';
-        errorMsg.textContent = e.message || 'Error desconocido al cargar scripts';
-      }
+      // Give React a moment to mount
+      setTimeout(function() {
+        if (window.__reactMounted) return; // React is running — let ErrorBoundary handle it
+        var errorDiv = document.getElementById('error-display');
+        var errorMsg = document.getElementById('error-msg');
+        if (errorDiv && errorMsg) {
+          errorDiv.style.display = 'block';
+          errorMsg.textContent = e.message || 'Error desconocido al cargar scripts';
+        }
+      }, 500);
     });
+
+    // React will set this once it mounts
+    var checkMount = setInterval(function() {
+      if (document.getElementById('root') && document.getElementById('root').childNodes.length > 0) {
+        window.__reactMounted = true;
+        clearInterval(checkMount);
+        var errDiv = document.getElementById('error-display');
+        if (errDiv) errDiv.style.display = 'none';
+      }
+    }, 200);
+    // Stop checking after 10 seconds
+    setTimeout(function() { clearInterval(checkMount); }, 10000);
   </script>
 </body>
 </html>
