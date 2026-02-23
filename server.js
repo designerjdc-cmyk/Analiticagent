@@ -98,35 +98,39 @@ app.get("/api/accounts/:id/discover/:username",auth,async(req,res)=>{try{const a
   const target=req.params.username.replace("@","").trim();if(!target)return res.status(400).json({error:"Username required"});
   const mediaFields="id,caption,media_type,media_product_type,like_count,comments_count,timestamp,permalink";
   const userFields=`username,name,biography,profile_picture_url,followers_count,follows_count,media_count,media.limit(25){${mediaFields}}`;
-  // Use actual IG account ID, not /me
   const igId=a.instagram_account_id;
-  const attempts=[
-    // Attempt 1: New IG API with user ID
-    {url:`${IG}/${igId}`,params:{fields:`business_discovery.fields(${userFields})`,username:target,access_token:a.access_token}},
-    // Attempt 2: New IG API with /me
-    {url:`${IG}/me`,params:{fields:`business_discovery.fields(${userFields})`,username:target,access_token:a.access_token}},
-    // Attempt 3: Facebook Graph API (business_discovery may only work here)
-    {url:`https://graph.facebook.com/v21.0/${igId}`,params:{fields:`business_discovery.fields(${userFields})`,username:target,access_token:a.access_token}},
-  ];
-  let lastErr=null;
-  for(const att of attempts){
-    try{
-      console.log("Discovery try:",att.url,"username:",target);
-      const r=await axios.get(att.url,{params:att.params});
-      const bd=r.data?.business_discovery;
-      if(bd){console.log("✅ Discovery OK:",bd.username);return res.json(bd)}
-    }catch(e){
-      lastErr=e;console.warn("Discovery attempt failed:",e.response?.data?.error?.message||e.message);
-    }
-  }
-  const msg=lastErr?.response?.data?.error?.message||"No se pudo encontrar";
-  console.error("Discovery all failed:",msg);
-  let userMsg=msg;
-  if(msg.includes("not exist")||msg.includes("does not exist"))userMsg="Cuenta no encontrada. Debe ser pública y de tipo business/creator";
-  else if(msg.includes("Cannot query"))userMsg="No se puede consultar esta cuenta. Puede ser personal o privada";
-  else if(msg.includes("rate"))userMsg="Demasiadas búsquedas. Espera unos minutos";
-  else if(msg.includes("permission"))userMsg="Permiso insuficiente. Tu cuenta necesita ser business/creator";
-  res.status(lastErr?.response?.status||404).json({error:userMsg});
+  const errors=[];
+  // Attempt 1: IG API with user ID + username query param
+  try{
+    console.log("Discovery attempt 1: IG API /{id} + username param");
+    const r=await axios.get(`${IG}/${igId}`,{params:{fields:`business_discovery.fields(${userFields})`,username:target,access_token:a.access_token}});
+    const bd=r.data?.business_discovery;if(bd){console.log("✅ Discovery OK via attempt 1");return res.json(bd)}
+    errors.push("No business_discovery in response");
+  }catch(e){const m=e.response?.data?.error?.message||e.message;errors.push("A1: "+m);console.warn("Discovery A1:",m)}
+  // Attempt 2: IG API /me + username query param
+  try{
+    console.log("Discovery attempt 2: IG API /me + username param");
+    const r=await axios.get(`${IG}/me`,{params:{fields:`business_discovery.fields(${userFields})`,username:target,access_token:a.access_token}});
+    const bd=r.data?.business_discovery;if(bd){console.log("✅ Discovery OK via attempt 2");return res.json(bd)}
+    errors.push("No business_discovery in response");
+  }catch(e){const m=e.response?.data?.error?.message||e.message;errors.push("A2: "+m);console.warn("Discovery A2:",m)}
+  // Attempt 3: IG API with username embedded in fields string  
+  try{
+    console.log("Discovery attempt 3: username in fields string");
+    const r=await axios.get(`${IG}/${igId}`,{params:{fields:`business_discovery.fields(${userFields}).username(${target})`,access_token:a.access_token}});
+    const bd=r.data?.business_discovery;if(bd){console.log("✅ Discovery OK via attempt 3");return res.json(bd)}
+    errors.push("No business_discovery in response");
+  }catch(e){const m=e.response?.data?.error?.message||e.message;errors.push("A3: "+m);console.warn("Discovery A3:",m)}
+  // All failed — return the most useful error
+  console.error("Discovery all failed:",JSON.stringify(errors));
+  const firstReal=errors.find(e=>!e.includes("No business_discovery"))||errors[0]||"Error desconocido";
+  const clean=firstReal.replace(/^A\d: /,"");
+  let userMsg=clean;
+  if(clean.includes("not exist")||clean.includes("does not exist"))userMsg="Cuenta no encontrada. Debe ser pública y business/creator";
+  else if(clean.includes("Cannot query")||clean.includes("not a Business"))userMsg="Esta cuenta es personal o privada. Solo se pueden consultar cuentas business/creator públicas";
+  else if(clean.includes("rate"))userMsg="Demasiadas búsquedas. Espera unos minutos";
+  else if(clean.includes("Unsupported"))userMsg="La API no soporta esta consulta con tu tipo de cuenta. Detalles: "+clean;
+  res.status(404).json({error:userMsg,debug:errors});
 }catch(e){handleErr(e,res)}});
 
 // Token refresh
