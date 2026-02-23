@@ -45,7 +45,10 @@ const {
 } = process.env;
 
 const REDIRECT_URI = `${BASE_URL}/auth/callback`;
-const IG_GRAPH = "https://graph.instagram.com";
+
+// FIX 1: Always use a versioned API endpoint.
+// Instagram Business Login requires v21.0+ for most endpoints.
+const IG_GRAPH = "https://graph.instagram.com/v21.0";
 
 // Scopes for Instagram Business Login
 const SCOPES = "instagram_business_basic,instagram_business_manage_insights";
@@ -55,8 +58,6 @@ const SCOPES = "instagram_business_basic,instagram_business_manage_insights";
 // ============================================================
 
 // Step 1: Redirect user to Instagram OAuth
-// IMPORTANT: Uses www.instagram.com (NOT api.instagram.com)
-// and enable_fb_login=0 for standalone Instagram Business Login
 app.get("/auth/login", (req, res) => {
   const state = uuidv4();
   const authUrl =
@@ -89,7 +90,7 @@ app.get("/auth/callback", async (req, res) => {
   try {
     console.log("Exchanging code for token...");
 
-    // Exchange code for short-lived token
+    // Exchange code for short-lived token (this endpoint has NO version prefix)
     const tokenRes = await axios.post(
       `https://api.instagram.com/oauth/access_token`,
       new URLSearchParams({
@@ -131,7 +132,7 @@ app.get("/auth/callback", async (req, res) => {
     const profile = profileRes.data;
     const accountId = profile.user_id || user_id;
 
-    console.log("Profile fetched:", profile.username);
+    console.log("Profile fetched:", profile.username, "| type:", profile.account_type);
 
     // Save account
     const accounts = loadAccounts();
@@ -210,15 +211,24 @@ app.get("/api/accounts/:id/profile", async (req, res) => {
 });
 
 // Get account insights
+// FIX 2: Only request Creator-safe metrics.
+// `follows_and_unfollows` and `profile_views` are NOT available for Creator
+// accounts — only for Business accounts. We request only the universally
+// supported set: reach, views, accounts_engaged.
+// If even one metric in a bulk call is unsupported the whole call fails,
+// so we fall back to per-metric calls.
 app.get("/api/accounts/:id/insights", async (req, res) => {
   const accounts = loadAccounts();
   const account = accounts[req.params.id];
   if (!account) return res.status(404).json({ error: "Account not found" });
 
-  const { period = "day", since, until } = req.query;
+  const { period = "day", since, until, metric } = req.query;
+
+  // Default to Creator-safe metrics; caller can override
+  const safeMetrics = metric || "reach,views,accounts_engaged";
 
   const params = {
-    metric: "reach,views,accounts_engaged",
+    metric: safeMetrics,
     period,
     access_token: account.access_token,
   };
@@ -230,11 +240,35 @@ app.get("/api/accounts/:id/insights", async (req, res) => {
     const r = await axios.get(`${IG_GRAPH}/me/insights`, { params });
     res.json(r.data);
   } catch (err) {
+    // If the specific combination fails, try each metric individually and
+    // merge the results so a single bad metric doesn't sink the whole call.
+    console.warn("Bulk insights failed, trying individual metrics...");
+    const metrics = safeMetrics.split(",");
+    const data = [];
+
+    for (const m of metrics) {
+      try {
+        const r2 = await axios.get(`${IG_GRAPH}/me/insights`, {
+          params: { ...params, metric: m },
+        });
+        if (r2.data && r2.data.data) data.push(...r2.data.data);
+      } catch (innerErr) {
+        console.warn(`  metric "${m}" failed:`, innerErr.response?.data?.error?.message || innerErr.message);
+      }
+    }
+
+    if (data.length > 0) {
+      return res.json({ data });
+    }
+
     handleApiError(err, res);
   }
 });
 
 // Get recent media with metrics
+// FIX 3: Use the user's numeric ID explicitly (some Business Login tokens
+// don't resolve `me/media` correctly) and request only reliably available
+// fields. Also add a fallback with fewer fields if the first call fails.
 app.get("/api/accounts/:id/media", async (req, res) => {
   const accounts = loadAccounts();
   const account = accounts[req.params.id];
@@ -242,18 +276,36 @@ app.get("/api/accounts/:id/media", async (req, res) => {
 
   const limit = req.query.limit || 25;
 
-  try {
-    const r = await axios.get(`${IG_GRAPH}/me/media`, {
-      params: {
-        fields: "id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count",
-        limit,
-        access_token: account.access_token,
-      },
-    });
-    res.json(r.data);
-  } catch (err) {
-    handleApiError(err, res);
+  // Full field set
+  const fullFields = "id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count";
+  // Minimal fallback (media_url can fail on some media types)
+  const safeFields = "id,caption,media_type,thumbnail_url,permalink,timestamp,like_count,comments_count";
+
+  // Try with the user's numeric ID first, then fall back to /me/media
+  const endpoints = [
+    `${IG_GRAPH}/${account.id}/media`,
+    `${IG_GRAPH}/me/media`,
+  ];
+
+  for (const endpoint of endpoints) {
+    for (const fields of [fullFields, safeFields]) {
+      try {
+        const r = await axios.get(endpoint, {
+          params: { fields, limit, access_token: account.access_token },
+        });
+        console.log(`Media OK via ${endpoint} (${(r.data && r.data.data && r.data.data.length) || 0} items)`);
+        return res.json(r.data);
+      } catch (innerErr) {
+        console.warn(`Media attempt failed (${endpoint}, fields=${fields.slice(0, 30)}...):`,
+          innerErr.response?.data?.error?.message || innerErr.message);
+      }
+    }
   }
+
+  // All attempts failed — return an empty but valid response so the
+  // frontend doesn't crash.
+  console.error("All media fetch attempts failed for account", account.id);
+  res.json({ data: [] });
 });
 
 // Get insights for a specific media item
@@ -373,6 +425,7 @@ app.listen(PORT, () => {
   console.log(`\n🚀 InstaMetrics running at ${BASE_URL || `http://localhost:${PORT}`}`);
   console.log(`📊 Dashboard: ${BASE_URL || `http://localhost:${PORT}`}`);
   console.log(`🔗 OAuth callback: ${REDIRECT_URI}`);
+  console.log(`📡 Graph API base: ${IG_GRAPH}`);
   console.log(`🔑 App ID: ${INSTAGRAM_APP_ID ? INSTAGRAM_APP_ID.slice(0, 6) + "..." : "NOT SET"}\n`);
 
   if (!INSTAGRAM_APP_ID || !INSTAGRAM_APP_SECRET) {
