@@ -93,46 +93,6 @@ app.get("/api/accounts/:id/media-detailed",auth,async(req,res)=>{try{const a=awa
 app.get("/api/accounts/:id/demographics",auth,async(req,res)=>{try{const a=await getAcc(req.user.id,req.params.id);if(!a)return res.status(404).json({error:"Not found"});
   const r=await axios.get(`${IG}/me/insights`,{params:{metric:"engaged_audience_demographics,reached_audience_demographics,follower_demographics",period:"lifetime",metric_type:"total_value",timeframe:"last_30_days",access_token:a.access_token}});res.json(r.data)}catch(e){handleErr(e,res)}});
 
-// Business Discovery — public data from any business/creator account
-app.get("/api/accounts/:id/discover/:username",auth,async(req,res)=>{try{const a=await getAcc(req.user.id,req.params.id);if(!a)return res.status(404).json({error:"Not found"});
-  const target=req.params.username.replace("@","").trim();if(!target)return res.status(400).json({error:"Username required"});
-  const mediaFields="id,caption,media_type,media_product_type,like_count,comments_count,timestamp,permalink";
-  const userFields=`username,name,biography,profile_picture_url,followers_count,follows_count,media_count,media.limit(25){${mediaFields}}`;
-  const igId=a.instagram_account_id;
-  const errors=[];
-  // Attempt 1: IG API with user ID + username query param
-  try{
-    console.log("Discovery attempt 1: IG API /{id} + username param");
-    const r=await axios.get(`${IG}/${igId}`,{params:{fields:`business_discovery.fields(${userFields})`,username:target,access_token:a.access_token}});
-    const bd=r.data?.business_discovery;if(bd){console.log("✅ Discovery OK via attempt 1");return res.json(bd)}
-    errors.push("No business_discovery in response");
-  }catch(e){const m=e.response?.data?.error?.message||e.message;errors.push("A1: "+m);console.warn("Discovery A1:",m)}
-  // Attempt 2: IG API /me + username query param
-  try{
-    console.log("Discovery attempt 2: IG API /me + username param");
-    const r=await axios.get(`${IG}/me`,{params:{fields:`business_discovery.fields(${userFields})`,username:target,access_token:a.access_token}});
-    const bd=r.data?.business_discovery;if(bd){console.log("✅ Discovery OK via attempt 2");return res.json(bd)}
-    errors.push("No business_discovery in response");
-  }catch(e){const m=e.response?.data?.error?.message||e.message;errors.push("A2: "+m);console.warn("Discovery A2:",m)}
-  // Attempt 3: IG API with username embedded in fields string  
-  try{
-    console.log("Discovery attempt 3: username in fields string");
-    const r=await axios.get(`${IG}/${igId}`,{params:{fields:`business_discovery.fields(${userFields}).username(${target})`,access_token:a.access_token}});
-    const bd=r.data?.business_discovery;if(bd){console.log("✅ Discovery OK via attempt 3");return res.json(bd)}
-    errors.push("No business_discovery in response");
-  }catch(e){const m=e.response?.data?.error?.message||e.message;errors.push("A3: "+m);console.warn("Discovery A3:",m)}
-  // All failed — return the most useful error
-  console.error("Discovery all failed:",JSON.stringify(errors));
-  const firstReal=errors.find(e=>!e.includes("No business_discovery"))||errors[0]||"Error desconocido";
-  const clean=firstReal.replace(/^A\d: /,"");
-  let userMsg=clean;
-  if(clean.includes("not exist")||clean.includes("does not exist"))userMsg="Cuenta no encontrada. Debe ser pública y business/creator";
-  else if(clean.includes("Cannot query")||clean.includes("not a Business"))userMsg="Esta cuenta es personal o privada. Solo se pueden consultar cuentas business/creator públicas";
-  else if(clean.includes("rate"))userMsg="Demasiadas búsquedas. Espera unos minutos";
-  else if(clean.includes("Unsupported"))userMsg="La API no soporta esta consulta con tu tipo de cuenta. Detalles: "+clean;
-  res.status(404).json({error:userMsg,debug:errors});
-}catch(e){handleErr(e,res)}});
-
 // Token refresh
 app.post("/api/accounts/:id/refresh-token",auth,async(req,res)=>{try{const a=await getAcc(req.user.id,req.params.id);if(!a)return res.status(404).json({error:"Not found"});
   const r=await axios.get(`${IG}/refresh_access_token`,{params:{grant_type:"ig_refresh_token",access_token:a.access_token}});await supa.from("accounts").update({access_token:r.data.access_token,token_expires_at:Date.now()+r.data.expires_in*1000}).eq("id",a.id);res.json({ok:true})}catch(e){handleErr(e,res)}});
