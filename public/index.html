@@ -213,7 +213,7 @@ function Dash({session,onLogout}){
     if(r[1].status==="fulfilled")setIns(r[1].value);else setIns(null);
     if(r[2].status==="fulfilled"){const a=r[2].value?.data||[];setMedia(Array.isArray(a)?a:[])}else setMedia([]);
     if(r[0].status==="fulfilled"&&r[0].value)setAcc(prev=>prev.map(a=>a.id===selId?{...a,...r[0].value,id:a.id}:a));setLdD(false)};
-  const doRefresh=async()=>{setRefreshing(true);await fetchD();setDet(null);setRefreshing(false);sT("Datos actualizados")};
+  const doRefresh=async()=>{setRefreshing(true);await fetchD();setDet(null);setLdP(true);try{const d=await api("/api/accounts/"+selId+"/media-detailed?limit=50");setDet(d)}catch(ex){}setLdP(false);setRefreshing(false);sT("Datos actualizados")};
   const connectIG=async()=>{const s=(await sb.auth.getSession()).data.session;if(!s)return sT("Sesión expirada","err");location.href="/auth/instagram?token="+s.access_token};
   const rmAcc=async id=>{if(!confirm("¿Eliminar esta cuenta?"))return;await api("/api/accounts/"+id,{method:"DELETE"});const u=accounts.filter(a=>a.id!==id);setAcc(u);if(selId===id)setSel(u[0]?.id||null);sT("Cuenta eliminada")};
   const acc=accounts.find(a=>a.id===selId)||null;
