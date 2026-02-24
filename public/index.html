@@ -39,6 +39,7 @@ a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer}
 .nv{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;font-size:12.5px;font-weight:500;color:var(--tm);transition:all .2s;border:none;background:none;width:100%;text-align:left}
 .nv:hover{color:var(--t);background:rgba(255,107,43,0.04)}.nv.on{color:var(--fire);background:rgba(255,107,43,.06);font-weight:600;border:1px solid rgba(255,107,43,.1);text-shadow:0 0 12px rgba(255,107,43,.3)}
 .nv-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.px-i{width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-family:var(--px);font-size:6.5px;border-radius:4px;flex-shrink:0;line-height:1}
 .cnt{margin-left:230px;flex:1;padding:28px 32px;max-width:1160px}
 .bp{background:linear-gradient(135deg,var(--fire),var(--lava));border:none;border-radius:11px;padding:9px 20px;color:#fff;font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;gap:7px;transition:all .2s;box-shadow:0 2px 12px rgba(255,107,43,.25)}.bp:hover{opacity:.9;transform:translateY(-1px)}
 .bo{background:rgba(255,107,43,.03);border:1px solid rgba(255,107,43,.1);border-radius:11px;padding:8px 16px;color:var(--t);font-size:12.5px;font-weight:500;display:inline-flex;align-items:center;gap:6px;transition:all .2s}.bo:hover{border-color:var(--bh);background:rgba(255,107,43,.06)}.bo.loading{opacity:.6;pointer-events:none}
@@ -273,7 +274,7 @@ function AIChat({A,acc,hasKey}){
   const suggestions=["¿Qué contenido debería forjar más?","¿Por qué mis posts no se guardan?","Dame 3 ideas basadas en mis datos","¿Cuál es mi gap óptimo?","Escríbeme un caption","¿Cómo bajo mis ghost followers?"];
   return<div className="chat-w"><div className="chat-msgs" ref={ref}>
     {msgs.map((m2,i)=><div key={i} className={"chat-msg "+m2.role} style={{whiteSpace:"pre-wrap"}}>{m2.text}</div>)}
-    {sending&&<div className="chat-msg ai" style={{animation:"pulse 1.5s ease infinite"}}>⚒️ Forjando respuesta...</div>}
+    {sending&&<div className="chat-msg ai" style={{animation:"pulse 1.5s ease infinite"}}><span style={{fontFamily:"var(--px)",fontSize:8}}>⚒ FORJANDO RESPUESTA...</span></div>}
     {msgs.length<=1&&<div style={{display:"flex",flexWrap:"wrap",gap:6,padding:"8px 0"}}>{suggestions.map((s,i)=><button key={i} className="fch" style={{fontSize:10.5}} onClick={()=>{setInput(s)}}>{s}</button>)}</div>}
   </div><div className="chat-input"><input placeholder={hasKey?"Pregúntame sobre tu crecimiento...":"Configura Groq API key en Ajustes"} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} disabled={sending}/><button className="bp" style={{padding:"8px 18px"}} onClick={send} disabled={sending||!input.trim()}>⚒️</button></div></div>}
 
@@ -326,7 +327,7 @@ function Dash({session,onLogout}){
   const saveGroqKey=async()=>{try{await api("/api/settings",{method:"POST",body:JSON.stringify({groq_api_key:groqKey||null})});setGroqSaved(!!groqKey);sT(groqKey?"API key forjada ✓":"API key eliminada")}catch(e2){sT(e2.message,"err")}};
   useEffect(()=>{if(selId){fetchD();api("/api/accounts/"+selId+"/snapshots").then(setSnaps).catch(()=>setSnaps([]))}},[selId,dr]);
   useEffect(()=>{setDet(null)},[selId]);
-  useEffect(()=>{if(["posts","deep","coach","mediakit"].includes(tab)&&selId&&!detailed&&!ldP){setLdP(true);api("/api/accounts/"+selId+"/media-detailed?limit=50").then(d=>{setDet(d);setLdP(false)}).catch(()=>setLdP(false))}},[tab,selId]);
+  useEffect(()=>{if(["dash","posts","deep","coach","mediakit"].includes(tab)&&selId&&!detailed&&!ldP){setLdP(true);api("/api/accounts/"+selId+"/media-detailed?limit=50").then(d=>{setDet(d);setLdP(false)}).catch(()=>setLdP(false))}},[tab,selId]);
   useEffect(()=>{setPage(1)},[tf,sc,sd]);
   const fetchD=async()=>{setLdD(true);const d=dr==="custom"?(cf&&ct?{since:Math.floor(new Date(cf).getTime()/1000),until:Math.floor(new Date(ct).getTime()/1000)}:{}):getDateRange(dr);
     const iq="/api/accounts/"+selId+"/insights?period=day"+(d.since?"&since="+d.since+"&until="+d.until:"");
@@ -347,7 +348,7 @@ function Dash({session,onLogout}){
   const totalPages=Math.ceil(sorted.length/PER_PAGE);const paged=sorted.slice((page-1)*PER_PAGE,page*PER_PAGE);
   const tSrt=c=>{if(sc===c)setSD(sd==="desc"?"asc":"desc");else{setSC(c);setSD("desc")}};const sI=c=>sc===c?(sd==="desc"?" ↓":" ↑"):"";
   const DP=()=><div className="dr no-print">{[["all","Todo"],["7d","7d"],["14d","14d"],["30d","30d"],["90d","90d"],["custom","Fechas"]].map(([v,l])=><button key={v} className={"drb"+(dr===v?" on":"")} onClick={()=>setDR(v)}>{l}</button>)}{dr==="custom"&&<><input type="date" className="dri" value={cf} onChange={e2=>setCF(e2.target.value)}/><span style={{color:"var(--td)",fontSize:10}}>→</span><input type="date" className="dri" value={ct} onChange={e2=>setCT(e2.target.value)}/><button className="bo" style={{padding:"3px 9px",fontSize:10}} onClick={fetchD}>OK</button></>}</div>;
-  const navItems=[{id:"dash",i:"⚒️",l:"Fragua"},{id:"posts",i:"📋",l:"Posts"},{id:"deep",i:"🔬",l:"Patrones"},{id:"coach",i:"🤖",l:"Coach"},{id:"mediakit",i:"💼",l:"Media Kit"}];
+  const navItems=[{id:"dash",i:<span className="px-i" style={{background:"rgba(255,107,43,.12)",color:"var(--fire)"}}>⚒</span>,l:"Fragua"},{id:"posts",i:<span className="px-i" style={{background:"rgba(96,165,250,.1)",color:"var(--blu)"}}>▦</span>,l:"Posts"},{id:"deep",i:<span className="px-i" style={{background:"rgba(167,139,250,.1)",color:"#a78bfa"}}>◈</span>,l:"Patrones"},{id:"coach",i:<span className="px-i" style={{background:"rgba(52,211,153,.1)",color:"var(--grn)"}}>▸</span>,l:"Coach"},{id:"mediakit",i:<span className="px-i" style={{background:"rgba(251,191,36,.1)",color:"var(--org)"}}>◆</span>,l:"Media Kit"}];
   if(ld)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",flexDirection:"column",gap:16}}><div className="spin"/><div style={{fontFamily:"var(--px)",fontSize:8,color:"var(--fire)",marginTop:8}}>FORJANDO...</div></div>;
   return<div className="shell">
     <button className="hamburger" onClick={()=>setMob(!mobMenu)}>☰</button>
@@ -365,11 +366,11 @@ function Dash({session,onLogout}){
         {ddO&&<div className="dd">{accounts.map(a=><div key={a.id} className="ddi" onClick={e2=>{e2.stopPropagation();setSel(a.id);setDd(false)}}>{a.profile_picture_url?<img src={a.profile_picture_url} style={{width:22,height:22,borderRadius:7}}/>:<span style={{width:22,height:22,borderRadius:7,background:"var(--fire)",display:"inline-block"}}/>}<span style={{flex:1,fontWeight:selId===a.id?700:400}}>@{a.username}</span>{selId===a.id&&<span style={{color:"var(--fire)",fontSize:11}}>✓</span>}</div>)}</div>}
       </div>}
       <div className="sb-sep"/>
-      {navItems.map(t=><button key={t.id} className={"nv"+(tab===t.id?" on":"")} onClick={()=>switchTab(t.id)}><span className="nv-icon">{t.i}</span>{t.l}</button>)}
+      {navItems.map(t=><button key={t.id} className={"nv"+(tab===t.id?" on":"")} onClick={()=>switchTab(t.id)}>{t.i}<span>{t.l}</span></button>)}
       <div className="sb-sep"/>
-      <button className={"nv"+(tab==="settings"?" on":"")} onClick={()=>switchTab("settings")}><span className="nv-icon">⚙️</span>Ajustes</button>
+      <button className={"nv"+(tab==="settings"?" on":"")} onClick={()=>switchTab("settings")}><span className="px-i" style={{background:"rgba(255,255,255,.05)",color:"var(--tm)"}}>✦</span><span>Ajustes</span></button>
       <div style={{flex:1}}/>
-      <button className="bp" style={{width:"100%",justifyContent:"center",fontSize:11.5,padding:"10px"}} onClick={connectIG}>+ Forjar cuenta</button>
+      <button className="bp" style={{width:"100%",justifyContent:"center",fontSize:11.5,padding:"10px"}} onClick={connectIG}><span style={{fontFamily:"var(--px)",fontSize:7}}>+</span> Forjar cuenta</button>
     </div>
     <div className="cnt">{!acc&&tab!=="settings"?<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"60vh",gap:18,textAlign:"center"}}>
       <div className="sb-logo-icon" style={{width:80,height:80,fontSize:36,borderRadius:20,boxShadow:"0 8px 32px rgba(255,107,43,.3)"}}>⚒️</div>
@@ -378,11 +379,11 @@ function Dash({session,onLogout}){
       <button className="bp" style={{padding:"13px 28px",marginTop:8,fontSize:14}} onClick={connectIG}>⚒️ Forjar mi primera cuenta</button></div>:<div>
       {acc&&tab!=="settings"&&<div className="no-print" style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:24,gap:14,flexWrap:"wrap"}}>
         <h1 style={{fontSize:20,fontWeight:800,letterSpacing:"-.03em",display:"flex",alignItems:"center",gap:10}}>{navItems.find(x=>x.id===tab)?.i} {navItems.find(x=>x.id===tab)?.l||"Ajustes"}{A&&<span style={{fontFamily:"var(--px)",fontSize:7,color:"var(--purple)",background:"rgba(131,58,180,.08)",padding:"3px 8px",borderRadius:6}}>Lv.{A.level}</span>}</h1>
-        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><DP/><button className={"bo"+(refreshing?" loading":"")} onClick={doRefresh}>{refreshing?"⏳ Forjando...":"🔄 Actualizar"}</button></div></div>}
+        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><DP/><button className={"bo"+(refreshing?" loading":"")} onClick={doRefresh}>{refreshing?<><span className="px-i" style={{background:"rgba(255,107,43,.1)",color:"var(--fire)",animation:"hammer .6s ease infinite",fontSize:8}}>⚒</span> Forjando...</>:<><span className="px-i" style={{background:"rgba(255,107,43,.08)",color:"var(--fire)",fontSize:8}}>↻</span> Actualizar</>}</button></div></div>}
       {ldD&&tab!=="settings"?<div style={{padding:40,textAlign:"center"}}><div className="spin"/><div style={{fontFamily:"var(--px)",fontSize:8,color:"var(--fire)",marginTop:16}}>FORJANDO DATOS...</div></div>:<div>
 
       {/* ═══ FRAGUA (Dashboard) ═══ */}
-      {tab==="dash"&&acc&&<>
+      {tab==="dash"&&acc&&<>{ldP&&!A?<div style={{padding:40,textAlign:"center"}}><div className="spin"/><div style={{fontFamily:"var(--px)",fontSize:8,color:"var(--fire)",marginTop:16}}>FORJANDO ANÁLISIS...</div></div>:<>
         {/* Next Best Action */}
         {A&&<div className="nba"><h3>{A.nextAction.icon} {A.nextAction.title}</h3><p>{A.nextAction.desc}</p><button className="bp" onClick={()=>switchTab(A.nextAction.btn.includes("Coach")?"coach":"deep")}>{A.nextAction.btn} →</button></div>}
         {/* 3 Core KPIs */}
@@ -421,10 +422,10 @@ function Dash({session,onLogout}){
             <p style={{marginTop:6,fontSize:12,color:"var(--tm)"}}>{A.dn[A.cDay]} {A.cHr}:00{best&&!isBest?" · Mejor hoy: "+best.hour+":00":""}</p></div>})()}
         {/* Chart */}
         {RC&&chartData.length>0&&<div className="pnl"><div className="pt">📈 Alcance y views</div><ResponsiveContainer width="100%" height={180}><AreaChart data={chartData}><defs><linearGradient id="gR" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ff6b2b" stopOpacity={.2}/><stop offset="100%" stopColor="#ff6b2b" stopOpacity={0}/></linearGradient><linearGradient id="gV" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#60a5fa" stopOpacity={.15}/><stop offset="100%" stopColor="#60a5fa" stopOpacity={0}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.03)"/><XAxis dataKey="date" stroke="rgba(255,255,255,.1)" fontSize={10} tickLine={false}/><YAxis stroke="rgba(255,255,255,.1)" fontSize={10} tickLine={false} tickFormatter={v2=>v2>=1000?(v2/1000).toFixed(1)+"k":v2}/><Tooltip content={<Tip/>}/><Area type="monotone" dataKey="reach" stroke="#ff6b2b" strokeWidth={2} fill="url(#gR)" name="Alcance"/><Area type="monotone" dataKey="views" stroke="#60a5fa" strokeWidth={2} fill="url(#gV)" name="Views"/></AreaChart></ResponsiveContainer></div>}
-      </>}
+      </>}</>}
 
       {/* ═══ POSTS ═══ */}
-      {tab==="posts"&&acc&&<>{ldP?<div style={{padding:40,textAlign:"center"}}><div className="spin"/></div>:!A?<p style={{color:"var(--tm)"}}>Cargando...</p>:<div className="pnl">
+      {tab==="posts"&&acc&&<>{ldP?<div style={{padding:40,textAlign:"center"}}><div className="spin"/><div style={{fontFamily:"var(--px)",fontSize:8,color:"var(--fire)",marginTop:16}}>FORJANDO...</div></div>:!A?<div style={{padding:40,textAlign:"center"}}><div className="spin"/></div>:<div className="pnl">
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:10}}>
           <div style={{fontSize:13,fontWeight:600,color:"var(--tm)"}}>{filtered.length} piezas · Pág {page}/{totalPages||1}</div>
           <button className="bo no-print" style={{fontSize:11}} onClick={()=>exportCSV(sorted,"growsmith-"+acc.username+".csv")}>📥 CSV</button>
@@ -453,7 +454,7 @@ function Dash({session,onLogout}){
       </div>}</>}
 
       {/* ═══ PATRONES (Deep Analytics) ═══ */}
-      {tab==="deep"&&acc&&<>{ldP&&!A?<div style={{padding:40,textAlign:"center"}}><div className="spin"/></div>:!A?<p style={{color:"var(--tm)"}}>Carga datos...</p>:<>
+      {tab==="deep"&&acc&&<>{ldP&&!A?<div style={{padding:40,textAlign:"center"}}><div className="spin"/><div style={{fontFamily:"var(--px)",fontSize:8,color:"var(--fire)",marginTop:16}}>ANALIZANDO...</div></div>:!A?<div style={{padding:40,textAlign:"center"}}><div className="spin"/></div>:<>
         <div className="pnl gf"><div className="pt">🧊 Matriz de Valor</div>
           <p style={{fontSize:11.5,color:"var(--td)",marginBottom:14}}>Cada punto es un post. Horizontal = save rate, Vertical = engagement. Los posts <strong style={{color:"var(--grn)"}}>ORO</strong> son tu fórmula ganadora.</p>
           {A.posts.length<5?<div style={{padding:20,textAlign:"center",color:"var(--td)"}}><span style={{fontSize:28}}>🔨</span><p style={{marginTop:8}}>Necesitas al menos 5 posts con datos de reach para ver la matriz.</p></div>:<>
@@ -517,7 +518,7 @@ function Dash({session,onLogout}){
       </>}</>}
 
       {/* ═══ COACH ═══ */}
-      {tab==="coach"&&acc&&<>{ldP&&!A?<div style={{padding:40,textAlign:"center"}}><div className="spin"/></div>:!A?<p style={{color:"var(--tm)"}}>Carga datos primero</p>:<>
+      {tab==="coach"&&acc&&<>{ldP&&!A?<div style={{padding:40,textAlign:"center"}}><div className="spin"/><div style={{fontFamily:"var(--px)",fontSize:8,color:"var(--fire)",marginTop:16}}>FORJANDO COACH...</div></div>:!A?<div style={{padding:40,textAlign:"center"}}><div className="spin"/></div>:<>
         <div className="pnl gf" style={{padding:0,overflow:"hidden"}}>
           <div style={{padding:"18px 22px 0",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div className="pt" style={{margin:0}}>⚒️ Growth Smith Coach</div>
@@ -529,7 +530,7 @@ function Dash({session,onLogout}){
       </>}</>}
 
       {/* ═══ MEDIA KIT ═══ */}
-      {tab==="mediakit"&&acc&&<>{ldP&&!A?<div style={{padding:40,textAlign:"center"}}><div className="spin"/></div>:<div>
+      {tab==="mediakit"&&acc&&<>{ldP&&!A?<div style={{padding:40,textAlign:"center"}}><div className="spin"/><div style={{fontFamily:"var(--px)",fontSize:8,color:"var(--fire)",marginTop:16}}>PREPARANDO KIT...</div></div>:<div>
         <div className="no-print" style={{marginBottom:16}}><button className="bp" onClick={()=>window.print()}>🖨 Exportar PDF</button></div>
         <div className="pnl" style={{padding:34}}>
           <div style={{textAlign:"center",paddingBottom:26,borderBottom:"1px solid var(--bdr)",marginBottom:30}}>
@@ -564,7 +565,7 @@ function Dash({session,onLogout}){
 
       {/* ═══ SETTINGS ═══ */}
       {tab==="settings"&&<div style={{maxWidth:620}}>
-        <div style={{marginBottom:24}}><h1 style={{fontSize:20,fontWeight:800,display:"flex",alignItems:"center",gap:10}}>⚙️ Ajustes</h1></div>
+        <div style={{marginBottom:24}}><h1 style={{fontSize:20,fontWeight:800,display:"flex",alignItems:"center",gap:10}}><span className="px-i" style={{background:"rgba(255,255,255,.05)",color:"var(--tm)"}}>✦</span> Ajustes</h1></div>
         <div className="pnl">
           <div className="pt">👤 Cuenta</div>
           <div style={{padding:"14px 0",borderBottom:"1px solid var(--bdr)",display:"flex",justifyContent:"space-between"}}><span style={{color:"var(--tm)"}}>Email</span><span style={{fontWeight:600}}>{userEmail}</span></div>
