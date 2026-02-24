@@ -264,12 +264,17 @@ function Dash({session,onLogout}){
   const[sc,setSC]=useState("saveRate"),[sd,setSD]=useState("desc"),[tf,setTF]=useState("all"),[page,setPage]=useState(1);
   const[mobMenu,setMob]=useState(false);
   const[groqKey,setGroqKey]=useState(""),[groqSaved,setGroqSaved]=useState(false);
+  const[invites,setInvites]=useState([]),[invLabel,setInvLabel]=useState("");
   const sT=(m2,t)=>{setToast({m:m2,t:t||"ok"});setTimeout(()=>setToast(null),3500)};
   const userEmail=session?.user?.email||"";
   const switchTab=t=>{setTab(t);sessionStorage.setItem("im_tab",t);setMob(false)};
-  useEffect(()=>{const p2=new URLSearchParams(location.search);if(p2.get("connected")){sT("@"+p2.get("connected")+" conectada ✓");history.replaceState({},"","/")}if(p2.get("error")){sT(decodeURIComponent(p2.get("error")),"err");history.replaceState({},"","/")}loadA();loadSettings()},[]);
+  useEffect(()=>{const p2=new URLSearchParams(location.search);if(p2.get("connected")){sT("@"+p2.get("connected")+" conectada ✓");history.replaceState({},"","/")}if(p2.get("error")){sT(decodeURIComponent(p2.get("error")),"err");history.replaceState({},"","/")}loadA();loadSettings();loadInvites()},[]);
   const loadA=async()=>{try{const d=await api("/api/accounts");setAcc(Array.isArray(d)?d:[]);if(d.length&&!selId)setSel(d[0].id)}catch(e2){console.error(e2)}setLd(false)};
   const loadSettings=async()=>{try{const d=await api("/api/settings");if(d?.groq_api_key){setGroqKey(d.groq_api_key);setGroqSaved(true)}}catch(ex){}};
+  const loadInvites=async()=>{try{const d=await api("/api/invites");setInvites(Array.isArray(d)?d:[])}catch(ex){}};
+  const createInvite=async()=>{try{const d=await api("/api/invites",{method:"POST",body:JSON.stringify({label:invLabel||null})});setInvites(prev=>[d,...prev]);setInvLabel("");sT("Link creado ✓")}catch(e2){sT(e2.message,"err")}};
+  const deleteInvite=async(id)=>{try{await api("/api/invites/"+id,{method:"DELETE"});setInvites(prev=>prev.filter(i=>i.id!==id));sT("Link eliminado")}catch(e2){sT(e2.message,"err")}};
+  const copyInvite=(token)=>{navigator.clipboard.writeText(location.origin+"/invite/"+token);sT("Link copiado ✓")};
   const saveGroqKey=async()=>{try{await api("/api/settings",{method:"POST",body:JSON.stringify({groq_api_key:groqKey||null})});setGroqSaved(!!groqKey);sT(groqKey?"API key guardada ✓":"API key eliminada")}catch(e2){sT(e2.message,"err")}};
   useEffect(()=>{if(selId){fetchD();api("/api/accounts/"+selId+"/snapshots").then(setSnaps).catch(()=>setSnaps([]))}},[selId,dr]);
   useEffect(()=>{setDet(null)},[selId]);
@@ -519,6 +524,27 @@ function Dash({session,onLogout}){
             <button className="bp" style={{padding:"10px 18px",whiteSpace:"nowrap"}} onClick={saveGroqKey}>{groqSaved?"✓ Guardada":"Guardar"}</button>
           </div>
           {groqSaved&&<p style={{fontSize:11,color:"var(--grn)",marginTop:8}}>✅ Activo. Ve a AI Coach para usarlo.</p>}
+        </div>
+        {/* INVITE LINKS */}
+        <div className="pnl">
+          <div className="pt">🔗 Links de invitación</div>
+          <p style={{fontSize:12,color:"var(--tm)",marginBottom:14,lineHeight:1.6}}>Genera un link para que un cliente conecte su Instagram a tu panel. No necesita crear cuenta.</p>
+          <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:16}}>
+            <input className="ai" placeholder="Nombre del cliente (opcional)" value={invLabel} onChange={e2=>setInvLabel(e2.target.value)} style={{flex:1,fontSize:12.5}} onKeyDown={e2=>e2.key==="Enter"&&createInvite()}/>
+            <button className="bp" style={{padding:"10px 18px",whiteSpace:"nowrap"}} onClick={createInvite}>+ Generar link</button>
+          </div>
+          {invites.length>0&&<div>{invites.map((inv,i)=><div key={inv.id} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 0",borderBottom:i<invites.length-1?"1px solid var(--bdr)":"none"}}>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:12.5,fontWeight:600}}>{inv.label||"Sin nombre"}</div>
+              <div style={{fontSize:11,color:"var(--td)",marginTop:3,fontFamily:"monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{location.origin}/invite/{inv.token}</div>
+              {inv.used_at?<div style={{fontSize:10.5,color:"var(--grn)",marginTop:3}}>✅ Conectado: @{inv.linked_username} · {new Date(inv.used_at).toLocaleDateString("es-ES")}</div>:<div style={{fontSize:10.5,color:"var(--org)",marginTop:3}}>⏳ Pendiente · {new Date(inv.created_at).toLocaleDateString("es-ES")}</div>}
+            </div>
+            <div style={{display:"flex",gap:6,flexShrink:0}}>
+              {!inv.used_at&&<button className="bo" style={{fontSize:10.5,padding:"5px 12px"}} onClick={()=>copyInvite(inv.token)}>📋 Copiar</button>}
+              <button className="bg" style={{color:"var(--red)"}} onClick={()=>deleteInvite(inv.id)}>✕</button>
+            </div>
+          </div>)}</div>}
+          {invites.length===0&&<p style={{fontSize:12,color:"var(--td)"}}>No hay links creados.</p>}
         </div>
         <div className="pnl">
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div className="pt" style={{margin:0}}>📱 Cuentas ({accounts.length})</div><button className="bp" style={{fontSize:11,padding:"7px 16px"}} onClick={connectIG}>+ Conectar</button></div>
