@@ -56,6 +56,8 @@ app.get("/auth/callback",async(req,res)=>{const{code,error,error_description,sta
   await supa.from("accounts").upsert({user_id:od.userId,instagram_account_id:aid,username:p.username,name:p.name||p.username,account_type:p.account_type,profile_picture_url:p.profile_picture_url||null,followers_count:p.followers_count||0,follows_count:p.follows_count||0,media_count:p.media_count||0,access_token:encrypt(lt),token_expires_at:Date.now()+exp*1000,connected_at:new Date().toISOString()},{onConflict:"user_id,instagram_account_id"});
   // Safe snapshot after account is saved
   try{const{data:accRow}=await supa.from("accounts").select("id").eq("user_id",od.userId).eq("instagram_account_id",aid).single();if(accRow?.id)saveSnapshot(accRow.id,{followers_count:p.followers_count,follows_count:p.follows_count,media_count:p.media_count})}catch(se){console.warn("Snapshot skip:",se.message)}
+  // Mark invite as used
+  if(od.inviteId){try{await supa.from("invite_links").update({used_at:new Date().toISOString(),linked_username:p.username}).eq("id",od.inviteId);console.log("✅ Invite used:",od.inviteToken)}catch(ie){console.warn("Invite update skip:",ie.message)}}
   res.redirect("/?connected="+encodeURIComponent(p.username))}catch(e){console.error("OAuth:",e.response?.data||e.message);res.redirect(`/?error=${encodeURIComponent(e.response?.data?.error_message||e.message)}`)}});
 
 // Accounts
@@ -145,6 +147,43 @@ Reglas:
   if(msg.includes("Invalid API Key"))return res.status(401).json({error:"API key de Groq inválida. Verifica en groq.com"});
   if(msg.includes("rate"))return res.status(429).json({error:"Límite de Groq alcanzado. Espera un momento"});
   res.status(500).json({error:msg})}});
+
+// ── Invite Links ──
+app.get("/api/invites",auth,async(req,res)=>{try{
+  const{data}=await supa.from("invite_links").select("*").eq("user_id",req.user.id).order("created_at",{ascending:false});
+  res.json(data||[])}catch(e){handleErr(e,res)}});
+app.post("/api/invites",auth,async(req,res)=>{try{
+  const token=uuidv4().replace(/-/g,"").slice(0,16);
+  const{label}=req.body;
+  const{data,error}=await supa.from("invite_links").insert({user_id:req.user.id,token,label:label||null}).select().single();
+  if(error)throw error;
+  res.json(data)}catch(e){handleErr(e,res)}});
+app.delete("/api/invites/:id",auth,async(req,res)=>{try{
+  await supa.from("invite_links").delete().eq("id",req.params.id).eq("user_id",req.user.id);
+  res.json({ok:true})}catch(e){handleErr(e,res)}});
+
+// Invite landing page (no auth needed — this is for the CLIENT)
+app.get("/invite/:token",async(req,res)=>{try{
+  const{data:invite}=await supa.from("invite_links").select("*").eq("token",req.params.token).single();
+  if(!invite)return res.send(invitePage("Link inválido","Este link no existe o ha expirado.",true));
+  if(invite.used_at)return res.send(invitePage("Ya usado","Este link ya fue utilizado para conectar @"+invite.linked_username+".",true));
+  // Start OAuth with invite context
+  const s=uuidv4();oauthStates.set(s,{userId:invite.user_id,ts:Date.now(),inviteId:invite.id,inviteToken:invite.token});cleanS();
+  const authUrl=`https://www.instagram.com/oauth/authorize?enable_fb_login=0&force_authentication=1&client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES)}&response_type=code&state=${s}`;
+  res.send(invitePage("Conectar Instagram","Al pulsar el botón, se abrirá Instagram para que autorices acceso de solo lectura a tus métricas. No podremos publicar, enviar mensajes ni cambiar nada en tu cuenta.",false,authUrl));
+}catch(e){res.send(invitePage("Error",e.message,true))}});
+
+function invitePage(title,msg,isError,authUrl){return`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>InstaMetrics — Invitación</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',-apple-system,sans-serif;background:#07060b;color:#f0eef5;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#0e0d14;border:1px solid rgba(255,255,255,.055);border-radius:24px;padding:44px 36px;max-width:440px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.logo{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#f9ce34,#ee2a7b 50%,#6228d7);display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;color:#fff;margin-bottom:18px;box-shadow:0 4px 16px rgba(225,48,108,.3)}
+h1{font-size:22px;font-weight:800;margin-bottom:8px}p{color:rgba(240,238,245,.5);font-size:13.5px;line-height:1.65;margin-bottom:24px}
+.btn{display:inline-block;background:linear-gradient(135deg,#e1306c,#833ab4);border:none;border-radius:12px;padding:14px 32px;color:#fff;font-size:15px;font-weight:700;text-decoration:none;transition:all .2s;box-shadow:0 4px 16px rgba(225,48,108,.3);cursor:pointer}.btn:hover{opacity:.9;transform:translateY(-2px)}
+.err{color:#f87171}.safe{margin-top:16px;padding:14px;background:rgba(52,211,153,.05);border:1px solid rgba(52,211,153,.1);border-radius:12px;font-size:12px;color:rgba(52,211,153,.8);text-align:left}
+.safe b{color:#34d399}</style></head><body><div class="card"><div class="logo">M</div>
+<h1${isError?' class="err"':''}>${title}</h1><p>${msg}</p>
+${authUrl?`<a href="${authUrl}" class="btn">🔗 Conectar mi Instagram</a><div class="safe"><b>🔒 Seguro:</b> Solo lectura de métricas. No podemos publicar, enviar DMs ni cambiar tu contraseña. Puedes revocar el acceso en cualquier momento desde Instagram.</div>`:''}
+</div></body></html>`}
 
 app.get("/privacy",(_,r)=>r.send('<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:700px;margin:40px auto;padding:20px"><h1>Privacidad</h1><p>Solo accedemos a datos de cuentas que conectas. No vendemos datos.</p></body></html>'));
 app.get("*",(req,res)=>res.sendFile(path.join(__dirname,"public","index.html")));
