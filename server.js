@@ -173,16 +173,17 @@ app.get("/invite/:token",async(req,res)=>{try{
   res.send(invitePage("Conectar Instagram","Al pulsar el botón, se abrirá Instagram para que autorices acceso de solo lectura a tus métricas. No podremos publicar, enviar mensajes ni cambiar nada en tu cuenta.",false,authUrl));
 }catch(e){res.send(invitePage("Error",e.message,true))}});
 
-function invitePage(title,msg,isError,authUrl){return`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>InstaMetrics — Invitación</title>
-<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',-apple-system,sans-serif;background:#07060b;color:#f0eef5;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.card{background:#0e0d14;border:1px solid rgba(255,255,255,.055);border-radius:24px;padding:44px 36px;max-width:440px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4)}
-.logo{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#f9ce34,#ee2a7b 50%,#6228d7);display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;color:#fff;margin-bottom:18px;box-shadow:0 4px 16px rgba(225,48,108,.3)}
+function invitePage(title,msg,isError,authUrl){return`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>GrowSmith — Invitación</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet"/>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',-apple-system,sans-serif;background:#08070c;color:#f0eef5;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#0f0e15;border:1px solid rgba(255,107,43,.08);border-radius:24px;padding:44px 36px;max-width:440px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.logo{font-family:'Press Start 2P',monospace;font-size:10px;color:#ff6b2b;margin-bottom:4px}.logo-icon{font-size:32px;margin-bottom:12px}
 h1{font-size:22px;font-weight:800;margin-bottom:8px}p{color:rgba(240,238,245,.5);font-size:13.5px;line-height:1.65;margin-bottom:24px}
-.btn{display:inline-block;background:linear-gradient(135deg,#e1306c,#833ab4);border:none;border-radius:12px;padding:14px 32px;color:#fff;font-size:15px;font-weight:700;text-decoration:none;transition:all .2s;box-shadow:0 4px 16px rgba(225,48,108,.3);cursor:pointer}.btn:hover{opacity:.9;transform:translateY(-2px)}
+.btn{display:inline-block;background:linear-gradient(135deg,#ff6b2b,#e8430a);border:none;border-radius:12px;padding:14px 32px;color:#fff;font-size:15px;font-weight:700;text-decoration:none;transition:all .2s;box-shadow:0 4px 16px rgba(255,107,43,.3);cursor:pointer}.btn:hover{opacity:.9;transform:translateY(-2px)}
 .err{color:#f87171}.safe{margin-top:16px;padding:14px;background:rgba(52,211,153,.05);border:1px solid rgba(52,211,153,.1);border-radius:12px;font-size:12px;color:rgba(52,211,153,.8);text-align:left}
-.safe b{color:#34d399}</style></head><body><div class="card"><div class="logo">M</div>
+.safe b{color:#34d399}</style></head><body><div class="card"><div class="logo-icon">⚒️</div><div class="logo">GROWSMITH</div>
 <h1${isError?' class="err"':''}>${title}</h1><p>${msg}</p>
-${authUrl?`<a href="${authUrl}" class="btn">🔗 Conectar mi Instagram</a><div class="safe"><b>🔒 Seguro:</b> Solo lectura de métricas. No podemos publicar, enviar DMs ni cambiar tu contraseña. Puedes revocar el acceso en cualquier momento desde Instagram.</div>`:''}
+${authUrl?`<a href="${authUrl}" class="btn">⚒️ Conectar mi Instagram</a><div class="safe"><b>🔒 Seguro:</b> Solo lectura de métricas. No podemos publicar, enviar DMs ni cambiar tu contraseña. Puedes revocar el acceso en cualquier momento desde Instagram.</div>`:''}
 </div></body></html>`}
 
 app.get("/privacy",(_,r)=>r.send('<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:700px;margin:40px auto;padding:20px"><h1>Privacidad</h1><p>Solo accedemos a datos de cuentas que conectas. No vendemos datos.</p></body></html>'));
@@ -192,4 +193,4 @@ app.get("*",(req,res)=>res.sendFile(path.join(__dirname,"public","index.html")))
 process.on("unhandledRejection",(err)=>{console.error("Unhandled:",err)});
 process.on("uncaughtException",(err)=>{console.error("Uncaught:",err)});
 
-app.listen(PORT,()=>console.log(`\n🚀 InstaMetrics v5 — ${BASE_URL||`http://localhost:${PORT}`}\n`));
+app.listen(PORT,()=>console.log(`\n⚒️  GrowSmith — ${BASE_URL||`http://localhost:${PORT}`}\n`));
